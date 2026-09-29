@@ -824,3 +824,20 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   .gd-text { stroke-dashoffset: 0; fill-opacity: 1; }
 }
+
+/* ---------- Благодарности ---------- */
+.thanks-link { margin-bottom: 10px; background: linear-gradient(90deg, var(--gold-soft), var(--card)); border-color: color-mix(in srgb, var(--gold) 45%, var(--line)); }
+.thanks-link .ml-ic { background: var(--gold); color: #fff; }
+.thanks-hero { text-align: center; position: relative; overflow: hidden; background: radial-gradient(120% 90% at 50% 0%, var(--gold-soft), var(--card) 70%); border-color: color-mix(in srgb, var(--gold) 40%, var(--line)); }
+.th-ar .ar { --s: 2.6rem; color: var(--gold); line-height: 1.9; }
+.th-tr { font-weight: 800; color: var(--ink-2); margin-top: -6px; }
+.th-lead { font-size: 1.08rem; line-height: 1.65; max-width: 620px; margin: 10px auto 0; }
+.donors { margin-bottom: 16px; }
+.donor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+.donor { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); animation: viewIn .4s var(--ease) both; animation-delay: calc(min(var(--i), 20) * 40ms); }
+.donor > div { display: grid; }
+.donor b { font-size: 1.05rem; }
+.d-ic { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; background: var(--gold-soft); color: var(--gold); flex: none; }
+.th-dua { display: flex; gap: 12px; align-items: flex-start; color: var(--ink-2); font-style: italic; }
+.th-dua .ic { color: var(--gold); margin-top: 3px; }
+.th-dua p { margin: 0; }

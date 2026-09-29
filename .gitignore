@@ -2,8 +2,6 @@
 tools/qdata/raw/
 tools/qdata/seg7/
 tools/qdata/seg12/
-# Предыдущая версия приложения (хранится только локально)
-_old_version/
 # Служебное
 .claude/
 __pycache__/

@@ -72,6 +72,7 @@ const routes = [
   [/^\/letters$/, () => import("./views/reference.js").then((m) => m.LettersRef())],
   [/^\/rules$/, () => import("./views/reference.js").then((m) => m.RulesRef())],
   [/^\/method$/, () => import("./views/reference.js").then((m) => m.MethodView())],
+  [/^\/thanks$/, () => import("./views/thanks.js").then((m) => m.ThanksView())],
   [/^\/welcome$/, () => import("./views/onboard.js").then((m) => m.Onboarding())],
 ];
 const FULLSCREEN = /^\/(learn|surah|practice|welcome)/;
@@ -135,6 +136,8 @@ function registerSW() {
       const nw = reg.installing;
       nw?.addEventListener("statechange", () => {
         if (nw.state === "installed" && navigator.serviceWorker.controller) {
+          // вне урока обновляемся сразу; во время урока — по кнопке, чтобы не прервать занятие
+          if (!document.body.classList.contains("fullscreen")) { nw.postMessage({ type: "SKIP_WAITING" }); return; }
           toast(h("span", null, "Доступно обновление. ", h("button.link", { type: "button", onclick: () => { nw.postMessage({ type: "SKIP_WAITING" }); } }, "Обновить")), 8000);
         }
       });

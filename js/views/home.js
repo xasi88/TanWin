@@ -140,7 +140,7 @@ export function HomeView() {
           statsBar()),
         continueCard(),
         reviewCard(),
-        h("footer.home-foot", null, h("a", { href: "#/method" }, "Методика"), " · ", h("a", { href: "#/letters" }, "Алфавит"), " · ", h("a", { href: "#/rules" }, "Таджвид"))),
+        h("footer.home-foot", null, h("a", { href: "#/method" }, "Методика"), " · ", h("a", { href: "#/letters" }, "Алфавит"), " · ", h("a", { href: "#/rules" }, "Таджвид"), " · ", h("a", { href: "#/thanks" }, "Благодарности"))),
       h("div.path", null, ...UNITS.map(unitBlock), unitBlock(SURAH_UNIT))));
   // прокрутка к текущему узлу
   requestAnimationFrame(() => {

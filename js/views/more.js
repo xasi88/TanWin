@@ -39,6 +39,7 @@ export function MoreView() {
   return h("div.page.more", null,
     h("header.page-head", null, h("h1", null, "Ещё")),
     !isInstalled() ? h("button.more-link.install", { type: "button", onclick: installApp }, h("span.ml-ic", null, icon("down", { size: 22 })), h("div", null, h("b", null, "Установить приложение"), h("small.muted", null, "Отдельное окно на рабочем столе или телефоне, работает без интернета")), icon("right", { size: 18 })) : null,
+    h("a.more-link.thanks-link", { href: "#/thanks" }, h("span.ml-ic", null, icon("heart", { size: 22, fill: true, sw: 1 })), h("div", null, h("b", null, "Благодарности"), h("small.muted", null, "Люди, благодаря пожертвованиям которых состоялся проект")), icon("right", { size: 18 })),
     h("div.more-links", null,
       link("#/method", "sparkle", "Методика", "Как устроено обучение и почему оно работает"),
       link("#/letters", "list", "Алфавит", "Все 28 букв: звуки, формы, махраджи"),
