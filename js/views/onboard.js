@@ -1,0 +1,58 @@
+// Знакомство: что даст курс, цель дня, стартовая точка.
+import { h, ar, icon } from "../ui.js";
+import { store } from "../store.js";
+import { logo, go } from "../app.js";
+
+export function Onboarding() {
+  let step = 0;
+  const data = { name: store.get().profile.name || "", goal: store.get().profile.goal || 30 };
+  const root = h("div.onboard");
+  const dots = () => h("div.ob-dots", null, ...[0, 1, 2, 3].map((i) => h("i", { class: i === step ? "on" : "" })));
+  const screens = [
+    () => h("div.ob-screen.hero", null,
+      h("div.ob-logo", null, logo(92)),
+      h("div.ob-ar", null, ar("ٱقۡرَأۡ", { cls: "ob-big" })),
+      h("h1", null, "Научитесь читать Коран"),
+      h("p.lead", null, "С нуля — до чтения мусхафа по правилам таджвида. Маленькими шагами, по 10 минут в день."),
+      h("div.ob-points", null,
+        pt("ear", "Живые чтецы", "каждое слово и аят — голосом чтеца"),
+        pt("book", "Настоящие слова Корана", "с первого урока огласовок"),
+        pt("chart", "Виден прогресс", "путь, уровни, серия дней, награды")),
+      next("Начать")),
+    () => h("div.ob-screen", null,
+      h("h2", null, "Как к вам обращаться?"),
+      h("p.muted", null, "Необязательно — просто чтобы приветствовать вас."),
+      (() => { const i = h("input.text-in.big", { type: "text", value: data.name, placeholder: "Имя", maxlength: "30", "aria-label": "Имя" }); i.addEventListener("input", () => (data.name = i.value.trim())); setTimeout(() => i.focus(), 100); return i; })(),
+      next("Дальше")),
+    () => h("div.ob-screen", null,
+      h("h2", null, "Сколько времени в день?"),
+      h("p.muted", null, "Регулярность важнее длительности. Цель можно изменить в любой момент."),
+      h("div.goal-opts", null, ...[[10, "Лёгкий темп", "≈ 5 минут"], [30, "Обычный", "≈ 10 минут"], [50, "Серьёзный", "≈ 15 минут"], [80, "Интенсив", "≈ 25 минут"]].map(([v, t, s]) => {
+        const b = h("button.goal-opt", { type: "button", class: data.goal === v ? "on" : "" }, h("b", null, t), h("span", null, s), h("small", null, `${v} нура`));
+        b.addEventListener("click", () => { data.goal = v; b.parentNode.querySelectorAll(".goal-opt").forEach((x) => x.classList.toggle("on", x === b)); });
+        return b;
+      })),
+      next("Дальше")),
+    () => h("div.ob-screen", null,
+      h("h2", null, "С чего начнём?"),
+      h("div.start-opts", null,
+        startOpt("✦", "Я начинаю с нуля", "Не знаю арабских букв", "/learn/1.1"),
+        startOpt("ب", "Я знаю буквы", "Сдам проверку алфавита и пойду дальше", "/learn/2.9"),
+        startOpt("بَ", "Я читаю по слогам", "Проверю огласовки и начну с танвина", "/learn/5.6"),
+        startOpt("ٱ", "Я уже читаю", "Проверю особые написания и перейду к таджвиду", "/learn/10.6"))),
+  ];
+  function pt(ic, t, s) { return h("div.ob-pt", null, h("span.ob-pt-ic", null, icon(ic, { size: 22 })), h("div", null, h("b", null, t), h("small", null, s))); }
+  function next(label) { return h("button.btn.primary.wide.big", { type: "button", onclick: () => { step++; draw(); } }, label, icon("right", { size: 20 })); }
+  function startOpt(g, t, s, path) {
+    const b = h("button.start-opt", { type: "button" }, h("span.so-g", null, ar(g)), h("div", null, h("b", null, t), h("small", null, s)), icon("right"));
+    b.addEventListener("click", () => {
+      store.set((st) => { st.profile.name = data.name; st.profile.goal = data.goal; st.profile.onboarded = true; });
+      go(path === "/learn/1.1" ? "/" : path);
+      if (path === "/learn/1.1") setTimeout(() => go(path), 50);
+    });
+    return b;
+  }
+  const draw = () => { root.replaceChildren(h("div.ob-top", null, step ? h("button.icon-btn", { type: "button", "aria-label": "Назад", onclick: () => { step--; draw(); } }, icon("left")) : h("span"), dots(), h("span")), screens[step]()); };
+  draw();
+  return root;
+}

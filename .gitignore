@@ -1,0 +1,12 @@
+# Скачанные ответы Quran.com API (≈ 40 МБ) — восстанавливаются tools/qdata/fetch*.mjs
+tools/qdata/raw/
+tools/qdata/seg7/
+tools/qdata/seg12/
+# Предыдущая версия приложения (хранится только локально)
+_old_version/
+# Служебное
+.claude/
+__pycache__/
+node_modules/
+.DS_Store
+Thumbs.db
