@@ -865,3 +865,9 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .v-cur { font-size: .75rem; font-weight: 850; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-2); }
 .version ul { margin: 10px 0 0; padding-left: 20px; color: var(--ink-2); }
 .version li + li { margin-top: 4px; }
+.th-total { display: inline-grid; gap: 0; margin: 4px auto 6px; padding: 10px 22px; border-radius: 18px; background: linear-gradient(135deg, var(--gold-2), var(--gold)); color: #2a1a00; box-shadow: 0 6px 18px color-mix(in srgb, var(--gold) 30%, transparent); }
+.th-total small { font-weight: 800; text-transform: uppercase; letter-spacing: .06em; font-size: .72rem; opacity: .8; }
+.th-total b { font-size: 1.8rem; line-height: 1.2; }
+.d-ic { font-weight: 900; font-size: .9rem; }
+.contact-link { margin-bottom: 10px; border-color: color-mix(in srgb, #25d366 45%, var(--line)); background: linear-gradient(90deg, color-mix(in srgb, #25d366 12%, var(--card)), var(--card)); }
+.contact-link .ml-ic { background: #25d366; color: #fff; }
