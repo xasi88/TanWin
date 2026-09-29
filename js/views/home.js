@@ -6,6 +6,7 @@ import { lessonUnlocked, surahUnlocked, surahsOpen, unitProgress, nextTarget, ap
 import { surahMeta } from "../data.js";
 import { playLesson } from "../lesson.js";
 import { go, celebrate } from "../app.js";
+import { devBanner } from "../feedback.js";
 
 const hue = (u) => `var(--c-${u.hue})`;
 const unitOfLesson = (id) => UNITS.find((u) => u.lessons.some((l) => l.id === id));
@@ -135,6 +136,7 @@ export function HomeView() {
   const page = h("div.page.home", null,
     h("div.home-grid", null,
       h("aside.home-side", null,
+        devBanner(),
         h("header.home-head", null,
           h("div", null, h("h1", null, greeting()), h("p.muted", null, cp.done ? `Пройдено ${Math.round(cp.pct * 100)}% пути к чтению Корана` : "Начнём путь к чтению Корана")),
           statsBar()),

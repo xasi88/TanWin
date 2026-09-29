@@ -841,3 +841,27 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .th-dua { display: flex; gap: 12px; align-items: flex-start; color: var(--ink-2); font-style: italic; }
 .th-dua .ic { color: var(--gold); margin-top: 3px; }
 .th-dua p { margin: 0; }
+
+/* ---------- Плашка разработки, версии ---------- */
+.dev-banner { position: relative; display: flex; gap: 12px; align-items: flex-start; padding: 14px 44px 14px 14px; margin-bottom: 14px; border-radius: 18px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c-sky) 14%, var(--card)), var(--card)); border: 1px solid color-mix(in srgb, var(--c-sky) 40%, var(--line)); box-shadow: var(--shadow); }
+.db-ic { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; background: var(--c-sky); color: #fff; flex: none; }
+.db-body { flex: 1; min-width: 0; }
+.db-body b { display: block; margin-bottom: 2px; }
+.db-body p { margin: 0 0 8px; font-size: .92rem; color: var(--ink-2); }
+.db-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.small-btn { min-height: 40px; padding: 8px 14px; font-size: .92rem; border-radius: 12px; box-shadow: 0 3px 0 var(--bs); }
+.db-x { position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; border: 0; border-radius: 10px; background: transparent; color: var(--ink-3); cursor: pointer; display: grid; place-items: center; }
+.db-x:hover { background: var(--card-3); color: var(--ink); }
+.nf-ver { font-size: .78rem; color: var(--ink-3); font-weight: 700; margin-top: 2px; }
+.about-app .btn { min-height: 44px; }
+.versions { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.version { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); }
+.version.latest { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.v-head { display: flex; align-items: center; gap: 12px; }
+.v-head > div { display: grid; flex: 1; }
+.v-num { font-weight: 950; font-size: .95rem; padding: 6px 10px; border-radius: 10px; background: var(--card-3); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.version.latest .v-num { background: var(--accent); color: var(--accent-ink); }
+.v-cur { font-size: .75rem; font-weight: 850; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-2); }
+.version ul { margin: 10px 0 0; padding-left: 20px; color: var(--ink-2); }
+.version li + li { margin-top: 4px; }

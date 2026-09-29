@@ -4,6 +4,7 @@ import { store, streakNow, levelInfo, todayXp } from "./store.js";
 import { loadBank, loadSurahs } from "./data.js";
 import { stop } from "./audio.js";
 import { checkBadges } from "./path.js";
+import { APP_VERSION } from "./version.js";
 import { canPrompt, install, isInstalled, onInstallChange, manualHint } from "./install.js";
 
 const view = $("#view");
@@ -39,7 +40,8 @@ function renderNav(active) {
     !isInstalled() ? h("button.nav-install", { type: "button", onclick: installApp }, icon("down", { size: 18 }), h("span", null, "Установить приложение")) : null,
     h("div.nav-foot", null,
       h("div.nf-row", null, icon("flame", { size: 18, fill: true, sw: 1, cls: streakNow() ? "fire" : "" }), h("b", null, streakNow()), h("span", null, "дней подряд")),
-      h("div.nf-row", null, icon("nur", { size: 18, fill: true, sw: 1, cls: "nur" }), h("b", null, s.xp), h("span", null, `нура · уровень ${lv.n}`))));
+      h("div.nf-row", null, icon("nur", { size: 18, fill: true, sw: 1, cls: "nur" }), h("b", null, s.xp), h("span", null, `нура · уровень ${lv.n}`)),
+      h("a.nf-ver", { href: "#/changelog" }, `Версия ${APP_VERSION} · в разработке`)));
 }
 export async function installApp() {
   if (canPrompt()) { if (await install()) toast("TanWin установлен — ищите его на рабочем столе ✓"); }
@@ -73,6 +75,7 @@ const routes = [
   [/^\/rules$/, () => import("./views/reference.js").then((m) => m.RulesRef())],
   [/^\/method$/, () => import("./views/reference.js").then((m) => m.MethodView())],
   [/^\/thanks$/, () => import("./views/thanks.js").then((m) => m.ThanksView())],
+  [/^\/changelog$/, () => import("./views/changelog.js").then((m) => m.ChangelogView())],
   [/^\/welcome$/, () => import("./views/onboard.js").then((m) => m.Onboarding())],
 ];
 const FULLSCREEN = /^\/(learn|surah|practice|welcome)/;

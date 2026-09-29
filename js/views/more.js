@@ -4,6 +4,8 @@ import { store } from "../store.js";
 import { RECITERS } from "../data.js";
 import { go, installApp } from "../app.js";
 import { isInstalled } from "../install.js";
+import { APP_VERSION, CHANGELOG } from "../version.js";
+import { devBanner, feedbackButton } from "../feedback.js";
 
 function seg(label, options, value, onChange) {
   const box = h("div.seg", { role: "radiogroup", "aria-label": label });
@@ -44,6 +46,10 @@ export function MoreView() {
       link("#/method", "sparkle", "Методика", "Как устроено обучение и почему оно работает"),
       link("#/letters", "list", "Алфавит", "Все 28 букв: звуки, формы, махраджи"),
       link("#/rules", "palette", "Правила таджвида", "Цвета мусхафа и примеры из Корана")),
+    h("section.card.settings.about-app", null,
+      h("h3", null, "О приложении"),
+      h("div.set-row", null, h("div", null, h("span.set-label", null, `Версия ${APP_VERSION}`), h("small.muted", null, `${CHANGELOG[0].title} · приложение в активной разработке`)), h("a.btn.secondary", { href: "#/changelog" }, icon("list", { size: 18 }), "Версии")),
+      h("div.set-row", null, h("div", null, h("span.set-label", null, "Нашли ошибку?"), h("small.muted", null, "Напишите автору — укажем версию и экран автоматически")), feedbackButton())),
     h("section.card.settings", null,
       h("h3", null, "Профиль и цель"),
       h("div.set-row", null, h("span.set-label", null, "Имя"), name),
