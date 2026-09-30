@@ -2,7 +2,7 @@
 // При выпуске новой версии: поднимите APP_VERSION, добавьте запись В НАЧАЛО CHANGELOG,
 // затем `node tools/build.mjs`, commit и push.
 
-export const APP_VERSION = "1.4.0";
+export const APP_VERSION = "1.4.1";
 
 // Контакт автора для сообщений об ошибках. Номер — только цифры, с кодом страны (например, 79001234567).
 export const CONTACT = {
@@ -11,6 +11,12 @@ export const CONTACT = {
 };
 
 export const CHANGELOG = [
+  {
+    v: "1.4.1", date: "2026-09-30", title: "Исправление в меню",
+    items: [
+      "В установленном приложении внизу бокового меню больше не появляется надпись «null»",
+    ],
+  },
   {
     v: "1.4.0", date: "2026-09-30", title: "Чёткий арабский текст на любом экране",
     items: [
