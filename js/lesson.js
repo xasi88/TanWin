@@ -1,5 +1,5 @@
 // Плеер урока: карточки теории, упражнения, повтор ошибок, итог.
-import { h, ar, rich, tr, icon, wordChip, playBtn, toast, confetti, ring, shuffle, sample, plural, modal, mixed } from "./ui.js";
+import { h, ar, rich, tr, icon, wordChip, playBtn, toast, confetti, ring, shuffle, sample, plural, modal, mixed, sizeButton } from "./ui.js";
 import { build, quiz, ruleIndex } from "./exercises.js";
 import { byId, forms, POINTS, ZONES, LETTERS } from "./letters.js";
 import { letterExamples, lessonWords, words, minimalPairs, loadSurah, wordKey, rareExamples } from "./data.js";
@@ -7,7 +7,7 @@ import { RULES, parseMarkup, plain, rulesIn } from "./rules.js";
 import { M, CONS, stripStops } from "./arabic.js";
 import { diagram } from "./diagram.js";
 import { playWord, playAyah, stop, sfx, canRecord, startRecording, stopRecording, envelope, playUrl } from "./audio.js";
-import { store, addXp, srsSeen, finishLesson, todayXp } from "./store.js";
+import { store, addXp, srsSeen, finishLesson, todayXp, hardSeen } from "./store.js";
 
 const FORM_NAMES = [["fin", "в конце"], ["med", "в середине"], ["ini", "в начале"], ["iso", "отдельно"]];
 
@@ -194,7 +194,7 @@ function readStep(step, api) {
       h("button.rd-word", { type: "button", onclick: () => playWord(w.a), "aria-label": "Послушать" }, ar(w.d, { cls: "q-word" })),
       h("div.rd-tr", null, trEl), reveal, judge);
   };
-  const next = (ok) => { if (ok) good++; srsSeen("W:" + step.level, ok); api.addXp(ok ? 4 : 1); i++; i < ws.length ? show() : api.done({ good, total: ws.length }); };
+  const next = (ok) => { if (ok) good++; srsSeen("W:" + step.level, ok); hardSeen(w.a, ok); api.addXp(ok ? 4 : 1); i++; i < ws.length ? show() : api.done({ good, total: ws.length }); };
   show();
   return box;
 }
@@ -274,7 +274,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
   const stage = h("div.lp-stage");
   const sheet = h("div.lp-sheet");
   const shell = h("div.lesson", { class: isTest ? "test" : "" },
-    h("header.lp-top", null, exitBtn, h("div.lp-bar", null, bar), comboEl, xpEl),
+    h("header.lp-top", null, exitBtn, h("div.lp-bar", null, bar), comboEl, xpEl, sizeButton()),
     stage, sheet);
   root.replaceChildren(shell);
 
@@ -352,6 +352,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
         if (!mistakes.includes(q)) mistakes.push(q);
       }
       if (q.key) srsSeen(q.key, ok && first);
+      if (q.word) hardSeen(q.word.a, ok && first);
       q.onAnswer?.();
       const correctOpt = q.options?.find((o) => o.correct);
       sheet.className = "lp-sheet show " + (ok ? "ok" : "bad");

@@ -1,12 +1,14 @@
 // Главный экран: «Путь» — этапы и уроки, карточка продолжения, цель дня.
 import { h, ar, icon, ring, modal, plural, mixed } from "../ui.js";
 import { UNITS, SURAH_PATH, SURAH_UNIT, lessonById } from "../course.js";
-import { store, streakNow, levelInfo, todayXp, srsDue, lessonDone, surahDone } from "../store.js";
+import { store, streakNow, levelInfo, todayXp, srsDue, lessonDone, surahDone, backupDue, backupLater } from "../store.js";
+import { saveProgressFile } from "./more.js";
 import { lessonUnlocked, surahUnlocked, surahsOpen, unitProgress, nextTarget, applySkip, courseProgress, allOpen } from "../path.js";
 import { surahMeta } from "../data.js";
 import { playLesson } from "../lesson.js";
 import { go, celebrate } from "../app.js";
 import { devBanner } from "../feedback.js";
+import { continueReading } from "./quran.js";
 
 const hue = (u) => `var(--c-${u.hue})`;
 const unitOfLesson = (id) => UNITS.find((u) => u.lessons.some((l) => l.id === id));
@@ -46,6 +48,20 @@ function continueCard() {
     h("div.hero-ar", null, ar(u.icon.length <= 3 ? u.icon : u.icon)),
     h("div.hero-body", null, h("div.eyebrow", null, `Этап ${u.id} · ${u.title}`), h("h2", null, mixed(l.title)), h("p", null, mixed(l.sub))),
     h("span.btn.primary.hero-go", null, started ? "Продолжить" : "Начать", icon("right", { size: 18 })));
+}
+
+/** Раз в неделю: «сохраните копию прогресса» — на случай очистки данных браузера или смены телефона. */
+function backupCard() {
+  if (!backupDue()) return null;
+  const card = h("div.card.backup-card", null,
+    h("span.rc-ic", null, icon("down", { size: 24 })),
+    h("div", null,
+      h("b", null, "Сохраните копию прогресса"),
+      h("div.muted", null, "Прогресс хранится только на этом устройстве. Файл-копия вернёт его, если данные браузера сотрутся или вы смените телефон."),
+      h("div.row.gap.wrap", null,
+        h("button.btn.primary.small-btn", { type: "button", onclick: async () => { await saveProgressFile(); if (!backupDue()) card.remove(); } }, icon("down", { size: 16 }), "Сохранить файл"),
+        h("button.btn.ghost.small-btn", { type: "button", onclick: () => { backupLater(); card.remove(); } }, "Через неделю"))));
+  return card;
 }
 
 function reviewCard() {
@@ -158,6 +174,8 @@ export function HomeView() {
           statsBar()),
         continueCard(),
         reviewCard(),
+        continueReading(),
+        backupCard(),
         h("footer.home-foot", null, h("a", { href: "#/method" }, "Методика"), " · ", h("a", { href: "#/letters" }, "Алфавит"), " · ", h("a", { href: "#/rules" }, "Таджвид"), " · ", h("a", { href: "#/thanks" }, "Благодарности"))),
       h("div.path", null, ...[...UNITS, SURAH_UNIT].map((u) => unitBlock(u, target)))));
   // прокрутка к текущему узлу

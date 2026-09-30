@@ -188,6 +188,7 @@ const P = {
   eye: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12ZM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z",
   down: "M12 4v12M6 11l6 6 6-6M5 20h14",
   down2: "m6 9 6 6 6-6",
+  page: "M6 3h9l4 4v14H6zM15 3v4h4M9 12h7M9 16h7",
   up: "M12 20V8M6 13l6-6 6 6M5 4h14",
   trash: "M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13",
   info: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 11v5M12 8h.01",
@@ -221,6 +222,48 @@ export function gone(el, off) {
   if (el.isConnected) { el._seen = true; return false; }
   if (el._seen) off?.();
   return true;
+}
+
+// ---------- Размер текста ----------
+export const SIZES = {
+  arScale: { label: "Арабский", min: 0.8, max: 2.4, step: 0.1 },
+  uiScale: { label: "Текст", min: 0.9, max: 1.4, step: 0.05 },
+};
+/** Меняет размер на шаг (d = +1 / −1) в пределах настройки. */
+export function stepSize(key, d) {
+  const { min, max, step } = SIZES[key];
+  store.set((s) => { s.settings[key] = Math.round(Math.min(max, Math.max(min, (s.settings[key] || 1) + d * step)) * 100) / 100; });
+}
+/** Кнопка «Aa»: панель «−/+» для арабского и остального текста прямо в уроке или читалке. */
+export function sizeButton({ cls = "icon-btn" } = {}) {
+  const b = h("button.size-btn", { type: "button", class: cls, "aria-label": "Размер текста", title: "Размер текста", "aria-haspopup": "dialog" }, h("b.aa", null, "Aa"));
+  b.addEventListener("click", () => sizePanel(b));
+  return b;
+}
+let sizePop = null;
+function sizePanel(anchor) {
+  if (sizePop) { const same = sizePop.anchor === anchor; sizePop.close(); if (same) return; }
+  const row = (key) => {
+    const { label, min, max } = SIZES[key];
+    const val = h("b.sp-val");
+    const less = h("button.sp-btn", { type: "button", "aria-label": `${label}: меньше`, onclick: () => { stepSize(key, -1); upd(); } }, "−");
+    const more = h("button.sp-btn", { type: "button", "aria-label": `${label}: больше`, onclick: () => { stepSize(key, 1); upd(); } }, "+");
+    const upd = () => { const v = store.get().settings[key] || 1; val.textContent = Math.round(v * 100) + "%"; less.disabled = v <= min + 1e-6; more.disabled = v >= max - 1e-6; };
+    upd();
+    return h("div.sp-row", null, h("span", null, label), less, val, more);
+  };
+  const el = h("div.size-pop", { role: "dialog", "aria-label": "Размер текста" }, row("arScale"), row("uiScale"));
+  document.body.append(el);
+  const place = () => { const r = anchor.getBoundingClientRect(); el.style.top = Math.round(r.bottom + 8) + "px"; el.style.right = Math.max(8, Math.round(innerWidth - r.right)) + "px"; };
+  place();
+  const outside = (e) => { if (!el.contains(e.target) && !anchor.contains(e.target)) close(); };
+  const esc = (e) => e.key === "Escape" && close();
+  const close = () => { el.remove(); sizePop = null; document.removeEventListener("pointerdown", outside, true); document.removeEventListener("keydown", esc); removeEventListener("hashchange", close); removeEventListener("resize", place); };
+  document.addEventListener("pointerdown", outside, true);
+  document.addEventListener("keydown", esc);
+  addEventListener("hashchange", close);
+  addEventListener("resize", place);
+  sizePop = { anchor, close };
 }
 
 // ---------- Кнопка «послушать слово» ----------

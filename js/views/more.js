@@ -1,6 +1,6 @@
 // «Ещё»: настройки, справочники, данные, об источниках.
-import { h, ar, icon, toast, confirmBox } from "../ui.js";
-import { store } from "../store.js";
+import { h, ar, icon, toast, confirmBox, SIZES } from "../ui.js";
+import { store, backupDone } from "../store.js";
 import { RECITERS } from "../data.js";
 import { go, installApp } from "../app.js";
 import { isInstalled } from "../install.js";
@@ -28,8 +28,13 @@ const set = (k) => (v) => store.set((s) => { s.settings[k] = v; });
 export function MoreView() {
   const s = store.get();
   const preview = ar("بِسۡمِ [wٱ]للَّهِ", { cls: "size-preview" });
-  const slider = h("input", { type: "range", min: "0.8", max: "1.6", step: "0.1", value: s.settings.arScale, "aria-label": "Размер арабского текста" });
-  slider.addEventListener("input", () => store.set((st) => { st.settings.arScale = +slider.value; }));
+  const sizeRow = (key, title, sub, extra) => {
+    const { min, max, step } = SIZES[key];
+    const val = h("b.sp-val", null, Math.round((s.settings[key] || 1) * 100) + "%");
+    const slider = h("input", { type: "range", min, max, step, value: s.settings[key] || 1, "aria-label": title });
+    slider.addEventListener("input", () => { store.set((st) => { st.settings[key] = +slider.value; }); val.textContent = Math.round(slider.value * 100) + "%"; });
+    return h("div.set-row.col", null, h("div.set-row", null, h("div", null, h("span.set-label", null, title), h("small.muted", null, sub)), val), slider, extra);
+  };
   const name = h("input.text-in", { type: "text", value: s.profile.name, placeholder: "Как к вам обращаться", maxlength: "30" });
   name.addEventListener("change", () => store.set((st) => { st.profile.name = name.value.trim(); }));
 
@@ -59,7 +64,8 @@ export function MoreView() {
     h("section.card.settings", null,
       h("h3", null, "Вид"),
       seg("Тема", [["auto", "Авто"], ["light", "Светлая"], ["dark", "Тёмная"]], s.settings.theme, set("theme")),
-      h("div.set-row.col", null, h("span.set-label", null, "Размер арабского текста"), slider, preview),
+      sizeRow("arScale", "Размер арабского текста", "Можно менять и прямо в уроке или при чтении — кнопка «Aa»", preview),
+      sizeRow("uiScale", "Размер остального текста", "Русский текст, кнопки и меню"),
       toggle("Цвета таджвида", "tajweed", "Раскрашивать правила в мусхафе"),
       toggle("Перевод смыслов", "translation", "Перевод Э. Кулиева в режиме «По аятам»")),
     h("section.card.settings", null,
@@ -76,7 +82,7 @@ export function MoreView() {
       h("h3", null, "Данные"),
       h("p.muted.small", null, "Прогресс хранится только на этом устройстве, без регистрации. Чтобы перенести его на другое устройство, сохраните файл и загрузите его там."),
       h("div.row.wrap.gap", null,
-        h("button.btn.secondary", { type: "button", onclick: () => download(`tanwin-progress-${new Date().toISOString().slice(0, 10)}.json`, store.export()) }, icon("down", { size: 18 }), "Сохранить прогресс"),
+        h("button.btn.secondary", { type: "button", onclick: saveProgressFile }, icon("down", { size: 18 }), "Сохранить прогресс"),
         h("button.btn.secondary", { type: "button", onclick: () => fileIn.click() }, icon("up", { size: 18 }), "Загрузить"), fileIn,
         h("button.btn.danger", { type: "button", onclick: async () => { if (await confirmBox("Сбросить весь прогресс?", "Это действие нельзя отменить. Сначала можно сохранить прогресс в файл.", "Сбросить", "Отмена")) { store.reset(); go("/welcome"); } } }, icon("trash", { size: 18 }), "Сбросить"))),
     h("section.card.about", null,
@@ -86,6 +92,20 @@ export function MoreView() {
       h("p.muted.small", null, "Приложение не заменяет учителя. Чтение Корана традиционно передаётся из уст в уста (талакки): когда пройдёте путь, прочитайте знающему человеку — он поправит тонкости произношения.")));
 }
 const link = (href, ic, t, sub) => h("a.more-link", { href }, h("span.ml-ic", null, icon(ic, { size: 22 })), h("div", null, h("b", null, t), h("small.muted", null, sub)), icon("right", { size: 18 }));
+/** Сохраняет прогресс в файл: на телефоне — через «Поделиться» (в «Файлы», мессенджер, почту), на компьютере — загрузкой. */
+export async function saveProgressFile() {
+  const name = `tanwin-progress-${new Date().toISOString().slice(0, 10)}.json`;
+  const text = store.export();
+  const file = typeof File === "function" ? new File([text], name, { type: "application/json" }) : null;
+  const mobile = matchMedia("(pointer: coarse)").matches;
+  if (mobile && file && navigator.canShare?.({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: "Прогресс TanWin" }); backupDone(); toast("Копия прогресса сохранена ✓"); return; }
+    catch (e) { if (e?.name === "AbortError") return; }
+  }
+  download(name, text);
+  backupDone();
+  toast("Файл с прогрессом сохранён в «Загрузки» ✓");
+}
 function download(name, text) {
   const a = h("a", { href: URL.createObjectURL(new Blob([text], { type: "application/json" })), download: name });
   document.body.append(a); a.click(); a.remove();

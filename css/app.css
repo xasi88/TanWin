@@ -4,9 +4,9 @@
 
 :root {
   --bg: #fbf7ef; --bg-2: #f3ebdb; --card: #ffffff; --card-2: #fffaf2; --card-3: #f6f0e4;
-  --ink: #1e1b2e; --ink-2: #5a566e; --ink-3: #8e89a3; --line: #eadfca; --line-2: #dfd2b8;
+  --ink: #1e1b2e; --ink-2: #5a566e; --ink-3: #716c86; --line: #eadfca; --line-2: #dfd2b8;
   --accent: #0e9f78; --accent-2: #0a7d5e; --accent-soft: #d9f4ea; --accent-ink: #fff;
-  --gold: #c68a1c; --gold-2: #e8b440; --gold-soft: #fbefd2;
+  --gold: #c68a1c; --gold-2: #e8b440; --gold-soft: #fbefd2; --gold-text: #946310; /* мелкий золотой текст — темнее, чтобы читался */
   --good: #16a765; --good-soft: #dcf7e9; --bad: #e0414d; --bad-soft: #fde4e6;
   --shadow: 0 1px 2px rgba(60, 40, 10, .06), 0 6px 22px rgba(60, 40, 10, .07);
   --shadow-lg: 0 18px 50px rgba(60, 40, 10, .16);
@@ -17,14 +17,15 @@
   --c-rose: #e11d48; --c-orange: #ea580c; --c-amber: #d97706; --c-lime: #65a30d; --c-green: #16a34a; --c-red: #dc2626;
   --c-cyan: #0891b2; --c-slate: #475569; --c-gold: #c68a1c;
   /* цвета таджвида */
-  --r-w: #a19fae; --r-l: #a19fae; --r-s: #a19fae;
+  --r-w: #8a8799; --r-l: #8a8799; --r-s: #8a8799;
   --r-n: #b8730a; --r-p: #e46c0a; --r-o: #d21f3c; --r-u: #e0445f; --r-x: #8a0f2a;
   --r-q: #1e6fd9; --r-g: #0f9d58; --r-f: #7b3ae6; --r-F: #c02bbf; --r-i: #0892b3;
   --r-d: #068a5d; --r-D: #7a8f1c; --r-h: #4d9a10; --r-j: #6b7a90; --r-k: #6b7a90;
   /* схема речевого аппарата */
   --z-jawf: #d4a017; --z-halq: #7c3aed; --z-lisan: #0d9488; --z-shafa: #e11d48; --z-khay: #ea580c;
   --dg-skin1: #f8e3cf; --dg-skin2: #efcfb2; --dg-cav: #7a3048; --dg-tongue1: #ef8fa0; --dg-tongue2: #d9667c; --dg-palate: #e9b5a6;
-  --ar-scale: 1;
+  /* --ar-k — множитель арабского текста (настройка «арабский» ÷ «текст приложения»), --ui-scale — размер всего остального */
+  --ar-k: 1; --ui-scale: 1;
   --nav-h: 66px;
   --radius: 20px;
   --ease: cubic-bezier(.2, .8, .2, 1);
@@ -35,7 +36,7 @@
     --bg: #0a0f1f; --bg-2: #0f1630; --card: #141c36; --card-2: #19233f; --card-3: #1e2a4a;
     --ink: #eef0fb; --ink-2: #aeb5d4; --ink-3: #7780a6; --line: #253257; --line-2: #2f3e68;
     --accent: #2fd3a2; --accent-2: #1fb487; --accent-soft: #123a36; --accent-ink: #062019;
-    --gold: #e9b949; --gold-2: #ffd97a; --gold-soft: #3a2f14;
+    --gold: #e9b949; --gold-2: #ffd97a; --gold-soft: #3a2f14; --gold-text: #e9b949;
     --good: #34d67f; --good-soft: #123a28; --bad: #ff6571; --bad-soft: #43181f;
     --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 26px rgba(0, 0, 0, .28);
     --shadow-lg: 0 20px 60px rgba(0, 0, 0, .55);
@@ -55,7 +56,7 @@
   --bg: #0a0f1f; --bg-2: #0f1630; --card: #141c36; --card-2: #19233f; --card-3: #1e2a4a;
   --ink: #eef0fb; --ink-2: #aeb5d4; --ink-3: #7780a6; --line: #253257; --line-2: #2f3e68;
   --accent: #2fd3a2; --accent-2: #1fb487; --accent-soft: #123a36; --accent-ink: #062019;
-  --gold: #e9b949; --gold-2: #ffd97a; --gold-soft: #3a2f14;
+  --gold: #e9b949; --gold-2: #ffd97a; --gold-soft: #3a2f14; --gold-text: #e9b949;
   --good: #34d67f; --good-soft: #123a28; --bad: #ff6571; --bad-soft: #43181f;
   --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 26px rgba(0, 0, 0, .28);
   --shadow-lg: 0 20px 60px rgba(0, 0, 0, .55);
@@ -73,10 +74,10 @@
 
 /* ---------- База ---------- */
 *, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; font-size: calc(100% * var(--ui-scale, 1)); }
 body {
   margin: 0; min-height: 100dvh; background: var(--bg); color: var(--ink);
-  font: 500 16px/1.55 "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 500 1rem/1.55 "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
   overflow-x: hidden;
 }
@@ -113,21 +114,21 @@ input, select { font: inherit; }
 /* ---------- Арабский текст ---------- */
 .ar {
   font-family: "Amiri Quran", "Scheherazade New", "Noto Naskh Arabic", serif;
-  font-size: calc(var(--s, 1.5em) * var(--ar-scale) * var(--fit, 1)); line-height: 2.05; font-weight: 400;
+  font-size: calc(var(--s, 1.5em) * var(--ar-k) * var(--fit, 1)); line-height: 2.05; font-weight: 400;
   direction: rtl; unicode-bidi: isolate; font-feature-settings: "calt", "liga";
   overflow-wrap: normal; word-break: normal; /* слово не рвём посередине — если не влезает, его уменьшит fitArabic() */
 }
 /* арабская вставка в русском тексте: строка с ней становится выше, но буквы не задевают соседние строки */
 .ar.inline { --s: 1.45em; line-height: 1.9; padding: 0 .12em; color: var(--ink); }
-/* арабское в значках и заголовках фиксированного размера не зависит от настройки масштаба */
+/* арабское в значках и заголовках растёт вместе с интерфейсом, а не с настройкой «арабский» */
 .hero-ar, .node-disc, .uh-ar, .ub-ic, .so-g, .m-cell, .sr-ar, .rh-ar, .schip, .si-ar, .ob-ar, .th-ar, .lc-ar, .ls-band,
-h1, h2, h3, .node-label, .hero-body, .lesson-sheet { --ar-scale: 1; }
+h1, h2, h3, .node-label, .hero-body, .lesson-sheet { --ar-k: 1; }
 .tj { transition: color .2s; }
 .r-w { color: var(--r-w); } .r-l { color: var(--r-l); } .r-s { color: var(--r-s); }
 .r-n { color: var(--r-n); } .r-p { color: var(--r-p); } .r-o { color: var(--r-o); } .r-u { color: var(--r-u); } .r-x { color: var(--r-x); }
 .r-q { color: var(--r-q); } .r-g { color: var(--r-g); } .r-f { color: var(--r-f); } .r-F { color: var(--r-F); } .r-i { color: var(--r-i); }
 .r-d { color: var(--r-d); } .r-D { color: var(--r-D); } .r-h { color: var(--r-h); } .r-j { color: var(--r-j); } .r-k { color: var(--r-k); }
-.hl { background: linear-gradient(transparent 20%, var(--gold-soft) 20%, var(--gold-soft) 92%, transparent 92%); color: var(--gold); border-radius: 6px; box-shadow: 0 0 0 2px var(--gold-soft); }
+.hl { background: linear-gradient(transparent 20%, var(--gold-soft) 20%, var(--gold-soft) 92%, transparent 92%); color: var(--gold-text); border-radius: 6px; box-shadow: 0 0 0 2px var(--gold-soft); }
 
 /* транскрипция */
 .tr { font-family: "Nunito", sans-serif; font-weight: 800; letter-spacing: .01em; color: var(--ink-2); transition: filter .25s, opacity .25s; }
@@ -316,7 +317,7 @@ body.fullscreen #view { padding-bottom: 0; }
   transition: transform .12s, box-shadow .12s;
 }
 .node:active .node-disc { transform: translateY(5px); box-shadow: 0 2px 0 color-mix(in srgb, var(--hc) 62%, #000); }
-.node-ar .ar { --s: 1.9rem; color: #fff; line-height: 1; text-shadow: 0 2px 0 rgba(0, 0, 0, .15); }
+.node-ar .ar { --s: 30px; /* кружок узла фиксированного размера — буква тоже */ color: #fff; line-height: 1; text-shadow: 0 2px 0 rgba(0, 0, 0, .15); }
 .node.done .node-disc { background: radial-gradient(circle at 35% 30%, var(--gold-2), var(--gold) 70%); box-shadow: 0 7px 0 color-mix(in srgb, var(--gold) 60%, #000), 0 12px 22px color-mix(in srgb, var(--gold) 30%, transparent); }
 .node.locked .node-disc { background: var(--card-3); color: var(--ink-3); box-shadow: 0 7px 0 var(--line-2); }
 .node.test .node-disc { border-radius: 26px; width: 84px; }
@@ -367,13 +368,13 @@ body.fullscreen #toast { bottom: 24px; }
 
 /* ---------- Урок ---------- */
 .lesson-root { min-height: 100dvh; }
-.lesson { display: flex; flex-direction: column; min-height: 100dvh; }
+.lesson { display: flex; flex-direction: column; min-height: 100dvh; overflow-x: clip; } /* анимация перехода шага не даёт горизонтальной прокрутки */
 .lp-top { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: calc(10px + env(safe-area-inset-top)) 14px 10px; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); width: min(100%, 820px); margin: 0 auto; }
 .lp-bar { flex: 1; height: 16px; border-radius: 99px; background: var(--card-3); overflow: hidden; box-shadow: inset 0 2px 3px rgba(0, 0, 0, .06); }
 .lp-bar-fill { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 60%, var(--gold-2))); transition: width .5s var(--ease); position: relative; }
 .lp-bar-fill::after { content: ""; position: absolute; left: 8px; right: 8px; top: 3px; height: 4px; border-radius: 9px; background: rgba(255, 255, 255, .35); }
 .lesson.test .lp-bar-fill { background: linear-gradient(90deg, var(--gold), var(--gold-2)); }
-.lp-xp { display: inline-flex; align-items: center; gap: 4px; font-weight: 950; color: var(--gold); min-width: 52px; }
+.lp-xp { display: inline-flex; align-items: center; gap: 4px; font-weight: 950; color: var(--gold-text); min-width: 52px; }
 .lp-xp.pop { animation: pop .4s; }
 @keyframes pop { 40% { transform: scale(1.35); } }
 .lp-combo { position: absolute; left: 50%; top: 100%; transform: translate(-50%, -10px); opacity: 0; display: inline-flex; gap: 6px; align-items: center; padding: 6px 14px; border-radius: 99px; background: linear-gradient(90deg, #ff9a1f, #ff5f3a); color: #fff; font-weight: 950; transition: all .3s var(--ease); pointer-events: none; }
@@ -386,7 +387,7 @@ body.fullscreen #toast { bottom: 24px; }
 .lp-actions { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--bg) 30%); display: flex; gap: 10px; justify-content: center; }
 .lp-actions .btn { max-width: 520px; }
 .lesson-loading { min-height: 80dvh; display: grid; place-items: center; align-content: center; gap: 14px; color: var(--ink-2); }
-.test-badge { justify-self: center; display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 99px; background: var(--gold-soft); color: var(--gold); font-weight: 900; font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; }
+.test-badge { justify-self: center; display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 99px; background: var(--gold-soft); color: var(--gold-text); font-weight: 900; font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; }
 
 /* теория */
 .theory h2 { font-size: clamp(1.35rem, 1.1rem + 1vw, 1.8rem); }
@@ -395,7 +396,7 @@ body.fullscreen #toast { bottom: 24px; }
 .card-extras { display: grid; gap: 14px; margin-top: 8px; }
 .card-big { display: block; text-align: center; --s: 2.6rem; color: var(--ink); padding: 14px 8px; border-radius: 18px; background: var(--card-2); border: 1px dashed var(--line-2); line-height: 1.9; }
 .caption { text-align: center; color: var(--ink-2); font-weight: 700; margin: 0; }
-.forms-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; direction: ltr; }
+.forms-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(max(5.2rem, 22%), 1fr)); gap: 8px; direction: ltr; }
 .form-cell { display: grid; place-items: center; gap: 0; padding: 6px 4px 8px; min-width: 0; border-radius: 16px; background: var(--card-2); border: 1px solid var(--line); }
 .form-cell .ar { --s: 2.4rem; line-height: 1.9; }
 .form-cell small { color: var(--ink-3); font-weight: 800; text-align: center; line-height: 1.2; }
@@ -425,7 +426,7 @@ body.fullscreen #toast { bottom: 24px; }
 .st-cell { display: grid; place-items: center; border: 1px solid var(--line); background: var(--card-2); border-radius: 12px; padding: 0 0 6px; cursor: pointer; }
 .st-cell .ar { --s: 1.8rem; line-height: 1.9; }
 .stop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
-.stop-cell { display: grid; justify-items: center; padding: 8px; border-radius: 14px; background: var(--card-2); border: 1px solid var(--line); text-align: center; }
+.stop-cell { display: grid; justify-items: center; padding: 8px; border-radius: 14px; background: var(--card-2); border: 1px solid var(--line); text-align: center; min-width: 0; overflow-wrap: anywhere; }
 .stop-sign { --s: 2.6rem; color: var(--c-rose); }
 .ar.stop-sign { padding-top: .65em; } /* знак остановки стоит высоко над строкой */
 .rule-wheel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -509,7 +510,7 @@ body.fullscreen #toast { bottom: 24px; }
 .q-text { text-align: center; }
 .q-text h2 { font-size: clamp(1.25rem, 1.05rem + 1vw, 1.65rem); margin-bottom: 4px; }
 .q-text p { margin: 0; }
-.q-big { --s: 5rem; line-height: 1.8; max-width: 100%; color: var(--ink); padding: 0 20px; min-width: 150px; border-radius: 28px; background: var(--card); border: 2px solid var(--line); box-shadow: var(--shadow); }
+.q-big { --s: 5rem; line-height: 1.8; max-width: 100%; color: var(--ink); padding: 0 20px .1em; min-width: 150px; border-radius: 28px; background: var(--card); border: 2px solid var(--line); box-shadow: var(--shadow); }
 .q-word { --s: 3.1rem; line-height: 1.9; color: var(--ink); max-width: 100%; }
 .form-box { background: var(--card-2); }
 .q-tr { font-size: 2.2rem; padding: 10px 26px; border-radius: 24px; background: var(--card); border: 2px solid var(--line); }
@@ -519,7 +520,8 @@ body.fullscreen #toast { bottom: 24px; }
 .q-play:active { transform: translateY(5px); box-shadow: 0 2px 0 color-mix(in srgb, var(--c-sky) 60%, #000); }
 .q-play.pulse { animation: pop .5s; }
 .opts { display: grid; gap: 10px; margin-top: 6px; }
-.opts.grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* две колонки, а при крупном тексте или узком экране — одна */
+.opts.grid2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr)); }
 .opts.grid4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (min-width: 640px) { .opts.grid4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .opt {
@@ -532,9 +534,10 @@ body.fullscreen #toast { bottom: 24px; }
 .opt:disabled { cursor: default; }
 .opt-k { position: absolute; left: 10px; top: 8px; font-size: .7rem; color: var(--ink-3); border: 1.5px solid var(--line-2); border-radius: 7px; width: 20px; height: 20px; display: none; place-items: center; }
 @media (hover: hover) and (min-width: 900px) { .opt-k { display: grid; } }
-.opt .tr { color: var(--ink); font-size: 1.2rem; }
+.opt .tr { color: var(--ink); font-size: 1.2rem; overflow-wrap: anywhere; }
+.opt-v { min-width: 0; max-width: 100%; }
 .opt-letter { --s: 2.7rem; line-height: 1.8; }
-.opt-word { --s: 2.1rem; line-height: 1.9; }
+.opt-word { --s: 2.1rem; line-height: 1.9; padding-bottom: .12em; display: inline-block; }
 .opts.list-ar .opt { min-height: 76px; }
 .opt.right { border-color: var(--good); background: var(--good-soft); box-shadow: 0 4px 0 var(--good); color: var(--good); }
 .opt.right .tr, .opt.right .ar { color: var(--good); }
@@ -573,14 +576,14 @@ body.fullscreen #toast { bottom: 24px; }
 /* аяты в упражнениях */
 .verse-tap { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 14px; border-radius: 22px; background: var(--card); border: 1px solid var(--line); }
 .vt-word { border: 2px solid var(--line); background: var(--card-2); border-radius: 14px; padding: 0 12px; cursor: pointer; box-shadow: 0 3px 0 var(--line); }
-.vt-word .ar { --s: 2rem; line-height: 2.1; }
+.vt-word .ar { --s: 2rem; line-height: 2.1; padding-bottom: .22em; display: inline-block; } /* огласовки под буквой (ٍ) уходят глубоко */
 .vt-word:hover { border-color: var(--accent); }
 .vt-word.hit { border-color: var(--good); background: var(--good-soft); }
 .vt-word.miss { border-color: var(--bad); background: var(--bad-soft); }
 .verse-ref { font-size: .8rem; color: var(--ink-3); font-weight: 800; text-align: center; margin-top: 6px; }
 .snippet { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
 .sn-btn { border: 2px solid var(--line); background: var(--card); border-radius: 18px; padding: 0 16px; cursor: pointer; box-shadow: 0 3px 0 var(--line); }
-.sn-btn .ar { --s: 2.4rem; line-height: 2.1; }
+.sn-btn .ar { --s: 2.4rem; line-height: 2.1; padding-bottom: .15em; display: inline-block; }
 
 /* чтение и голос */
 .read-drill { display: grid; gap: 14px; justify-items: center; text-align: center; }
@@ -648,7 +651,7 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 @media (min-width: 1000px) { .surah-list { grid-template-columns: 1fr 1fr; } }
 .surah-row { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); color: var(--ink); text-decoration: none !important; transition: border-color .15s, transform .15s; }
 .surah-row:hover { border-color: var(--gold); transform: translateY(-1px); }
-.sr-num { position: relative; width: 44px; height: 44px; display: grid; place-items: center; flex: none; font-weight: 900; font-size: .9rem; color: var(--gold); }
+.sr-num { position: relative; width: 44px; height: 44px; display: grid; place-items: center; flex: none; font-weight: 900; font-size: .9rem; color: var(--gold-text); }
 .sr-num::before { content: ""; position: absolute; inset: 0; background: var(--gold-soft); clip-path: polygon(50% 0, 64% 15%, 85% 15%, 85% 36%, 100% 50%, 85% 64%, 85% 85%, 64% 85%, 50% 100%, 36% 85%, 15% 85%, 15% 64%, 0 50%, 15% 36%, 15% 15%, 36% 15%); }
 .sr-num span { position: relative; }
 .sr-main { flex: 1; min-width: 0; display: grid; }
@@ -675,12 +678,12 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .verses.mushaf { text-align: center; line-height: 2.5; font-size: 1.1rem; }
 .verses.mushaf .ar { --s: 1.95em; line-height: 2.5; }
 /* по ширине — только на широких экранах: на телефоне в строке мало слов, и между ними появлялись дыры */
-@media (min-width: 700px) { .verses.mushaf { text-align: justify; text-align-last: center; } }
+@media (min-width: 700px) { :root:not(.ar-big) .verses.mushaf { text-align: justify; text-align-last: center; } } /* крупный арабский — по центру */
 .qw { cursor: pointer; border-radius: 10px; transition: background .2s, box-shadow .2s; padding: 0 1px; }
 .qw:hover { background: var(--card-3); }
 .qw.now { background: var(--gold-soft); box-shadow: 0 0 0 3px var(--gold-soft); }
 .ayah.cur { background: color-mix(in srgb, var(--accent-soft) 55%, transparent); border-radius: 12px; }
-.ayah-mark { display: inline-grid; place-items: center; width: 2.1em; height: 2.1em; margin: 0 .2em; vertical-align: middle; border: 0; cursor: pointer; color: var(--gold); font-family: "Amiri Quran", serif; font-size: calc(1.05rem * var(--ar-scale)); line-height: 1;
+.ayah-mark { display: inline-grid; place-items: center; width: 2.1em; height: 2.1em; margin: 0 .2em; vertical-align: middle; border: 0; cursor: pointer; color: var(--gold); font-family: "Amiri Quran", serif; font-size: calc(1.05rem * var(--ar-k)); line-height: 1;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M20 1l4.3 5.6 7-.8.8 7 5.6 4.3-3.4 6.2 3.4 6.2-5.6 4.3-.8 7-7-.8L20 39l-4.3-5.6-7 .8-.8-7L2.3 22.9l3.4-6.2-3.4-6.2 5.6-4.3.8-7 7 .8Z' fill='none' stroke='%23c68a1c' stroke-width='1.6'/%3E%3Ccircle cx='20' cy='20' r='11.5' fill='none' stroke='%23c68a1c' stroke-width='1'/%3E%3C/svg%3E") center / contain no-repeat; }
 .ayah-mark:hover { transform: scale(1.1); }
 .verses.ayat { display: grid; gap: 0; padding: 8px 18px; }
@@ -783,6 +786,9 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .set-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .set-row > div:not(.seg) { display: grid; flex: 1 1 12rem; min-width: 0; }
 .set-row.col { flex-direction: column; align-items: stretch; }
+.settings .set-row.col > div { flex: 0 0 auto; } /* в колонке блоки по высоте содержимого */
+.set-row.col > .set-row { flex-wrap: nowrap; align-items: flex-start; }
+.set-row.col > .set-row > .sp-val { background: var(--card-3); padding: 4px 10px; border-radius: 10px; }
 .set-label { font-weight: 800; }
 .set-note { margin-top: -6px; }
 .set-row input[type="range"] { width: 100%; accent-color: var(--accent); }
@@ -891,3 +897,53 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .d-ic { font-weight: 900; font-size: .9rem; }
 .contact-link { margin-bottom: 10px; border-color: color-mix(in srgb, #25d366 45%, var(--line)); background: linear-gradient(90deg, color-mix(in srgb, #25d366 12%, var(--card)), var(--card)); }
 .contact-link .ml-ic { background: #25d366; color: #fff; }
+
+/* ---------- Размер текста: кнопка «Aa» в уроке и читалке ---------- */
+.size-btn .aa { font-weight: 950; font-size: 1.05rem; letter-spacing: -.02em; }
+.size-pop { position: fixed; z-index: 95; display: grid; gap: 10px; padding: 14px; min-width: 250px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow-lg); animation: popIn .18s var(--ease); }
+.sp-row { display: grid; grid-template-columns: 1fr auto auto auto; align-items: center; gap: 8px; }
+.sp-row > span { font-weight: 800; }
+.sp-btn { width: 46px; height: 46px; border-radius: 14px; border: 2px solid var(--line-2); background: var(--card-2); color: var(--ink); font-weight: 950; font-size: 1.3rem; cursor: pointer; box-shadow: 0 3px 0 var(--line-2); }
+.sp-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line-2); }
+.sp-btn:disabled { opacity: .4; cursor: default; }
+.sp-val { min-width: 3.4em; text-align: center; font-variant-numeric: tabular-nums; }
+.lp-top .size-btn { flex: none; }
+.page-view .rh-title h1 { font-size: clamp(1.35rem, 1.1rem + 1vw, 1.8rem); }
+@media (max-width: 520px) { .page-view .reader-head .small-btn { padding: 8px 10px; } .page-view .reader-head .small-btn span, .page-view .reader-head .small-btn { font-size: 0; gap: 0; } .page-view .reader-head .small-btn .ic { margin: 0; } }
+
+/* ---------- Страницы мусхафа, закладка, заучивание ---------- */
+.page-mark { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 10px 0; color: var(--gold-text); font: 800 .8rem/1.4 "Nunito", sans-serif; letter-spacing: .04em; text-transform: uppercase; text-decoration: none !important; }
+.page-mark::before, .page-mark::after { content: ""; flex: 1; height: 1.5px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gold) 45%, transparent)); }
+.page-mark::after { transform: scaleX(-1); }
+.page-mark span + span::before { content: "· "; }
+.page-mark:hover { color: var(--gold-2); }
+.verses.ayat > .page-mark:first-child, .verses.mushaf > .page-mark:first-child { margin-top: 0; }
+.verses.bare { background: none; border: 0; box-shadow: none; padding: 0; }
+.verses.bare::before { display: none; }
+.mushaf-page { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 26px; padding: 22px 16px; box-shadow: var(--shadow); margin-bottom: 14px; }
+.mushaf-page::before { content: ""; position: absolute; inset: 7px; border: 1.5px solid color-mix(in srgb, var(--gold) 40%, transparent); border-radius: 20px; pointer-events: none; }
+.surah-banner { display: grid; justify-items: center; margin: 6px auto 4px; padding: 4px 18px 8px; max-width: 520px; border-radius: 16px; background: linear-gradient(90deg, transparent, var(--gold-soft), transparent); border-block: 1.5px solid color-mix(in srgb, var(--gold) 45%, transparent); }
+.surah-banner .ar { --s: 2rem; --ar-k: 1; color: var(--gold); line-height: 1.8; }
+.surah-banner small { color: var(--ink-2); font-weight: 800; }
+.page-nav { display: flex; flex-direction: row-reverse; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 10px; }
+.page-nav .btn { min-height: 48px; padding: 10px 16px; flex: 0 1 auto; min-width: 0; }
+.page-no { min-width: 64px; height: 48px; border-radius: 14px; border: 2px solid color-mix(in srgb, var(--gold) 45%, var(--line)); background: var(--gold-soft); color: var(--gold-text); font: 400 1.5rem/1 "Amiri Quran", serif; cursor: pointer; }
+.page-picker .row .text-in { flex: 1; }
+.juz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 8px; }
+.juz-btn { display: grid; justify-items: center; padding: 8px 4px; border-radius: 14px; border: 2px solid var(--line); background: var(--card); cursor: pointer; }
+.juz-btn b { font-size: 1.1rem; }
+.juz-btn small { color: var(--ink-3); font-weight: 800; }
+.juz-btn.on { border-color: var(--gold); background: var(--gold-soft); }
+.reading-card, .pages-card { display: flex; align-items: center; gap: 14px; width: 100%; color: var(--ink); text-decoration: none !important; font: inherit; text-align: left; cursor: pointer; }
+.reading-card > div, .pages-card > div { flex: 1; min-width: 0; }
+.reading-card { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: linear-gradient(90deg, var(--accent-soft), var(--card)); }
+.reading-card .rc-ic { background: var(--accent); }
+@media (max-width: 520px) { .page-nav .btn { padding: 10px 14px; } .page-nav .btn span { display: none; } }
+/* заучивание: скрытое слово — размытая «плашка»; открывается нажатием или когда его читает чтец */
+.verses.hifz .qw.hid:not(.shown):not(.now) .ar { filter: blur(.28em); opacity: .35; }
+.verses.hifz .qw.hid:not(.shown):not(.now) { background: color-mix(in srgb, var(--ink) 6%, transparent); }
+.verses.hifz .qw.hid .ar { transition: filter .25s, opacity .25s; }
+.backup-card { display: flex; gap: 14px; align-items: flex-start; border-color: color-mix(in srgb, var(--c-sky) 40%, var(--line)); background: linear-gradient(135deg, color-mix(in srgb, var(--c-sky) 10%, var(--card)), var(--card)); }
+.backup-card > div { flex: 1; min-width: 0; display: grid; gap: 8px; }
+.backup-card .rc-ic { background: var(--c-sky); }
+.backup-card .muted { font-size: .92rem; }
