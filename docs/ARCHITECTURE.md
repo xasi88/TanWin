@@ -146,6 +146,9 @@
 2. В `js/version.js` поднять `APP_VERSION` и добавить запись в начало `CHANGELOG` — она появится в разделе «Версии».
 3. `node tools/build.mjs` — новая версия и список офлайн-файлов в `sw.js`.
 4. `git commit` и `git push` — GitHub Pages публикует сайт автоматически.
+5. Метка версии и релиз: `git tag -a vX.Y.Z -m "X.Y.Z — название"`, `git push origin vX.Y.Z`, `gh release create vX.Y.Z` — список всех версий на GitHub в разделе Releases.
+
+**Откат.** Каждая версия отмечена меткой `vX.Y.Z`. Вернуть сайт к прежней версии — `git revert` коммитов новой версии (история сохраняется) и `git push`; посмотреть старую версию локально — `git checkout vX.Y.Z`.
 5. Откат: `git revert <коммит>` или `git checkout <коммит> -- <файл>`.
 
 ## 10. Возможные улучшения
