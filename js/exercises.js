@@ -1,11 +1,11 @@
 // Генераторы упражнений. Каждое упражнение — объект вопроса, который показывает плеер урока (lesson.js):
 // { kind, key, prompt(): Node, options?: [{node(), correct, label}], layout, play?(), explain?, after?(): Node, custom?(api): Node }
 import { LETTERS, byId, byChar, SHAPE_FAMILIES, SOUND_PAIRS, HEAVY, forms, ZONES, POINTS } from "./letters.js";
-import { CONS, clusters, M, translit, analyze } from "./arabic.js";
+import { CONS, clusters, M, translit, analyze, stripStops } from "./arabic.js";
 import { words, lessonWords, letterExamples, minimalPairs, loadSurah, bank, rareExamples } from "./data.js";
 import { RULES, parseMarkup, plain, rulesIn } from "./rules.js";
 import { SURAH_PATH } from "./course.js";
-import { h, ar, tr, icon, shuffle, pick, sample, wordChip, rich } from "./ui.js";
+import { h, ar, arParts, tr, icon, shuffle, pick, sample, wordChip, rich } from "./ui.js";
 import { playWord, preloadWord } from "./audio.js";
 import { diagram, spreadChoices } from "./diagram.js";
 
@@ -25,7 +25,7 @@ const arOpt = (t, correct, cls = "opt-word") => ({ node: () => ar(t, { cls }), c
 const withOpts = (q, opts) => ({ ...q, options: shuffle(opts) });
 
 const bigLetter = (ch) => ar(ch, { cls: "q-big" });
-const promptText = (t, sub) => h("div.q-text", null, h("h2", null, rich(t)), sub ? h("p.muted", null, sub) : null);
+const promptText = (t, sub) => h("div.q-text", null, h("h2", null, rich(t)), sub ? h("p.muted", null, rich(sub)) : null);
 const target = (lesson, o) => {
   if (o.from === "all" || lesson?.letters === "all") return L_ALL;
   if (Array.isArray(lesson?.letters)) return lesson.letters;
@@ -335,13 +335,13 @@ G.ruleSpot = async (o) => {
       const box = h("div.verse-tap", { dir: "rtl" });
       v.words.forEach((w, wi) => {
         const has = rulesIn(w).includes(o.code);
-        const b = h("button.vt-word", { type: "button" }, ar(plain(w)));
+        const b = h("button.vt-word", { type: "button" }, ar(stripStops(plain(w))));
         b.addEventListener("click", () => {
           if (box.classList.contains("answered")) return;
           box.classList.add("answered");
           v.words.forEach((ww, j) => {
             const bb = box.children[j];
-            if (rulesIn(ww).includes(o.code)) { bb.replaceChildren(ar(onlyRule(ww, o.code))); bb.classList.add("hit"); }
+            if (rulesIn(ww).includes(o.code)) { bb.replaceChildren(ar(stripStops(onlyRule(ww, o.code)))); bb.classList.add("hit"); }
           });
           if (!has) b.classList.add("miss");
           playWord(wkey(v, wi));
@@ -379,8 +379,7 @@ function ruleSnippet(x, code, { colors = false } = {}) {
   seq.push([x.w, x.wi, true]);
   if (cross && next) seq.push([next, x.wi + 1, true]);
   for (const [w, wi, main] of seq) {
-    const el = h("span.sn-word");
-    for (const [t, c] of parseMarkup(w)) el.append(c === code && main ? h("span", { class: colors ? `tj r-${c}` : "hl" }, t) : t);
+    const el = arParts(h("span.sn-word"), parseMarkup(stripStops(w)).map(([t, c]) => [t, c === code && main ? (colors ? `tj r-${c}` : "hl") : ""]));
     const b = h("button.sn-btn", { type: "button", "aria-label": "Послушать" }, h("span.ar", { dir: "rtl", lang: "ar" }, el));
     b.addEventListener("click", () => playWord(wkey(x, wi)));
     box.append(b);
@@ -424,9 +423,8 @@ G.nunRule = async (o) => {
     const box = () => {
       const b = h("div.snippet", { dir: "rtl" });
       [[x.w, x.wi], [x.words[x.wi + 1], x.wi + 1]].forEach(([w, wi], j) => {
-        const el = h("span.sn-word");
-        const parts = parseMarkup(w);
-        parts.forEach(([t, c], i) => el.append((j === 0 && i === parts.length - 1) || (j === 1 && i === 0 && k !== "izhar") ? h("span.hl", null, t) : t));
+        const parts = parseMarkup(stripStops(w));
+        const el = arParts(h("span.sn-word"), parts.map(([t], i) => [t, (j === 0 && i === parts.length - 1) || (j === 1 && i === 0 && k !== "izhar") ? "hl" : ""]));
         const btn = h("button.sn-btn", { type: "button" }, h("span.ar", { dir: "rtl", lang: "ar" }, el));
         btn.addEventListener("click", () => playWord(wkey(x, wi)));
         b.append(btn);
@@ -475,7 +473,7 @@ G.allahLam = async (o) => {
     const snippet = () => {
       const b = h("div.snippet", { dir: "rtl" });
       const seq = x.wi > 0 ? [[x.words[x.wi - 1], x.wi - 1], [x.w, x.wi]] : [[x.w, x.wi]];
-      seq.forEach(([w, wi]) => { const btn = h("button.sn-btn", { type: "button" }, ar(plain(w))); btn.addEventListener("click", () => playWord(wkey(x, wi))); b.append(btn); });
+      seq.forEach(([w, wi]) => { const btn = h("button.sn-btn", { type: "button" }, ar(stripStops(plain(w)))); btn.addEventListener("click", () => playWord(wkey(x, wi))); b.append(btn); });
       return h("div.q-center", null, b, h("div.verse-ref", null, `Сура ${x.s}, аят ${x.a}`));
     };
     return withOpts({ kind: "allahLam", key: "R:allah", layout: "grid2",
@@ -511,7 +509,7 @@ G.raRule = (o) => {
     const w = pick(i % 2 ? light : heavy);
     const [ri, v] = raVerdict(w.d);
     const cs = clusters(w.d);
-    const view = () => { const el = h("span.ar.q-word", { dir: "rtl", lang: "ar" }); cs.forEach((c, j) => el.append(j === ri ? h("span.hl", null, c.b + c.m) : c.b + c.m)); return el; };
+    const view = () => arParts(h("span.ar.q-word", { dir: "rtl", lang: "ar" }), cs.map((c, j) => [c.b + c.m, j === ri ? "hl" : ""]));
     const c = cs[ri];
     const why = /[ًٌَُ]/.test(c.m) ? "Ра с фатхой или даммой — тяжёлая."
       : /[ٍِ]/.test(c.m) ? "Ра с касрой — лёгкая."

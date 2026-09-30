@@ -5,7 +5,11 @@ import { store, lessonDone, surahDone, streakNow, award } from "./store.js";
 export const ORDER = ALL_LESSONS.map((l) => l.id);
 const SURAH_GATE = "10.6"; // суры открываются после этапа «Особые написания»
 
+/** Настройка «Открыть все уроки»: например, если прогресс потерялся вместе с данными браузера. */
+export const allOpen = () => !!store.get().settings.unlockAll;
+
 export function lessonUnlocked(id) {
+  if (allOpen()) return true;
   const i = ORDER.indexOf(id);
   if (i <= 0) return true;
   if (lessonDone(id)) return true;
@@ -13,9 +17,10 @@ export function lessonUnlocked(id) {
   // открыт, если пройдено что-то дальше (например, проверка этапа)
   return ORDER.slice(i + 1).some((x) => lessonDone(x));
 }
-export const surahsOpen = () => lessonDone(SURAH_GATE) || SURAH_PATH.some((n) => surahDone(n));
+export const surahsOpen = () => allOpen() || lessonDone(SURAH_GATE) || SURAH_PATH.some((n) => surahDone(n));
 export function surahUnlocked(n) {
   if (!surahsOpen()) return false;
+  if (allOpen()) return true;
   const i = SURAH_PATH.indexOf(n);
   return i <= 0 || surahDone(n) || surahDone(SURAH_PATH[i - 1]);
 }
@@ -34,8 +39,10 @@ export function courseProgress() {
 }
 /** Следующий шаг: первый непройденный открытый урок; после ворот — чередуем с сурами. */
 export function nextTarget() {
-  const lesson = ORDER.find((id) => !lessonDone(id) && lessonUnlocked(id));
-  const surah = surahsOpen() ? SURAH_PATH.find((n) => !surahDone(n) && surahUnlocked(n)) : null;
+  const lesson = allOpen() ? afterLast(ORDER, lessonDone) : ORDER.find((id) => !lessonDone(id) && lessonUnlocked(id));
+  // когда открыто всё, суры предлагаем только тем, кто реально дошёл до них (иначе «Продолжить» уводит от уроков)
+  const reached = lessonDone(SURAH_GATE) || SURAH_PATH.some((n) => surahDone(n));
+  const surah = !surahsOpen() ? null : allOpen() ? (reached || !lesson ? afterLast(SURAH_PATH, surahDone) : null) : SURAH_PATH.find((n) => !surahDone(n) && surahUnlocked(n));
   if (lesson && surah) {
     // после этапа 10 предлагаем то, чего меньше сделано сегодня: сначала урок таджвида, потом суру
     const lastL = Math.max(0, ...Object.values(store.get().lessons).map((x) => x.at || 0));
@@ -45,6 +52,12 @@ export function nextTarget() {
   if (lesson) return { type: "lesson", id: lesson };
   if (surah) return { type: "surah", n: surah };
   return null;
+}
+// Когда открыто всё: продолжаем с первого непройденного после самого дальнего пройденного (а не с самого начала).
+function afterLast(list, done) {
+  let last = -1;
+  list.forEach((x, i) => { if (done(x)) last = i; });
+  return list.slice(last + 1).find((x) => !done(x)) ?? list.find((x) => !done(x)) ?? null;
 }
 /** Сдан тест этапа: отмечаем пропущенные уроки этого и предыдущих этапов. */
 export function applySkip(testId) {

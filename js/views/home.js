@@ -2,7 +2,7 @@
 import { h, ar, icon, ring, modal, plural, mixed } from "../ui.js";
 import { UNITS, SURAH_PATH, SURAH_UNIT, lessonById } from "../course.js";
 import { store, streakNow, levelInfo, todayXp, srsDue, lessonDone, surahDone } from "../store.js";
-import { lessonUnlocked, surahUnlocked, surahsOpen, unitProgress, nextTarget, applySkip, courseProgress } from "../path.js";
+import { lessonUnlocked, surahUnlocked, surahsOpen, unitProgress, nextTarget, applySkip, courseProgress, allOpen } from "../path.js";
 import { surahMeta } from "../data.js";
 import { playLesson } from "../lesson.js";
 import { go, celebrate } from "../app.js";
@@ -59,10 +59,10 @@ function reviewCard() {
 
 // Узлы пути: зигзаг
 const OFFS = [0, 38, 62, 38, 0, -38, -62, -38];
-function lessonNode(l, i, u) {
+function lessonNode(l, i, u, target) {
   const done = lessonDone(l.id);
   const open = lessonUnlocked(l.id);
-  const cur = open && !done;
+  const cur = open && !done && (!allOpen() || (target?.type === "lesson" && target.id === l.id));
   const st = store.get().lessons[l.id];
   const node = h("button.node", {
     type: "button",
@@ -98,10 +98,10 @@ function lessonSheet(l, u) {
 }
 const testOf = (u) => u.lessons.find((l) => l.test);
 
-function surahNode(n, i) {
+function surahNode(n, i, target) {
   const m = surahMeta(n);
   const done = surahDone(n), open = surahUnlocked(n);
-  const cur = open && !done;
+  const cur = open && !done && (!allOpen() || (target?.type === "surah" && target.n === n));
   const node = h("button.node.surah", {
     type: "button", class: [done ? "done" : "", cur ? "current" : "", !open ? "locked" : ""].join(" "),
     style: { "--off": OFFS[i % OFFS.length] + "px", "--hc": "var(--c-gold)" }, "aria-label": `Сура ${m.ru}`,
@@ -118,21 +118,37 @@ function surahNode(n, i) {
   return node;
 }
 
-function unitBlock(u) {
+// Этапы свёрнуты, кроме текущего. Что пользователь развернул или свернул сам — помним до перезагрузки.
+const unitOpen = new Map();
+function unitBlock(u, target) {
   const p = unitProgress(u);
   const isSurah = u.id === SURAH_UNIT.id;
+  const current = target && (target.type === "surah" ? isSurah : unitOfLesson(target.id) === u);
+  const nodes = h("div.nodes", { id: `unit-${u.id}-nodes` });
+  if (isSurah) SURAH_PATH.forEach((n, i) => nodes.append(surahNode(n, i, target)));
+  else u.lessons.forEach((l, i) => nodes.append(lessonNode(l, i, u, target)));
+  const toggle = h("button.uh-toggle", { type: "button", "aria-controls": nodes.id, "aria-label": `Этап ${u.id}. ${u.title}` });
   const head = h("div.unit-head", { style: { "--hc": hue(u) } },
     h("div.uh-text", null, h("div.eyebrow", null, `Этап ${u.id}`), h("h2", null, u.title), h("p", null, u.sub)),
     h("div.uh-side", null, ring(p.pct, { size: 54, stroke: 6, label: `${p.done}/${p.total}` })),
-    h("span.uh-ar", { "aria-hidden": "true" }, ar(u.icon)));
-  const nodes = h("div.nodes");
-  if (isSurah) SURAH_PATH.forEach((n, i) => nodes.append(surahNode(n, i)));
-  else u.lessons.forEach((l, i) => nodes.append(lessonNode(l, i, u)));
-  return h("section.unit", { id: `unit-${u.id}` }, head, nodes);
+    h("span.uh-chev", { "aria-hidden": "true" }, icon("down2", { size: 22, sw: 2.6 })),
+    h("span.uh-ar", { "aria-hidden": "true" }, ar(u.icon)),
+    toggle);
+  const sec = h("section.unit", { id: `unit-${u.id}`, class: current ? "current" : "" }, head, nodes);
+  const set = (open) => { sec.classList.toggle("open", open); toggle.setAttribute("aria-expanded", open ? "true" : "false"); };
+  set(unitOpen.has(u.id) ? unitOpen.get(u.id) : !!current);
+  toggle.addEventListener("click", () => {
+    const open = !sec.classList.contains("open");
+    unitOpen.set(u.id, open);
+    set(open);
+    if (!open && sec.getBoundingClientRect().top < 0) sec.scrollIntoView({ block: "start" });
+  });
+  return sec;
 }
 
 export function HomeView() {
   const cp = courseProgress();
+  const target = nextTarget();
   const page = h("div.page.home", null,
     h("div.home-grid", null,
       h("aside.home-side", null,
@@ -143,10 +159,10 @@ export function HomeView() {
         continueCard(),
         reviewCard(),
         h("footer.home-foot", null, h("a", { href: "#/method" }, "Методика"), " · ", h("a", { href: "#/letters" }, "Алфавит"), " · ", h("a", { href: "#/rules" }, "Таджвид"), " · ", h("a", { href: "#/thanks" }, "Благодарности"))),
-      h("div.path", null, ...UNITS.map(unitBlock), unitBlock(SURAH_UNIT))));
+      h("div.path", null, ...[...UNITS, SURAH_UNIT].map((u) => unitBlock(u, target)))));
   // прокрутка к текущему узлу
   requestAnimationFrame(() => {
-    const cur = page.querySelector(".node.current");
+    const cur = page.querySelector(".unit.open .node.current");
     if (cur && Object.keys(store.get().lessons).length > 2) cur.scrollIntoView({ block: "center", behavior: "instant" in document.documentElement.style ? "instant" : "auto" });
   });
   return page;

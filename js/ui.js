@@ -33,11 +33,92 @@ function append(el, kids) {
 /** Арабский текст. Разметка таджвида [код…] раскрашивается, если colors=true. */
 export function ar(text, { cls = "", colors = true, tag = "span", size } = {}) {
   const el = h(`${tag}.ar`, { dir: "rtl", lang: "ar", class: cls, style: size ? { "--s": size } : null });
-  if (text.includes("[")) {
-    for (const [t, code] of parseMarkup(text)) el.append(code && colors ? h("span", { class: `tj r-${code}`, "data-r": code }, t) : t);
-  } else el.textContent = text;
+  if (text.includes("[")) arParts(el, parseMarkup(text).map(([t, code]) => [t, code && colors ? `tj r-${code}` : ""]));
+  else el.textContent = text;
   return el;
 }
+
+/** Слово из кусочков [текст, класс]: кусочки с классом — в <span> (цвет правила, подсветка). */
+export function arParts(el, parts) {
+  for (const [t, c] of splitShaping ? glue(parts) : parts) el.append(c ? h("span", { class: c }, t) : t);
+  return el;
+}
+
+// ---------- Связность букв ----------
+// Современные браузеры соединяют арабские буквы через границу <span>, а часть версий Safari (iPhone, iPad) — нет:
+// буквы «рассыпаются», огласовка в отдельном span отрывается от своей буквы. Для таких движков границы span
+// переносим между целыми буквами (с их огласовками) и склеиваем соседей невидимым соединителем ZWJ.
+const ZWJ = "‍";
+const isMarkCh = (c) => /[ؐ-ًؚ-ٰٟۖ-ۜ۟-۪ۤۧۨ-ۭ]/.test(c);
+const JOIN_NEXT = /[ئبت-خس-غـ-هىيٮٯ]/; // ب ت … ي, татвиль: соединяются и со следующей буквой
+const JOIN_PREV = /[آ-إاةد-زوٱ]/; // ا د ذ ر ز و ة ٱ: только с предыдущей
+export let splitShaping = false;
+
+/** Проверяет, соединяет ли браузер буквы через границу span (вызывается после загрузки шрифта). */
+export function checkShaping() {
+  const width = (html) => {
+    const s = h("span.ar", { style: { position: "absolute", visibility: "hidden", whiteSpace: "nowrap", fontSize: "40px" }, html });
+    document.body.append(s);
+    const w = s.getBoundingClientRect().width;
+    s.remove();
+    return w;
+  };
+  splitShaping = Math.abs(width("سعين") - width('سع<span style="color:red">ي</span>ن')) > 1;
+}
+
+function glue(parts) {
+  const cl = []; // буква со знаками → класс: своей буквы, а если его нет — цветного знака
+  for (const [t, c] of parts) for (const ch of t) {
+    const last = cl[cl.length - 1];
+    if (last && (isMarkCh(ch) || ch === ZWJ || (last.t[0] === "ل" && /[آأإاٱ]/.test(ch)))) { last.t += ch; last.c ||= c; }
+    else cl.push({ t: ch, c });
+  }
+  const runs = [];
+  for (const x of cl) {
+    const r = runs[runs.length - 1];
+    if (r && r.c === x.c) { r.t += x.t; r.last = x.t[0]; } else runs.push({ t: x.t, c: x.c, first: x.t[0], last: x.t[0] });
+  }
+  for (let i = 1; i < runs.length; i++) {
+    if (JOIN_NEXT.test(runs[i - 1].last) && (JOIN_NEXT.test(runs[i].first) || JOIN_PREV.test(runs[i].first))) { runs[i - 1].t += ZWJ; runs[i].t = ZWJ + runs[i].t; }
+  }
+  return runs.map((r) => [r.t, r.c]);
+}
+
+// ---------- Арабский текст не выходит за рамки ----------
+// Крупное слово (или крупный масштаб в настройках) на узком экране может не поместиться в карточку или кнопку.
+// Такие слова уменьшаются ровно настолько, чтобы влезть: множитель --fit в формуле размера .ar.
+const FIT_EL = ".ar:not(.inline):not(.verses .ar):not(.uh-ar .ar)";
+const FIT_STOP = ".card, .modal, .lp-content, .sheet-in, .page, #view";
+const px = (v) => parseFloat(v) || 0;
+export function fitArabic(root = document.body) {
+  const els = [...root.querySelectorAll(FIT_EL)];
+  for (const el of els) el.style.removeProperty("--fit");
+  const fit = new Map();
+  for (let pass = 0; pass < 4; pass++) {
+    const todo = [];
+    for (const el of els) {
+      const r = el.getBoundingClientRect();
+      if (!r.width) continue;
+      let over = 0, box = r; // box — самый широкий «облегающий» слово блок (кнопка-чип растёт вместе со словом)
+      for (let a = el.parentElement; a; a = a.parentElement) {
+        const cs = getComputedStyle(a), ar = a.getBoundingClientRect();
+        const left = ar.left + px(cs.borderLeftWidth) + px(cs.paddingLeft), right = ar.right - px(cs.borderRightWidth) - px(cs.paddingRight);
+        over = Math.max(over, Math.max(0, left - box.left) + Math.max(0, box.right - right));
+        if (a.matches(FIT_STOP)) break;
+        if (cs.display.startsWith("inline")) box = ar;
+      }
+      if (over > 0.5) todo.push([el, r.width, over]);
+    }
+    if (!todo.length) break;
+    for (const [el, w, over] of todo) {
+      const f = Math.max(0.4, (fit.get(el) || 1) * Math.max(0.1, w - over - 2) / w);
+      fit.set(el, f);
+      el.style.setProperty("--fit", f.toFixed(3));
+    }
+  }
+}
+let fitQueued = 0;
+export const queueFit = () => { if (!fitQueued) fitQueued = requestAnimationFrame(() => { fitQueued = 0; fitArabic(); }); };
 
 /** Обычный текст, в котором арабские фрагменты выводятся арабским шрифтом. */
 export function mixed(text) {
@@ -53,18 +134,18 @@ export function mixed(text) {
   return frag;
 }
 
-/** Текст урока: {арабский}, **жирный**. */
+/** Текст урока: {арабский}, **жирный**. Арабские буквы и без скобок выводятся арабским шрифтом. */
 export function rich(text) {
   const frag = document.createDocumentFragment();
   const re = /\{([^}]+)\}|\*\*([^*]+)\*\*/g;
   let i = 0, m;
   while ((m = re.exec(text))) {
-    if (m.index > i) frag.append(text.slice(i, m.index));
+    if (m.index > i) frag.append(mixed(text.slice(i, m.index)));
     if (m[1]) frag.append(ar(m[1], { cls: "inline" }));
-    else frag.append(h("b", null, m[2]));
+    else frag.append(h("b", null, mixed(m[2])));
     i = re.lastIndex;
   }
-  if (i < text.length) frag.append(text.slice(i));
+  if (i < text.length) frag.append(mixed(text.slice(i)));
   return frag;
 }
 
@@ -106,6 +187,7 @@ const P = {
   target: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM12 12h.01",
   eye: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12ZM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z",
   down: "M12 4v12M6 11l6 6 6-6M5 20h14",
+  down2: "m6 9 6 6 6-6",
   up: "M12 20V8M6 13l6-6 6 6M5 4h14",
   trash: "M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13",
   info: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 11v5M12 8h.01",
