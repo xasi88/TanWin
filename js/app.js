@@ -1,5 +1,5 @@
 // TanWin — оболочка приложения: маршруты, навигация, тема, офлайн.
-import { h, $, icon, toast } from "./ui.js";
+import { h, $, icon, toast, checkShaping, queueFit } from "./ui.js";
 import { store, streakNow, levelInfo, todayXp } from "./store.js";
 import { loadBank, loadSurahs } from "./data.js";
 import { stop } from "./audio.js";
@@ -125,6 +125,12 @@ async function start() {
   view.replaceChildren(h("div.boot", null, logo(72), h("div.spinner")));
   try { await Promise.all([loadBank(), loadSurahs(), document.fonts?.load?.('40px "Amiri Quran"', "بسم")]); }
   catch (e) { console.error(e); }
+  checkShaping();
+  // крупный арабский текст подгоняется под ширину экрана: после каждой отрисовки, поворота экрана, смены масштаба
+  new MutationObserver(queueFit).observe(document.body, { childList: true, subtree: true });
+  window.addEventListener("resize", queueFit);
+  store.on(queueFit);
+  document.fonts?.ready.then(queueFit);
   route();
   registerSW();
 }

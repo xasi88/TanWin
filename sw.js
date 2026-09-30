@@ -1,5 +1,5 @@
 // Service worker TanWin: офлайн-режим. Список файлов и версия обновляются командой: node tools/build.mjs
-const VERSION = "206b202053";
+const VERSION = "d86e6727f1";
 const CORE = `tanwin-core-${VERSION}`;
 const AUDIO = "tanwin-audio";
 /*FILES*/
@@ -91,7 +91,8 @@ const AUDIO_HOSTS = ["audio.qurancdn.com", "everyayah.com", "verses.quran.com", 
 
 self.addEventListener("install", (e) => {
   // новая версия ждёт, пока ученик нажмёт «Обновить» (чтобы не перезагружать страницу посреди урока)
-  e.waitUntil(caches.open(CORE).then((c) => c.addAll(FILES)));
+  // cache: "reload" — файлы с сервера, а не из HTTP-кэша браузера (иначе новая версия могла получить, например, старый шрифт)
+  e.waitUntil(caches.open(CORE).then((c) => c.addAll(FILES.map((f) => new Request(f, { cache: "reload" })))));
 });
 self.addEventListener("activate", (e) => {
   e.waitUntil((async () => {

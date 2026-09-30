@@ -1,8 +1,8 @@
 // Мусхаф: список сур и читалка с таджвидом, пословным аудио и синхронной подсветкой.
-import { h, ar, icon, tr, modal, toast, plural } from "../ui.js";
+import { h, ar, icon, tr, modal, toast, plural, rich } from "../ui.js";
 import { loadSurahs, loadSurah, surahMeta, wordKey, RECITERS, pad } from "../data.js";
 import { RULES, LEGEND, parseMarkup, plain, rulesIn } from "../rules.js";
-import { translit } from "../arabic.js";
+import { translit, stripStops } from "../arabic.js";
 import { playWord, playAyah, stop, onPlay, playingId } from "../audio.js";
 import { store, surahDone } from "../store.js";
 import { SURAH_PATH } from "../course.js";
@@ -15,7 +15,7 @@ export function legendModal() {
   modal(h("div.legend", null,
     h("h2", null, "Цвета таджвида"),
     h("p.muted", null, "Цвет показывает правило чтения. Нажмите на любое слово в мусхафе — увидите, какие правила в нём есть."),
-    h("div.legend-list", null, ...LEGEND.map((c) => h("div.lg-row", null, h("span.lg-sw", { style: { background: `var(--r-${c})` } }), h("div", null, h("b", null, RULES[c].name), h("small.muted", null, RULES[c].short))))),
+    h("div.legend-list", null, ...LEGEND.map((c) => h("div.lg-row", null, h("span.lg-sw", { style: { background: `var(--r-${c})` } }), h("div", null, h("b", null, RULES[c].name), h("small.muted", null, rich(RULES[c].short)))))),
     h("a.btn.secondary.wide", { href: "#/rules" }, "Подробно о правилах")));
 }
 
@@ -56,14 +56,14 @@ function wordPop(s, a, wi, w, meta) {
   const t = translit(p);
   playWord(wordKey(s, a, wi + 1));
   modal(h("div.word-pop", null,
-    h("div.wp-ar", null, ar(w, { colors: true })),
+    h("div.wp-ar", null, ar(stripStops(w), { colors: true })),
     h("div.wp-tr", null, tr(t)),
     h("div.wp-ref", null, `${meta.ru}, аят ${a}, слово ${wi + 1}`),
     h("div.row.center.gap", null,
       h("button.btn.secondary", { type: "button", onclick: () => playWord(wordKey(s, a, wi + 1)) }, icon("vol", { size: 18 }), "Ещё раз"),
       h("button.btn.secondary", { type: "button", onclick: () => playAyah(s, a) }, icon("play", { size: 18 }), "Весь аят")),
     codes.length ? h("div.wp-rules", null, h("div.label", null, "Правила в этом слове"),
-      ...codes.map((c) => h("div.lg-row", null, h("span.lg-sw", { style: { background: `var(--r-${c})` } }), h("div", null, h("b", null, RULES[c].name), h("small.muted", null, RULES[c].text))))) : h("p.muted.small", null, "Особых правил таджвида в слове нет — читается по огласовкам."),
+      ...codes.map((c) => h("div.lg-row", null, h("span.lg-sw", { style: { background: `var(--r-${c})` } }), h("div", null, h("b", null, RULES[c].name), h("small.muted", null, rich(RULES[c].text)))))) : h("p.muted.small", null, "Особых правил таджвида в слове нет — читается по огласовкам."),
     h("p.muted.small", null, "Транскрипция — для отдельно прочитанного слова. В слитном чтении начало и конец слова могут звучать иначе (см. правила).")), { cls: "sheet" });
 }
 
@@ -157,7 +157,7 @@ export async function Reader(n) {
     player = surahPlayer(n, data, view, { onFinish: () => toast("Сура прослушана. Прочитайте её сами — вслух!") });
     toolbar.replaceChildren(player.btn, player.repBtn, reciterBtn(), rateBtn(), modeBtn(), colorBtn(), h("button.tool", { type: "button", title: "Цвета таджвида", onclick: legendModal }, icon("info", { size: 18 })));
     body.replaceChildren(
-      n !== 1 && n !== 9 ? h("div.bismillah", null, ar(BISMILLAH, { colors: store.get().settings.tajweed })) : null,
+      n !== 1 && n !== 9 ? h("div.bismillah", null, ar(BISMILLAH, { colors: store.get().settings.tajweed })) : "",
       view.el,
       h("div.reader-end", null,
         h("button.btn.secondary", { type: "button", onclick: () => { store.set((s) => { s.reads = s.reads || {}; s.reads[n] = (s.reads[n] || 0) + 1; }); toast("Отмечено: сура прочитана ✓"); } }, icon("check", { size: 18 }), "Я прочитал(а) эту суру"),

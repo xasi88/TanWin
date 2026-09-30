@@ -1,7 +1,7 @@
 // Практика: интервальное повторение (что пора повторить) и тренажёры.
 import { h, ar, icon, plural, shuffle, rich } from "../ui.js";
 import { store, srsDue, lessonDone } from "../store.js";
-import { learnedLevel } from "../path.js";
+import { learnedLevel, allOpen } from "../path.js";
 import { playLesson } from "../lesson.js";
 import { go, celebrate } from "../app.js";
 
@@ -62,7 +62,7 @@ export function ReviewView() {
   const due = srsDue().length;
   const total = Object.keys(store.get().srs).length;
   const cards = DRILLS.map((d) => {
-    const open = !d.need || lessonDone(d.need);
+    const open = !d.need || lessonDone(d.need) || allOpen();
     const main = d.id === "review";
     const sub = main ? (due ? `${due} ${plural(due, "тема ждёт", "темы ждут", "тем ждут")} повторения` : total ? "Сейчас всё свежо в памяти. Можно потренироваться." : "Пройдите первые уроки — и здесь появятся повторения.") : d.text;
     return h(open ? "a.drill" : "div.drill", { href: open ? `#/practice/${d.id}` : null, class: (open ? "" : "locked ") + (main ? "main" : "") },

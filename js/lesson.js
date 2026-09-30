@@ -4,7 +4,7 @@ import { build, quiz, ruleIndex } from "./exercises.js";
 import { byId, forms, POINTS, ZONES, LETTERS } from "./letters.js";
 import { letterExamples, lessonWords, words, minimalPairs, loadSurah, wordKey, rareExamples } from "./data.js";
 import { RULES, parseMarkup, plain, rulesIn } from "./rules.js";
-import { M, CONS } from "./arabic.js";
+import { M, CONS, stripStops } from "./arabic.js";
 import { diagram } from "./diagram.js";
 import { playWord, playAyah, stop, sfx, canRecord, startRecording, stopRecording, envelope, playUrl } from "./audio.js";
 import { store, addXp, srsSeen, finishLesson, todayXp } from "./store.js";
@@ -74,12 +74,12 @@ function ruleCard(code) {
   const exBox = h("div.words-row", null, h("div.skeleton"));
   ruleExamples(code).then((xs) => exBox.replaceChildren(...xs.map((x) => {
     const key = wordKey(x.s, x.a, x.wi + 1);
-    const b = h("button.word-chip.rule-ex", { type: "button" }, ar(onlyRuleColored(x.w, code)), h("span.ref", null, `${x.s}:${x.a}`));
+    const b = h("button.word-chip.rule-ex", { type: "button" }, ar(stripStops(onlyRuleColored(x.w, code))), h("span.ref", null, `${x.s}:${x.a}`));
     b.addEventListener("click", () => playWord(key));
     return b;
   })));
   return h("div.card.rule-card", { style: { "--rc": `var(--r-${code})` } },
-    h("div.rc-head", null, h("span.rc-swatch"), h("div", null, h("h2", null, r.name), h("div.muted", null, r.short + (r.count ? "" : "")))),
+    h("div.rc-head", null, h("span.rc-swatch"), h("div", null, h("h2", null, r.name), h("div.muted", null, rich(r.short)))),
     h("p", null, rich(r.text)),
     h("div.label", null, "Примеры из Корана — нажмите, чтобы послушать"),
     exBox);
