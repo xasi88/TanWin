@@ -1,0 +1,8 @@
+{
+  "name": "tanwin-audit",
+  "private": true,
+  "type": "module",
+  "description": "Автопроверка вёрстки TanWin (см. audit.mjs)",
+  "scripts": { "audit": "node audit.mjs" },
+  "devDependencies": { "playwright": "^1.63.0" }
+}

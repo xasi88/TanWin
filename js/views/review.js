@@ -1,6 +1,7 @@
 // Практика: интервальное повторение (что пора повторить) и тренажёры.
 import { h, ar, icon, plural, shuffle, rich } from "../ui.js";
-import { store, srsDue, lessonDone } from "../store.js";
+import { store, srsDue, lessonDone, hardWords } from "../store.js";
+import { bank } from "../data.js";
 import { learnedLevel, allOpen } from "../path.js";
 import { playLesson } from "../lesson.js";
 import { go, celebrate } from "../app.js";
@@ -46,6 +47,10 @@ function mixedSteps() {
 
 const DRILLS = [
   { id: "review", icon: "repeat", title: "Повторение", text: "То, что пора освежить в памяти", need: null },
+  { id: "hard", icon: "target", title: "Трудные слова", text: "Слова, в которых вы ошибались", need: null, hard: true, steps: () => {
+    const ws = hardWords().map((k) => bank()?.byKey.get(k)).filter(Boolean).slice(0, 10);
+    return ws.flatMap((w, i) => [{ t: "ex", k: i % 2 ? "listenWord" : "readWord", n: 1, words: [w] }]);
+  } },
   { id: "letters", icon: "sparkle", title: "Буквы", text: "Названия, формы, звуки", need: "2.9", steps: () => [{ t: "ex", k: "letterName", n: 4, from: "all" }, { t: "ex", k: "letterPick", n: 4, from: "all" }, { t: "ex", k: "formPick", n: 3 }, { t: "ex", k: "listenFirst", n: 3, from: "all" }] },
   { id: "ear", icon: "ear", title: "Тренажёр слуха", text: "Трудные пары: {س} и {ص}, {ت} и {ط}, {ه} и {ح}…", need: "3.4", steps: () => [{ t: "ex", k: "pairListen", n: 10, pairs: "all" }] },
   { id: "makharij", icon: "target", title: "Махраджи", text: "Откуда выходит звук", need: "3.8", steps: () => [{ t: "ex", k: "pointPick", n: 5, letters: "all" }, { t: "ex", k: "heavy", n: 4 }, { t: "ex", k: "zonePick", n: 3 }] },
@@ -62,13 +67,14 @@ export function ReviewView() {
   const due = srsDue().length;
   const total = Object.keys(store.get().srs).length;
   const cards = DRILLS.map((d) => {
-    const open = !d.need || lessonDone(d.need) || allOpen();
+    const nHard = d.hard ? hardWords().filter((k) => bank()?.byKey.has(k)).length : 0;
+    const open = d.hard ? nHard > 0 : !d.need || lessonDone(d.need) || allOpen();
     const main = d.id === "review";
-    const sub = main ? (due ? `${due} ${plural(due, "тема ждёт", "темы ждут", "тем ждут")} повторения` : total ? "Сейчас всё свежо в памяти. Можно потренироваться." : "Пройдите первые уроки — и здесь появятся повторения.") : d.text;
+    const sub = main ? (due ? `${due} ${plural(due, "тема ждёт", "темы ждут", "тем ждут")} повторения` : total ? "Сейчас всё свежо в памяти. Можно потренироваться." : "Пройдите первые уроки — и здесь появятся повторения.") : d.hard ? `${nHard} ${plural(nHard, "слово", "слова", "слов")} — повторяйте, пока не станут лёгкими` : d.text;
     return h(open ? "a.drill" : "div.drill", { href: open ? `#/practice/${d.id}` : null, class: (open ? "" : "locked ") + (main ? "main" : "") },
       h("span.dr-ic", null, icon(open ? d.icon : "lock", { size: 26 })),
-      h("div", null, h("b", null, d.title), h("div.muted", null, open ? rich(sub) : "Откроется по мере прохождения пути")),
-      main && due ? h("span.badge", null, due) : null);
+      h("div", null, h("b", null, d.title), h("div.muted", null, open ? rich(sub) : d.hard ? "Здесь появятся слова, в которых вы ошибётесь в уроках" : "Откроется по мере прохождения пути")),
+      main && due ? h("span.badge", null, due) : d.hard && nHard ? h("span.badge", null, nHard) : null);
   });
   return h("div.page", null,
     h("header.page-head", null, h("h1", null, "Практика"), h("p.muted", null, "Интервальное повторение: приложение запоминает, что вы начинаете забывать, и возвращает это как раз вовремя. Пять минут здесь в день закрепляют пройденное надолго.")),

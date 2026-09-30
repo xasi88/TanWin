@@ -11,7 +11,7 @@ const dayDiff = (a, b) => Math.round((new Date(b) - new Date(a)) / 86400000);
 const DEFAULT = () => ({
   v: 2,
   profile: { name: "", created: Date.now(), goal: 30, onboarded: false },
-  settings: { theme: "auto", arScale: 1, reciter: "husary", translit: "tap", tajweed: true, sfx: true, translation: true, rate: 1, unlockAll: false },
+  settings: { theme: "auto", arScale: 1, reciter: "husary", translit: "tap", tajweed: true, sfx: true, translation: true, rate: 1, unlockAll: false, uiScale: 1 },
   lessons: {},
   surahs: {},
   xp: 0,
@@ -20,6 +20,7 @@ const DEFAULT = () => ({
   srs: {},
   stats: { answers: 0, correct: 0, ms: 0, lessons: 0 },
   badges: {},
+  hard: {},
 });
 
 let state = load();
@@ -55,6 +56,22 @@ export const store = {
     state = merge(DEFAULT(), s); save();
   },
 };
+
+// ---------- Сохранность прогресса ----------
+// Прогресс живёт в хранилище браузера. Просим браузер не удалять его (Safari чистит данные сайтов,
+// которые не открывали около недели), а раз в неделю напоминаем сохранить копию в файл.
+export async function protectStorage() {
+  try { if (navigator.storage?.persist && !(await navigator.storage.persisted())) await navigator.storage.persist(); } catch {}
+}
+const WEEK = 7 * 86400000;
+/** Пора ли напомнить о копии: есть что терять, и неделю не сохраняли (и не откладывали). */
+export function backupDue(now = Date.now()) {
+  const p = state.profile;
+  if (Object.keys(state.lessons).length + Object.keys(state.surahs).length < 3) return false;
+  return now - (p.lastBackup || p.created || 0) > WEEK && now > (p.backupSnooze || 0);
+}
+export function backupDone() { state.profile.lastBackup = Date.now(); save(); }
+export function backupLater() { state.profile.backupSnooze = Date.now() + WEEK; save(); }
 
 // ---------- Опыт, цель дня, серия ----------
 export const LEVEL_XP = (n) => 40 * n * (n - 1); // уровень 1 = 0, 2 = 80, 3 = 240, 4 = 480…
@@ -139,6 +156,16 @@ export function finishLesson(id, { pct, ms, answers, correct, isSurah = false })
 }
 export const lessonDone = (id) => !!state.lessons[id]?.done;
 export const surahDone = (n) => !!state.surahs[n]?.done;
+
+// ---------- Трудные слова ----------
+// Слово, в котором ошиблись, попадает в тренировку «Трудные слова» и уходит из неё после двух верных ответов подряд.
+export function hardSeen(key, ok) {
+  const it = state.hard[key];
+  if (ok) { if (!it) return; it.ok++; if (it.ok >= 2) delete state.hard[key]; }
+  else state.hard[key] = { bad: (it?.bad || 0) + 1, ok: 0, last: Date.now() };
+}
+/** Ключи трудных слов: сначала самые «ошибочные» и недавние. */
+export const hardWords = () => Object.entries(state.hard).sort((a, b) => b[1].bad - a[1].bad || b[1].last - a[1].last).map(([k]) => k);
 
 export function award(id) {
   if (state.badges[id]) return false;

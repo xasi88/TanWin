@@ -25,6 +25,7 @@ export async function loadBank() {
     return { i, d, a, n, L, li: LEVEL_ORDER.indexOf(L), tr, f, cur: !!cur, len: cs.length, first, firstL: byChar[first]?.id || null, skel: cs.map((c) => c.b).join("") };
   });
   BANK.byText = new Map(BANK.map((w) => [w.d, w]));
+  BANK.byKey = new Map(BANK.map((w) => [w.a, w]));
   const [pairs, rare] = await Promise.all([json("data/pairs.json"), json("data/rare.json")]);
   const label = Object.fromEntries(SOUND_PAIRS.map(([a, b, l]) => [a + "-" + b, l]));
   PAIRS = pairs.map(([a, b, d1, a1, t1, d2, a2, t2]) => ({ a, b, label: label[a + "-" + b], w1: { d: d1, a: a1, tr: t1 }, w2: { d: d2, a: a2, tr: t2 } }));

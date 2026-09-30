@@ -1,6 +1,6 @@
 // TanWin — оболочка приложения: маршруты, навигация, тема, офлайн.
 import { h, $, icon, toast, checkShaping, queueFit } from "./ui.js";
-import { store, streakNow, levelInfo, todayXp } from "./store.js";
+import { store, streakNow, levelInfo, todayXp, protectStorage } from "./store.js";
 import { loadBank, loadSurahs } from "./data.js";
 import { stop } from "./audio.js";
 import { checkBadges } from "./path.js";
@@ -15,7 +15,10 @@ export function applySettings() {
   const s = store.get().settings;
   const root = document.documentElement;
   if (s.theme === "auto") root.removeAttribute("data-theme"); else root.setAttribute("data-theme", s.theme);
-  root.style.setProperty("--ar-scale", s.arScale || 1);
+  // арабский и остальной текст увеличиваются независимо (см. «Арабский текст» в docs/ARCHITECTURE.md)
+  root.style.setProperty("--ui-scale", s.uiScale || 1);
+  root.style.setProperty("--ar-k", (s.arScale || 1) / (s.uiScale || 1));
+  root.classList.toggle("ar-big", (s.arScale || 1) > 1.4);
   const dark = s.theme === "dark" || (s.theme === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#0b1020" : "#fbf7ef");
 }
@@ -34,7 +37,7 @@ function renderNav(active) {
   nav.replaceChildren(
     h("a.brand", { href: "#/", "aria-label": "TanWin — на главную" }, logo(), h("span.brand-name", null, "TanWin"), h("span.brand-sub", null, "путь к чтению Корана")),
     h("div.nav-tabs", { role: "tablist" }, ...TABS.map((t) => {
-      const on = t.path === "/" ? active === "/" : active.startsWith(t.path);
+      const on = t.path === "/" ? active === "/" : active.startsWith(t.path) || (t.path === "/quran" && active.startsWith("/page"));
       return h("a.tab", { href: "#" + t.path, class: on ? "on" : "", "aria-current": on ? "page" : null }, icon(t.ic, { size: 24 }), h("span", null, t.label));
     })),
     !isInstalled() ? h("button.nav-install", { type: "button", onclick: installApp }, icon("down", { size: 18 }), h("span", null, "Установить приложение")) : "",
@@ -68,7 +71,8 @@ const routes = [
   [/^\/review$/, () => import("./views/review.js").then((m) => m.ReviewView())],
   [/^\/practice\/(\w+)$/, (k) => import("./views/review.js").then((m) => m.PracticeRoute(k))],
   [/^\/quran$/, () => import("./views/quran.js").then((m) => m.QuranList())],
-  [/^\/quran\/(\d+)$/, (n) => import("./views/quran.js").then((m) => m.Reader(+n))],
+  [/^\/quran\/(\d+)(?:\/(\d+))?$/, (n, a) => import("./views/quran.js").then((m) => m.Reader(+n, +a || 0))],
+  [/^\/page\/(\d+)$/, (p) => import("./views/quran.js").then((m) => m.MushafPage(+p))],
   [/^\/progress$/, () => import("./views/progress.js").then((m) => m.ProgressView())],
   [/^\/more$/, () => import("./views/more.js").then((m) => m.MoreView())],
   [/^\/letters$/, () => import("./views/reference.js").then((m) => m.LettersRef())],
@@ -133,6 +137,8 @@ async function start() {
   document.fonts?.ready.then(queueFit);
   route();
   registerSW();
+  // когда есть что беречь — просим браузер не удалять данные приложения
+  if (Object.keys(store.get().lessons).length) protectStorage();
 }
 
 // ---------- Офлайн (service worker) ----------

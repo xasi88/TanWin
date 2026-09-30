@@ -1,5 +1,5 @@
 // Мусхаф: список сур и читалка с таджвидом, пословным аудио и синхронной подсветкой.
-import { h, ar, icon, tr, modal, toast, plural, rich } from "../ui.js";
+import { h, ar, icon, tr, modal, toast, plural, rich, sizeButton } from "../ui.js";
 import { loadSurahs, loadSurah, surahMeta, wordKey, RECITERS, pad } from "../data.js";
 import { RULES, LEGEND, parseMarkup, plain, rulesIn } from "../rules.js";
 import { translit, stripStops } from "../arabic.js";
@@ -42,8 +42,14 @@ export async function QuranList() {
   const search = h("input.search", { type: "search", placeholder: "Поиск: название, номер…", "aria-label": "Поиск суры" });
   search.addEventListener("input", () => { q = search.value; if (q && filter === "path") { filter = "all"; chips.querySelectorAll("button").forEach((b, i) => b.classList.toggle("on", i === 1)); } draw(); });
   draw();
+  const r = store.get().reading;
   return h("div.page.quran-page", null,
     h("header.page-head", null, h("h1", null, "Коран"), h("p.muted", null, "Мусхаф Мадины, риваят Хафса от Асыма. Цветной таджвид, пословное аудио, чтецы аль-Хусари и Мишари аль-Афаси.")),
+    continueReading(),
+    h("button.card.pages-card", { type: "button", onclick: () => r?.p ? go(`/page/${r.p}`) : pagePicker(1) },
+      h("span.rc-ic", null, icon("page", { size: 24 })),
+      h("div", null, h("b", null, "Мусхаф по страницам"), h("div.muted", null, "604 страницы и 30 джузов — как в печатном мусхафе Мадины")),
+      icon("right")),
     h("div.list-tools", null, search, chips),
     h("button.link", { type: "button", onclick: legendModal }, icon("palette", { size: 16 }), " Что означают цвета?"),
     box);
@@ -70,25 +76,33 @@ function wordPop(s, a, wi, w, meta) {
 // ---------- Отображение аятов ----------
 /**
  * Рисует аяты суры. mode: "mushaf" (сплошным текстом) или "ayat" (по аятам с переводом).
- * Возвращает { el, highlight(a, ms), scrollTo(a) }.
+ * pages — отметки страниц мусхафа Мадины; hifz — заучивание: 0 все слова видны, 1…3 — скрыта треть / две трети / все;
+ * bare — без рамки (для страницы мусхафа). Возвращает { el, highlight(a, ms), scrollTo(a) }.
  */
-export function renderVerses(s, data, meta, { mode = "mushaf", colors = true, translation = true, from = 1, to = data.v.length, onAyah } = {}) {
-  const el = h("div.verses", { class: mode, dir: "rtl" });
+export function renderVerses(s, data, meta, { mode = "mushaf", colors = true, translation = true, from = 1, to = data.v.length, onAyah, pages = false, hifz = 0, bare = false } = {}) {
+  const el = h("div.verses", { class: `${mode}${bare ? " bare" : ""}${hifz ? " hifz" : ""}`, dir: "rtl" });
   const ayahEls = [];
+  let lastPage = null;
   for (let a = from; a <= to; a++) {
     const v = data.v[a - 1];
+    const page = v[4]?.[0];
+    if (pages && page && page !== lastPage) el.append(pageMark(page, v[5], s, a));
+    lastPage = page;
     const words = v[0].map((w, wi) => {
-      const b = h("span.qw", { role: "button", tabindex: "0", "data-wi": wi }, ar(w, { colors, tag: "span" }));
-      b.addEventListener("click", () => wordPop(s, a, wi, w, meta));
-      b.addEventListener("keydown", (e) => e.key === "Enter" && wordPop(s, a, wi, w, meta));
+      const hide = hifz && (hifz >= 3 || (a * 5 + wi * 2) % 3 < hifz);
+      const b = h("span.qw", { role: "button", tabindex: "0", "data-wi": wi, class: hide ? "hid" : "" }, ar(w, { colors, tag: "span" }));
+      // скрытое слово: первое нажатие открывает его, следующее — карточку слова
+      const open = () => { if (b.classList.contains("hid") && !b.classList.contains("shown")) { b.classList.add("shown"); return; } wordPop(s, a, wi, w, meta); };
+      b.addEventListener("click", open);
+      b.addEventListener("keydown", (e) => e.key === "Enter" && open());
       return b;
     });
     const mark = h("button.ayah-mark", { type: "button", "aria-label": `Аят ${a}: слушать` , onclick: () => onAyah?.(a) }, h("span", null, arNum(a)));
     if (mode === "mushaf") {
-      const span = h("span.ayah", { "data-a": a }, ...words.flatMap((w) => [w, " "]), mark, " ");
+      const span = h("span.ayah", { "data-a": a, "data-p": page || "" }, ...words.flatMap((w) => [w, " "]), mark, " ");
       el.append(span); ayahEls[a] = span;
     } else {
-      const row = h("div.ayah-row", { "data-a": a },
+      const row = h("div.ayah-row", { "data-a": a, "data-p": page || "" },
         h("div.ar-line", { dir: "rtl" }, ...words.flatMap((w) => [w, " "]), mark),
         translation && v[1] ? h("p.translation", { dir: "ltr" }, h("b", null, a + ". "), v[1]) : null);
       el.append(row); ayahEls[a] = row;
@@ -107,8 +121,15 @@ export function renderVerses(s, data, meta, { mode = "mushaf", colors = true, tr
       const seg = data.v[a - 1][segIdx()] || [];
       ae.querySelectorAll(".qw").forEach((w, i) => w.classList.toggle("now", ms >= 0 && seg[i * 2] >= 0 && ms >= seg[i * 2] && ms < seg[i * 2 + 1] + 80));
     },
-    scrollTo(a) { ayahEls[a]?.scrollIntoView({ block: "center", behavior: "smooth" }); },
+    scrollTo(a, behavior = "smooth") { ayahEls[a]?.scrollIntoView({ block: "center", behavior }); },
+    ayahEls,
   };
+}
+
+// Отметка начала страницы мусхафа Мадины (604 страницы). Нажатие — открыть эту страницу целиком.
+function pageMark(p, juz, s, a) {
+  return h("a.page-mark", { href: `#/page/${p}`, dir: "ltr", title: "Открыть страницу мусхафа" },
+    h("span", null, `страница ${p}`), juz ? h("span", null, `джуз ${juz}`) : null);
 }
 
 // ---------- Проигрыватель суры ----------
@@ -143,19 +164,67 @@ export function surahPlayer(s, data, view, { from = 1, to = data.v.length, onFin
   return { btn, repBtn, playFrom, stop: () => stop() };
 }
 
+// ---------- Где остановился читатель ----------
+/** Запоминает место чтения (сура, аят, страница): «Продолжить чтение» в списке сур и на главной. */
+function saveReading(s, a, page, mode) {
+  const r = store.get().reading;
+  if (r && r.s === s && r.a === a && r.mode === mode) return;
+  store.set((st) => { st.reading = { s, a, p: page || null, mode, at: Date.now() }; });
+}
+/** Следит за верхним видимым аятом и сохраняет его (с задержкой, чтобы не писать на каждый пиксель прокрутки). */
+function trackReading(s, data, view, mode) {
+  let tm = 0;
+  const seen = new Map();
+  const io = new IntersectionObserver((es) => {
+    if (!view.el.isConnected) { io.disconnect(); return; }
+    for (const e of es) seen.set(+e.target.dataset.a, e.isIntersecting);
+    clearTimeout(tm);
+    tm = setTimeout(() => {
+      const vis = [...seen].filter(([, v]) => v).map(([a]) => a);
+      if (!vis.length || !view.el.isConnected) return;
+      const a = Math.min(...vis);
+      saveReading(s, a, data.v[a - 1][4]?.[0], mode);
+    }, 900);
+  }, { rootMargin: "-20% 0px -50% 0px" });
+  view.ayahEls.forEach((el) => el && io.observe(el));
+}
+/** Карточка «Продолжить чтение Корана» (или null, если читатель ещё не открывал мусхаф). */
+export function continueReading() {
+  const r = store.get().reading;
+  const m = r && surahMeta(r.s);
+  if (!m) return null;
+  const href = r.mode === "page" && r.p ? `#/page/${r.p}` : `#/quran/${r.s}/${r.a}`;
+  return h("a.card.reading-card", { href },
+    h("span.rc-ic", null, icon("book", { size: 24 })),
+    h("div", null, h("b", null, "Продолжить чтение Корана"), h("div.muted", null, `Сура ${m.ru}, аят ${r.a}${r.p ? ` · страница ${r.p}` : ""}`)),
+    icon("right"));
+}
+
+// ---------- Заучивание ----------
+const HIFZ = ["Выкл.", "Треть", "Две трети", "Все слова"];
+const hifzLevel = () => { try { return +localStorage.getItem("tanwin.hifz") || 0; } catch { return 0; } };
+function hifzBtn(redraw) {
+  const lv = hifzLevel();
+  return h("button.tool", { type: "button", class: lv ? "on" : "", title: "Заучивание: скрыть часть слов", onclick: () => {
+    const next = (hifzLevel() + 1) % HIFZ.length;
+    try { localStorage.setItem("tanwin.hifz", next); } catch {}
+    toast(next ? `Заучивание: скрыто — ${HIFZ[next].toLowerCase()}. Читайте по памяти; нажмите на слово, чтобы подсмотреть. Слушая чтеца, слова открываются по ходу.` : "Заучивание выключено — все слова видны.", 4200);
+    redraw();
+  } }, icon("eye", { size: 18 }), h("span", null, lv ? `Заучивание: ${HIFZ[lv].toLowerCase()}` : "Заучивание"));
+}
+
 // ---------- Читалка ----------
-export async function Reader(n) {
+export async function Reader(n, startA = 0) {
   const [list, data] = await Promise.all([loadSurahs(), loadSurah(n)]);
   const meta = list[n - 1];
-  const st = store.get().settings;
   let mode = localStorage.getItem("tanwin.readerMode") || "mushaf";
   const body = h("div.reader-body");
   let view, player;
   const draw = () => {
     stop();
-    view = renderVerses(n, data, meta, { mode, colors: store.get().settings.tajweed, translation: store.get().settings.translation, onAyah: (a) => player.playFrom(a) });
+    view = renderVerses(n, data, meta, { mode, pages: true, hifz: hifzLevel(), colors: store.get().settings.tajweed, translation: store.get().settings.translation, onAyah: (a) => player.playFrom(a) });
     player = surahPlayer(n, data, view, { onFinish: () => toast("Сура прослушана. Прочитайте её сами — вслух!") });
-    toolbar.replaceChildren(player.btn, player.repBtn, reciterBtn(), rateBtn(), modeBtn(), colorBtn(), h("button.tool", { type: "button", title: "Цвета таджвида", onclick: legendModal }, icon("info", { size: 18 })));
+    toolbar.replaceChildren(player.btn, player.repBtn, sizeButton({ cls: "tool" }), hifzBtn(draw), pagesBtn(), reciterBtn(), rateBtn(), modeBtn(), colorBtn(), h("button.tool", { type: "button", title: "Цвета таджвида", onclick: legendModal }, icon("info", { size: 18 })));
     body.replaceChildren(
       n !== 1 && n !== 9 ? h("div.bismillah", null, ar(BISMILLAH, { colors: store.get().settings.tajweed })) : "",
       view.el,
@@ -163,6 +232,7 @@ export async function Reader(n) {
         h("button.btn.secondary", { type: "button", onclick: () => { store.set((s) => { s.reads = s.reads || {}; s.reads[n] = (s.reads[n] || 0) + 1; }); toast("Отмечено: сура прочитана ✓"); } }, icon("check", { size: 18 }), "Я прочитал(а) эту суру"),
         n < 114 ? h("a.btn.ghost", { href: `#/quran/${n + 1}` }, "Следующая сура", icon("right", { size: 18 })) : null,
         h("button.btn.ghost", { type: "button", onclick: () => cacheSurah(n, data) }, icon("down", { size: 18 }), "Скачать аудио для офлайна")));
+    trackReading(n, data, view, mode);
   };
   const toolbar = h("div.reader-tools");
   const reciterBtn = () => h("button.tool", { type: "button", title: "Чтец", onclick: () => {
@@ -172,15 +242,131 @@ export async function Reader(n) {
   const rateBtn = () => h("button.tool", { type: "button", title: "Скорость", onclick: () => {
     store.set((s) => { const r = s.settings.rate || 1; s.settings.rate = r === 1 ? 0.8 : r === 0.8 ? 1.2 : 1; }); draw();
   } }, icon("slow", { size: 18 }), h("span", null, (store.get().settings.rate || 1) + "×"));
-  const modeBtn = () => h("button.tool", { type: "button", title: "Вид", onclick: () => { mode = mode === "mushaf" ? "ayat" : "mushaf"; try { localStorage.setItem("tanwin.readerMode", mode); } catch {} draw(); } }, icon(mode === "mushaf" ? "list" : "book", { size: 18 }), h("span", null, mode === "mushaf" ? "По аятам" : "Мусхаф"));
+  const modeBtn = () => h("button.tool", { type: "button", title: "Вид", onclick: () => { mode = mode === "mushaf" ? "ayat" : "mushaf"; try { localStorage.setItem("tanwin.readerMode", mode); } catch {} draw(); } }, icon(mode === "mushaf" ? "list" : "book", { size: 18 }), h("span", null, mode === "mushaf" ? "По аятам" : "Сплошной текст"));
+  // страницы: открываем ту, на которой сейчас читатель
+  const pagesBtn = () => h("button.tool", { type: "button", title: "Страницы мусхафа Мадины", onclick: () => {
+    const r = store.get().reading;
+    const a = r?.s === n ? r.a : 1;
+    go(`/page/${data.v[a - 1][4][0]}`);
+  } }, icon("page", { size: 18 }), h("span", null, "Страницы"));
   const colorBtn = () => h("button.tool", { type: "button", class: store.get().settings.tajweed ? "on" : "", title: "Цвета таджвида", onclick: () => { store.set((s) => { s.settings.tajweed = !s.settings.tajweed; }); draw(); } }, icon("palette", { size: 18 }), h("span", null, "Таджвид"));
   draw();
+  if (startA > 1 && startA <= data.v.length) requestAnimationFrame(() => requestAnimationFrame(() => view.scrollTo(startA, "auto")));
   return h("div.page.reader", null,
     h("header.reader-head", null,
       h("a.icon-btn", { href: "#/quran", "aria-label": "К списку сур" }, icon("left")),
-      h("div.rh-title", null, h("h1", null, meta.ru), h("div.muted", null, `${meta.meaning} · ${meta.verses} ${plural(meta.verses, "аят", "аята", "аятов")}`)),
+      h("div.rh-title", null, h("h1", null, meta.ru), h("div.muted", null, `${meta.meaning} · ${meta.verses} ${plural(meta.verses, "аят", "аята", "аятов")} · с. ${data.v[0][4][0]}`)),
       h("div.rh-ar", null, ar(meta.ar))),
     toolbar, body);
+}
+
+// ---------- Страница мусхафа Мадины ----------
+export const PAGES = 604;
+const JUZ_PAGE = [1, 22, 42, 62, 82, 102, 121, 142, 162, 182, 201, 222, 242, 262, 282, 302, 322, 342, 362, 382, 402, 422, 442, 462, 482, 502, 522, 542, 562, 582];
+
+/** Аяты страницы p: [{ s, meta, data, from, to }] — на одной странице может быть конец одной суры и начало другой. */
+async function pageContent(p) {
+  const list = await loadSurahs();
+  const cand = list.filter((m, i) => m.page <= p && (i === list.length - 1 || list[i + 1].page >= p));
+  const parts = [];
+  for (const m of cand) {
+    const data = await loadSurah(m.id);
+    const idx = data.v.map((v, i) => (v[4][0] === p ? i + 1 : 0)).filter(Boolean);
+    if (idx.length) parts.push({ s: m.id, meta: m, data, from: idx[0], to: idx[idx.length - 1] });
+  }
+  return parts;
+}
+
+/** Переход к странице / джузу. */
+function pagePicker(cur) {
+  modal((close) => {
+    const inp = h("input.text-in.big", { type: "number", min: 1, max: PAGES, value: cur, inputmode: "numeric", "aria-label": "Номер страницы" });
+    const goTo = () => { const v = Math.round(+inp.value); if (v >= 1 && v <= PAGES) { close(); go(`/page/${v}`); } else toast(`Номер страницы — от 1 до ${PAGES}`); };
+    inp.addEventListener("keydown", (e) => e.key === "Enter" && goTo());
+    return h("div.page-picker", null,
+      h("h2", null, "Перейти"),
+      h("div.row.gap", null, inp, h("button.btn.primary", { type: "button", onclick: goTo }, "Открыть")),
+      h("div.label", null, "Начало джуза"),
+      h("div.juz-grid", null, ...JUZ_PAGE.map((jp, i) => h("button.juz-btn", { type: "button", class: jp <= cur && (JUZ_PAGE[i + 1] || 605) > cur ? "on" : "", onclick: () => { close(); go(`/page/${jp}`); } }, h("b", null, i + 1), h("small", null, `с. ${jp}`)))));
+  });
+}
+
+export async function MushafPage(p) {
+  p = Math.min(PAGES, Math.max(1, p));
+  const parts = await pageContent(p);
+  const colors = store.get().settings.tajweed;
+  const juz = parts[0]?.data.v[parts[0].from - 1][5];
+  const views = [];
+  const frame = h("div.mushaf-page", { dir: "rtl" });
+  const draw = () => {
+    stop();
+    views.length = 0;
+    frame.replaceChildren();
+    for (const part of parts) {
+      if (part.from === 1) {
+        frame.append(h("div.surah-banner", null, ar(part.meta.ar), h("small", { dir: "ltr" }, `Сура ${part.meta.ru}`)));
+        if (part.s !== 1 && part.s !== 9) frame.append(h("div.bismillah", null, ar(BISMILLAH, { colors: store.get().settings.tajweed })));
+      }
+      const view = renderVerses(part.s, part.data, part.meta, { mode: "mushaf", bare: true, hifz: hifzLevel(), colors: store.get().settings.tajweed, from: part.from, to: part.to, onAyah: (a) => player.playFrom(part.s, a) });
+      views.push({ part, view });
+      frame.append(view.el);
+    }
+    toolbar.replaceChildren(player.btn, sizeButton({ cls: "tool" }), hifzBtn(draw),
+      h("button.tool", { type: "button", class: store.get().settings.tajweed ? "on" : "", title: "Цвета таджвида", onclick: () => { store.set((s) => { s.settings.tajweed = !s.settings.tajweed; }); draw(); } }, icon("palette", { size: 18 }), h("span", null, "Таджвид")),
+      h("button.tool", { type: "button", title: "Цвета таджвида", onclick: legendModal }, icon("info", { size: 18 })));
+  };
+  // проигрыватель страницы: аяты подряд, через границу сур
+  const player = (() => {
+    let queue = [], i = -1, playing = false;
+    const btn = h("button.btn.primary.play-all", { type: "button" });
+    const sync = () => btn.replaceChildren(icon(playing ? "pause" : "play", { size: 20, fill: !playing, sw: playing ? 3 : 1.5 }), playing ? "Пауза" : "Слушать страницу");
+    const run = () => {
+      const { s, a, view } = queue[i];
+      view.scrollTo(a);
+      playAyah(s, a, {
+        onTime: (ms) => view.highlight(a, ms),
+        onEnd: () => { view.highlight(a, -1); if (++i < queue.length) run(); else { playing = false; i = -1; sync(); } },
+        onError: () => { playing = false; sync(); toast("Не удалось загрузить аудио. Проверьте интернет."); },
+        onStop: () => { view.highlight(a, -1); playing = false; sync(); },
+      });
+    };
+    const playFrom = (s, a) => {
+      queue = views.flatMap(({ part, view }) => Array.from({ length: part.to - part.from + 1 }, (_, k) => ({ s: part.s, a: part.from + k, view })));
+      i = Math.max(0, queue.findIndex((x) => x.s === s && x.a === a));
+      playing = true; sync(); run();
+    };
+    btn.addEventListener("click", () => { if (playing) stop(); else playFrom(parts[0].s, parts[0].from); });
+    sync();
+    return { btn, playFrom };
+  })();
+  const toolbar = h("div.reader-tools");
+  draw();
+  if (parts[0]) saveReading(parts[0].s, parts[0].from, p, "page");
+
+  const nav = (to) => to >= 1 && to <= PAGES && go(`/page/${to}`);
+  // в мусхафе следующая страница — слева: свайп вправо или стрелка ←
+  const keys = (e) => { if (!frame.isConnected) return removeEventListener("keydown", keys); if (e.target.closest("input")) return; if (e.key === "ArrowLeft") nav(p + 1); if (e.key === "ArrowRight") nav(p - 1); };
+  addEventListener("keydown", keys);
+  let x0 = null, y0 = null;
+  frame.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+  frame.addEventListener("touchend", (e) => {
+    if (x0 == null) return;
+    const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    x0 = null;
+    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) nav(dx > 0 ? p + 1 : p - 1);
+  });
+  const names = parts.map((x) => x.meta.ru).join(" · ");
+  const pager = () => h("div.page-nav", null,
+    h("button.btn.secondary", { type: "button", "aria-label": "Следующая страница", disabled: p >= PAGES, onclick: () => nav(p + 1) }, icon("left", { size: 18 }), h("span", null, "Следующая")),
+    h("button.page-no", { type: "button", onclick: () => pagePicker(p), title: "Перейти к странице или джузу" }, arNum(p)),
+    h("button.btn.secondary", { type: "button", "aria-label": "Предыдущая страница", disabled: p <= 1, onclick: () => nav(p - 1) }, h("span", null, "Предыдущая"), icon("right", { size: 18 })));
+  return h("div.page.reader.page-view", null,
+    h("header.reader-head", null,
+      h("a.icon-btn", { href: parts[0] ? `#/quran/${parts[0].s}/${parts[0].from}` : "#/quran", "aria-label": "К тексту суры" }, icon("left")),
+      h("div.rh-title", null, h("h1", null, `Страница ${p}`), h("div.muted", null, `${names}${juz ? ` · джуз ${juz}` : ""}`)),
+      h("button.btn.ghost.small-btn", { type: "button", onclick: () => pagePicker(p) }, icon("list", { size: 18 }), "Перейти")),
+    toolbar, frame, pager(),
+    h("p.muted.small.center", null, "Страницы — как в мусхафе Мадины (604 страницы). Следующая — слева: листайте вправо или нажмите «Следующая»."));
 }
 
 async function cacheSurah(n, data) {

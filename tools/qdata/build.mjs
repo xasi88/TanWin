@@ -2,6 +2,7 @@
 //   node tools/qdata/fetch.mjs      — скачать слова, таджвид-разметку и перевод (Кулиев)
 //   node tools/qdata/fetch_seg.mjs  — скачать тайминги слов (аль-Хусари «муаллим», Мишари Афаси)
 //   node tools/qdata/build.mjs      — собрать data/surahs.json, data/q/NNN.json, data/bank.json
+// Формат аята в data/q/NNN.json: [слова с разметкой таджвида, перевод, тайминги Хусари, тайминги Афаси, [страница, строки…], джуз]
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
@@ -83,7 +84,11 @@ for (let s = 1; s <= 114; s++) {
       e.n++;
       if (CURRICULUM.has(s)) e.cur = true;
     });
-    return [cw, tr, segs(S12), segs(S7)];
+    // Мусхаф Мадины (604 страницы по 15 строк): [страница первого слова, строка каждого слова…, строка знака конца аята], джуз.
+    // Новая страница внутри аята — там, где номер строки уменьшается.
+    const marks = v.words.filter((w) => w.char_type_name === "word" || w.char_type_name === "end");
+    const pl = [marks[0].page_number, ...marks.map((w) => w.line_number)];
+    return [cw, tr, segs(S12), segs(S7), pl, v.juz_number];
   });
   const name_ru = NAMES_RU[s - 1];
   surahs.push([s, ch.name_arabic, name_ru, ch.translated_name.name, ch.verses_count, ch.revelation_place === "makkah" ? "м" : "д", ch.pages[0]]);

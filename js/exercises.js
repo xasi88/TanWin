@@ -220,10 +220,10 @@ function readOptions(w, n = 3) {
   return m.slice(0, n);
 }
 G.readWord = (o) => {
-  const pool = lessonWords({ level: o.level, need: o.need || "", maxLen: 6 }, o.n);
-  return sample(pool.slice(0, 250), o.n).map((w) => {
+  const pool = o.words || lessonWords({ level: o.level, need: o.need || "", maxLen: 6 }, o.n);
+  return (o.words || sample(pool.slice(0, 250), o.n)).map((w) => {
     const wrong = readOptions(w, 3);
-    return withOpts({ kind: "readWord", key: "W:" + o.level, layout: "grid2",
+    return withOpts({ kind: "readWord", key: "W:" + (o.level || w.L), word: w, layout: "grid2",
       prompt: () => h("div.q-center", null, promptText("Как читается слово?", "Прочитайте вслух, потом выберите."), ar(w.d, { cls: "q-word" })),
       after: () => wordChip(w, { showTr: true, big: true }),
       onAnswer: () => playWord(w.a),
@@ -250,13 +250,13 @@ function mutateAr(d) {
   return null;
 }
 G.listenWord = (o) => {
-  const pool = lessonWords({ level: o.level, need: o.need || "", maxLen: 6 }, o.n);
-  return sample(pool.slice(0, 250), o.n).map((w) => {
+  const pool = lessonWords({ level: o.level || "full", need: o.need || "", maxLen: 6 }, o.n);
+  return (o.words || sample(pool.slice(0, 250), o.n)).map((w) => {
     preloadWord(w.a);
-    const sim = similarWords(w, pool, 3);
+    const sim = similarWords(w, o.words ? words({ level: w.L, maxLen: 7 }) : pool, 3);
     const mut = mutateAr(w.d);
     const opts = [arOpt(w.d, true), ...(mut ? [arOpt(mut, false)] : []), ...sim.slice(0, mut ? 2 : 3).map((x) => arOpt(x.d, false))];
-    return withOpts({ kind: "listenWord", key: "W:" + o.level, layout: "list-ar",
+    return withOpts({ kind: "listenWord", key: "W:" + (o.level || w.L), word: w, layout: "list-ar",
       play: () => playWord(w.a),
       prompt: () => promptText("Какое слово прочитал чтец?", "Можно слушать сколько угодно раз."),
       after: () => wordChip(w, { showTr: true }),
