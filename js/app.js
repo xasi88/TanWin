@@ -3,9 +3,10 @@ import { h, $, icon, toast, checkShaping, queueFit } from "./ui.js";
 import { store, streakNow, levelInfo, todayXp, protectStorage } from "./store.js";
 import { loadBank, loadSurahs } from "./data.js";
 import { stop } from "./audio.js";
-import { checkBadges } from "./path.js";
+import { checkBadges, courseProgress, nextTarget, lessonById } from "./path.js";
 import { APP_VERSION } from "./version.js";
 import { canPrompt, install, isInstalled, onInstallChange, manualHint } from "./install.js";
+import { initMetrika, hit, track } from "./metrika.js";
 
 const view = $("#view");
 const nav = $("#nav");
@@ -64,23 +65,24 @@ export function logo(size = 34) {
 }
 
 // ---------- Маршруты ----------
+// [адрес, экран, название для статистики]
 const routes = [
-  [/^\/$/, () => import("./views/home.js").then((m) => m.HomeView())],
-  [/^\/learn\/([\d.]+)$/, (id) => import("./views/home.js").then((m) => m.LessonRoute(id))],
-  [/^\/surah\/(\d+)$/, (n) => import("./views/surah.js").then((m) => m.SurahLesson(+n))],
-  [/^\/review$/, () => import("./views/review.js").then((m) => m.ReviewView())],
-  [/^\/practice\/(\w+)$/, (k) => import("./views/review.js").then((m) => m.PracticeRoute(k))],
-  [/^\/quran$/, () => import("./views/quran.js").then((m) => m.QuranList())],
-  [/^\/quran\/(\d+)(?:\/(\d+))?$/, (n, a) => import("./views/quran.js").then((m) => m.Reader(+n, +a || 0))],
-  [/^\/page\/(\d+)$/, (p) => import("./views/quran.js").then((m) => m.MushafPage(+p))],
-  [/^\/progress$/, () => import("./views/progress.js").then((m) => m.ProgressView())],
-  [/^\/more$/, () => import("./views/more.js").then((m) => m.MoreView())],
-  [/^\/letters$/, () => import("./views/reference.js").then((m) => m.LettersRef())],
-  [/^\/rules$/, () => import("./views/reference.js").then((m) => m.RulesRef())],
-  [/^\/method$/, () => import("./views/reference.js").then((m) => m.MethodView())],
-  [/^\/thanks$/, () => import("./views/thanks.js").then((m) => m.ThanksView())],
-  [/^\/changelog$/, () => import("./views/changelog.js").then((m) => m.ChangelogView())],
-  [/^\/welcome$/, () => import("./views/onboard.js").then((m) => m.Onboarding())],
+  [/^\/$/, () => import("./views/home.js").then((m) => m.HomeView()), "Путь"],
+  [/^\/learn\/([\d.]+)$/, (id) => import("./views/home.js").then((m) => m.LessonRoute(id)), (id) => `Урок ${id}. ${lessonById[id]?.title || ""}`],
+  [/^\/surah\/(\d+)$/, (n) => import("./views/surah.js").then((m) => m.SurahLesson(+n)), (n) => `Урок суры ${n}`],
+  [/^\/review$/, () => import("./views/review.js").then((m) => m.ReviewView()), "Практика"],
+  [/^\/practice\/(\w+)$/, (k) => import("./views/review.js").then((m) => m.PracticeRoute(k)), (k) => `Практика: ${k}`],
+  [/^\/quran$/, () => import("./views/quran.js").then((m) => m.QuranList()), "Коран"],
+  [/^\/quran\/(\d+)(?:\/(\d+))?$/, (n, a) => import("./views/quran.js").then((m) => m.Reader(+n, +a || 0)), (n) => `Коран: сура ${n}`],
+  [/^\/page\/(\d+)$/, (p) => import("./views/quran.js").then((m) => m.MushafPage(+p)), (p) => `Мусхаф: страница ${p}`],
+  [/^\/progress$/, () => import("./views/progress.js").then((m) => m.ProgressView()), "Прогресс"],
+  [/^\/more$/, () => import("./views/more.js").then((m) => m.MoreView()), "Ещё"],
+  [/^\/letters$/, () => import("./views/reference.js").then((m) => m.LettersRef()), "Алфавит"],
+  [/^\/rules$/, () => import("./views/reference.js").then((m) => m.RulesRef()), "Правила таджвида"],
+  [/^\/method$/, () => import("./views/reference.js").then((m) => m.MethodView()), "Методика"],
+  [/^\/thanks$/, () => import("./views/thanks.js").then((m) => m.ThanksView()), "Благодарности"],
+  [/^\/changelog$/, () => import("./views/changelog.js").then((m) => m.ChangelogView()), "Версии"],
+  [/^\/welcome$/, () => import("./views/onboard.js").then((m) => m.Onboarding()), "Знакомство"],
 ];
 const FULLSCREEN = /^\/(learn|surah|practice|welcome)/;
 
@@ -93,7 +95,7 @@ async function route() {
   const full = FULLSCREEN.test(path);
   document.body.classList.toggle("fullscreen", full);
   renderNav(path);
-  for (const [re, fn] of routes) {
+  for (const [re, fn, title] of routes) {
     const m = path.match(re);
     if (!m) continue;
     try {
@@ -102,6 +104,7 @@ async function route() {
       view.replaceChildren(el);
       view.classList.remove("view-enter"); void view.offsetWidth; view.classList.add("view-enter");
       if (!full) window.scrollTo(0, 0);
+      hit(path, typeof title === "function" ? title(...m.slice(1)) : title);
     } catch (e) {
       console.error(e);
       view.replaceChildren(h("div.page", null, h("div.card", null, h("h2", null, "Что-то пошло не так"), h("p", null, "Проверьте подключение к интернету и обновите страницу."), h("pre.small", null, String(e?.message || e)), h("a.btn.primary", { href: "#/" }, "На главную"))));
@@ -126,6 +129,7 @@ async function start() {
   matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", applySettings);
   store.on(() => applySettings());
   window.addEventListener("hashchange", route);
+  startMetrika();
   view.replaceChildren(h("div.boot", null, logo(72), h("div.spinner")));
   try { await Promise.all([loadBank(), loadSurahs(), document.fonts?.load?.('40px "Amiri Quran"', "بسم")]); }
   catch (e) { console.error(e); }
@@ -139,6 +143,26 @@ async function start() {
   registerSW();
   // когда есть что беречь — просим браузер не удалять данные приложения
   if (Object.keys(store.get().lessons).length) protectStorage();
+}
+
+// ---------- Статистика посещений (Яндекс.Метрика, анонимно) ----------
+function startMetrika() {
+  const s = store.get();
+  const count = (map) => Object.values(map).filter((x) => x.done && !x.skipped).length;
+  const nt = nextTarget();
+  initMetrika({
+    params: { Режим: isInstalled() ? "приложение" : "браузер" },
+    user: {
+      "Пройдено уроков": count(s.lessons),
+      "Выучено сур": count(s.surahs),
+      "Прогресс курса, %": Math.round(courseProgress().pct * 100),
+      "Текущий этап": !s.profile.onboarded ? "новичок" : nt?.type === "lesson" ? lessonById[nt.id]?.unit ?? "—" : nt ? "суры" : "курс пройден",
+      "Уровень": levelInfo().n,
+      "Установлено": isInstalled() ? "да" : "нет",
+    },
+  });
+  // «Написать автору» — ссылки на WhatsApp в разных местах приложения
+  document.addEventListener("click", (e) => { if (e.target.closest?.('a[href^="https://wa.me/"]')) track("feedback", { Экран: location.hash || "#/" }); });
 }
 
 // ---------- Офлайн (service worker) ----------

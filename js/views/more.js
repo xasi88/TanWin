@@ -7,6 +7,7 @@ import { isInstalled } from "../install.js";
 import { APP_VERSION, CHANGELOG } from "../version.js";
 import { devBanner, feedbackButton } from "../feedback.js";
 import { feedbackLink } from "../version.js";
+import { track, metrikaAvailable } from "../metrika.js";
 
 function seg(label, options, value, onChange) {
   const box = h("div.seg", { role: "radiogroup", "aria-label": label });
@@ -84,7 +85,8 @@ export function MoreView() {
       h("div.row.wrap.gap", null,
         h("button.btn.secondary", { type: "button", onclick: saveProgressFile }, icon("down", { size: 18 }), "Сохранить прогресс"),
         h("button.btn.secondary", { type: "button", onclick: () => fileIn.click() }, icon("up", { size: 18 }), "Загрузить"), fileIn,
-        h("button.btn.danger", { type: "button", onclick: async () => { if (await confirmBox("Сбросить весь прогресс?", "Это действие нельзя отменить. Сначала можно сохранить прогресс в файл.", "Сбросить", "Отмена")) { store.reset(); go("/welcome"); } } }, icon("trash", { size: 18 }), "Сбросить"))),
+        h("button.btn.danger", { type: "button", onclick: async () => { if (await confirmBox("Сбросить весь прогресс?", "Это действие нельзя отменить. Сначала можно сохранить прогресс в файл.", "Сбросить", "Отмена")) { store.reset(); go("/welcome"); } } }, icon("trash", { size: 18 }), "Сбросить")),
+      metrikaAvailable() ? h("div.set-sep", null, toggle("Анонимная статистика", "analytics", "Показывает автору, сколько людей учится и где бывает трудно. Через Яндекс.Метрику передаются только открытые экраны и пройденные уроки — без имени.")) : null),
     h("section.card.about", null,
       h("h3", null, "Об источниках"),
       h("p", null, "Текст Корана (мусхаф Мадины, риваят Хафса от Асыма), разметка таджвида, пословное аудио и тайминги слов — ", h("a", { href: "https://quran.com", target: "_blank", rel: "noopener" }, "Quran.com"), ". Аудио аятов: Махмуд Халиль аль-Хусари (обучающее чтение) и Мишари Рашид аль-Афаси — ", h("a", { href: "https://everyayah.com", target: "_blank", rel: "noopener" }, "EveryAyah"), " и Quran.com. Перевод смыслов — Эльмир Кулиев."),
@@ -99,11 +101,12 @@ export async function saveProgressFile() {
   const file = typeof File === "function" ? new File([text], name, { type: "application/json" }) : null;
   const mobile = matchMedia("(pointer: coarse)").matches;
   if (mobile && file && navigator.canShare?.({ files: [file] })) {
-    try { await navigator.share({ files: [file], title: "Прогресс TanWin" }); backupDone(); toast("Копия прогресса сохранена ✓"); return; }
+    try { await navigator.share({ files: [file], title: "Прогресс TanWin" }); backupDone(); track("backup_saved"); toast("Копия прогресса сохранена ✓"); return; }
     catch (e) { if (e?.name === "AbortError") return; }
   }
   download(name, text);
   backupDone();
+  track("backup_saved");
   toast("Файл с прогрессом сохранён в «Загрузки» ✓");
 }
 function download(name, text) {

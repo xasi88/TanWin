@@ -2,6 +2,7 @@
 import { h, ar, icon } from "../ui.js";
 import { store } from "../store.js";
 import { logo, go } from "../app.js";
+import { track } from "../metrika.js";
 
 export function Onboarding() {
   let step = 0;
@@ -47,6 +48,7 @@ export function Onboarding() {
     const b = h("button.start-opt", { type: "button" }, h("span.so-g", null, ar(g)), h("div", null, h("b", null, t), h("small", null, s)), icon("right"));
     b.addEventListener("click", () => {
       store.set((st) => { st.profile.name = data.name; st.profile.goal = data.goal; st.profile.onboarded = true; });
+      track("onboarded", { Старт: t });
       go(path === "/learn/1.1" ? "/" : path);
       if (path === "/learn/1.1") setTimeout(() => go(path), 50);
     });
