@@ -74,6 +74,8 @@ export function analyze(word) {
       if (has(c, M.HAMZA_A, M.HAMZA_B)) { role[i] = "consonant"; f.add("hamza"); letters.add("ء"); }
       if (has(c, M.DAGGER)) { f.add("dagger"); f.add("madd"); }
       if (has(c, M.MADDAH)) f.add("maddah");
+      if (has(c, M.SHADDA)) f.add("shadda"); // шадда и маленькая йа бывают и на «носителе» (7:196)
+      if (has(c, M.SMALL_YA2)) f.add("madd");
       prevV = v || prevV;
       continue;
     }

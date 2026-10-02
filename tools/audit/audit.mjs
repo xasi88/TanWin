@@ -12,6 +12,9 @@
 //   node tools/audit/audit.mjs --font scheherazade      — другой арабский шрифт (amiri, hafs, scheherazade, noto)
 //   node tools/audit/audit.mjs --pages                  — только разделы, без уроков (быстро, ~1 мин)
 //   node tools/audit/audit.mjs --lessons 11             — только уроки, чьи номера начинаются с «11»
+//   node tools/audit/audit.mjs --extra                  — знакомство, тренировки «Практики», уроки сур, окна
+//   node tools/audit/audit.mjs --showcase               — итоговые экраны последнего урока каждого этапа
+//   node tools/audit/audit.mjs --form ty --gender f     — обращение на «ты», ученица
 // Итог — в консоли; снимки проблемных экранов и подробный отчёт — в tools/audit/out/.
 import { createServer } from "node:http";
 import { readFile, mkdir, writeFile, rm } from "node:fs/promises";
@@ -154,7 +157,7 @@ async function check(label) {
 const PAGES = ["/surah/1", "/surah/112", "/page/1", "/page/582", "/read/1", "/read/2", "/read/112", "/", "/review", "/quran", "/quran/1", "/quran/2", "/quran/112", "/progress", "/more", "/letters", "/rules", "/method", "/thanks", "/changelog"];
 await page.goto(`${BASE}/#/`);
 await page.waitForTimeout(1500);
-for (const p of PAGES) {
+for (const p of args.nopages ? [] : PAGES) {
   await page.evaluate((h) => { location.hash = h; }, p);
   await page.waitForTimeout(900);
   if (p === "/") await page.evaluate(() => document.querySelectorAll(".unit:not(.open) .uh-toggle").forEach((b) => b.click()));
@@ -174,43 +177,120 @@ for (const p of PAGES) {
   }
 }
 
-if (!pagesOnly) {
+// Бот проходит урок до итогового экрана: отвечает наугад, решает «пары», собирает слоги, читает слова.
+// Урок, который не дошёл до итога, — замечание «stuck» (так находятся зависающие упражнения).
+const ACT = async () => {
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const click = (el) => { if (el) { el.click(); return true; } return false; };
+  const stage = document.querySelector(".lp-stage");
+  if (!stage) return false;
+  const sheetBtn = document.querySelector(".lp-sheet.show .btn.primary");
+  if (sheetBtn) return click(sheetBtn) && "sheet";
+  if (document.querySelector(".lp-content.result")) return "result";
+  const opts = [...stage.querySelectorAll(".opt:not([disabled])")];
+  if (opts.length) return click(opts[Math.floor(Math.random() * opts.length)]) && "opt";
+  const free = [...stage.querySelectorAll(".match-btn:not(.done)")];
+  if (free.length) { // «Соедините пары»: перебираем правый столбец, пока пара не сойдётся
+    const L = free.filter((b) => b.querySelector(".ar")), R = free.filter((b) => !b.querySelector(".ar"));
+    for (const r of R) { L[0].click(); r.click(); if (L[0].classList.contains("done")) break; await sleep(520); }
+    return "match";
+  }
+  const tile = stage.querySelector(".bb-tile:not(.used)");
+  if (tile && !stage.querySelector(".bb-out.ok, .bb-out.bad")) { tile.click(); await sleep(520); return "tile"; }
+  const rd = stage.querySelector(".read-drill");
+  if (rd) {
+    const good = rd.querySelector(".row:not(.hidden) .btn.good"); if (good) return click(good) && "read";
+    const rev = rd.querySelector(".btn.secondary:not(.hidden)"); if (rev) return click(rev) && "reveal";
+  }
+  const next = stage.querySelector(".btn.next");
+  if (next) return click(next) && "next";
+  const skip = [...stage.querySelectorAll("button")].find((b) => /Пропустить|Дальше|Готово|Далее|Продолжить|Прочитал/.test(b.textContent));
+  if (skip) return click(skip) && "skip";
+  const m = stage.querySelector(".vt-word, .dg-pt");
+  if (m) { m.dispatchEvent(new MouseEvent("click", { bubbles: true })); return "tap"; }
+  return false;
+};
+async function walk(hash, label, { every = true } = {}) {
+  if (args.verbose) console.log(new Date().toISOString().slice(11, 19), label);
+  await page.evaluate((h) => { location.hash = h; }, hash);
+  await page.waitForTimeout(1200);
+  let prev = "", same = 0, reached = false;
+  for (let step = 0; step < 500; step++) {
+    const sig = await page.evaluate(() => (document.querySelector(".lp-stage")?.innerText || "") + (document.querySelector(".lp-sheet.show") ? "S" : "") + document.querySelectorAll(".lp-stage .done, .lp-stage .used").length);
+    if (!sig && step > 0) break;
+    same = sig === prev ? same + 1 : 0; prev = sig;
+    if (same >= 4) break;
+    if (every || step === 0) await check(`${label} step ${step}`); else await page.waitForTimeout(120);
+    const acted = await page.evaluate(ACT);
+    if (acted === "result") { reached = true; await page.waitForTimeout(900); await check(`${label} result`); break; }
+    if (!acted) break;
+  }
+  if (!reached) {
+    const t = await page.evaluate(() => (document.querySelector(".lp-stage")?.innerText || document.body.innerText).slice(0, 160).replace(/\s+/g, " "));
+    results.push({ label, issues: [{ k: "stuck", t }] });
+  }
+  return reached;
+}
+const seed = (fn, arg) => page.evaluate(([src, arg]) => { const st = JSON.parse(localStorage.getItem("tanwin.v2")); (0, eval)("(" + src + ")")(st, arg); localStorage.setItem("tanwin.v2", JSON.stringify(st)); }, [fn.toString(), arg]);
+const reload = async (hash = "/") => { await page.evaluate((h) => { location.hash = h; }, hash); await page.reload(); await page.waitForTimeout(1200); };
+
+if (args.form || args.gender) { await seed((st, a) => { st.profile.form = a.form || "vy"; st.profile.gender = a.gender || ""; }, { form: args.form, gender: args.gender }); await reload(); }
+
+if (!pagesOnly && !args.extra && !args.showcase) {
   const ids = await page.evaluate(async () => (await import("/js/course.js")).ALL_LESSONS.map((l) => l.id));
-  for (const id of ids.filter((x) => !filter || x.startsWith(filter))) {
-    await page.evaluate((h) => { location.hash = h; }, "/learn/" + id);
-    await page.waitForTimeout(1200);
-    let prev = "", same = 0;
-    for (let step = 0; step < 90; step++) {
-      const sig = await page.evaluate(() => (document.querySelector(".lp-stage")?.innerText || "") + (document.querySelector(".lp-sheet.show") ? "S" : ""));
-      if (!sig && step > 0) break;
-      same = sig === prev ? same + 1 : 0; prev = sig;
-      if (same >= 2) break;
-      await check(`lesson ${id} step ${step}`);
-      const acted = await page.evaluate(() => {
-        const click = (el) => { if (el) { el.click(); return true; } return false; };
-        const sheetBtn = document.querySelector(".lp-sheet.show .btn.primary");
-        if (sheetBtn) return click(sheetBtn) && "sheet";
-        const opts = [...document.querySelectorAll(".lp-stage .opt:not([disabled])")];
-        if (opts.length) return click(opts[Math.floor(Math.random() * opts.length)]) && "opt";
-        const res = document.querySelector(".lp-content.result .btn.primary");
-        if (res) return "result";
-        const next = document.querySelector(".lp-stage .btn.next");
-        if (next) return click(next) && "next";
-        const skip = [...document.querySelectorAll(".lp-stage button")].find((b) => /Пропустить|Дальше|Готово|Далее|Продолжить/.test(b.textContent));
-        if (skip) return click(skip) && "skip";
-        const m = document.querySelector(".lp-stage .match-btn:not(.done), .lp-stage .vt-word, .lp-stage .dg-pt, .lp-stage .bb-tile:not(.used)");
-        if (m) { m.dispatchEvent(new MouseEvent("click", { bubbles: true })); return "tap"; }
-        return false;
-      });
-      if (acted === "result" || !acted) break;
+  for (const id of ids.filter((x) => !filter || x.startsWith(filter))) await walk("/learn/" + id, `lesson ${id}`);
+}
+
+// --extra: знакомство, тренировки «Практики», уроки сур, окна
+if (args.extra) {
+  const all = await page.evaluate(async () => (await import("/js/course.js")).ALL_LESSONS.map((l) => l.id));
+  await seed((st, ids) => {
+    for (const id of ids) st.lessons[id] = { done: true, stars: 3, best: 100, n: 1, at: Date.now() - 86400000 };
+    const due = Date.now() - 1000;
+    st.srs = {};
+    for (const k of ["L:ba", "L:tha", "M:qaf", "H:sad", "F:ayn", "V:fatha", "V:mix", "W:fatha", "W:shadda", "P:sin-sad", "R:n", "R:f", "R:izhar", "R:allah", "R:ra", "R:l", "R:q", "S:waqf"]) st.srs[k] = { box: 1, due, ok: 1, bad: 1 };
+    st.hard = { "001_001_001": { bad: 2, ok: 0, last: Date.now() }, "112_001_002": { bad: 1, ok: 0, last: Date.now() } };
+    st.warmup = { keys: ["L:ta", "V:kasra", "R:n"], at: Date.now() };
+  }, all);
+  await reload("/review");
+  await check("page /review full");
+  for (const k of ["review", "hard", "letters", "ear", "makharij", "fluency", "listen", "voice", "tajweed", "madd"]) await walk("/practice/" + k, `practice ${k}`);
+  for (const n of [1, 112, 103]) await walk("/surah/" + n, `surah ${n}`);
+  await walk("/learn/4.2", "lesson 4.2 with warm-up");
+  // окна: урок на пути, «Написать разработчику», «Aa»
+  await reload("/");
+  await check("page / full");
+  await page.evaluate(() => document.querySelector(".unit.open .node")?.click()); await check("modal lesson-sheet"); await page.keyboard.press("Escape");
+  await page.evaluate(() => document.querySelector(".fb-tab")?.click()); await check("modal feedback"); await page.keyboard.press("Escape");
+  await reload("/progress");
+  await check("page /progress full");
+  await reload("/quran/1");
+  await page.evaluate(() => [...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Aa")?.click()); await check("modal Aa"); await page.keyboard.press("Escape");
+  // знакомство — как новый ученик
+  await seed((st) => { st.profile.onboarded = false; st.profile.name = "Абдуррахман"; });
+  await reload("/welcome");
+  for (let i = 0; i < 4; i++) { await check(`welcome ${i}`); await page.evaluate(() => document.querySelector(".ob-screen .btn.primary")?.click()); await page.waitForTimeout(300); }
+}
+
+// --showcase: последний урок каждого этапа — итог с блоком «Смотрите, что вы уже умеете»
+if (args.showcase) {
+  const units = await page.evaluate(async () => (await import("/js/course.js")).UNITS.map((u) => ({ id: u.id, all: u.lessons.map((l) => l.id), last: u.lessons.filter((l) => !l.test).at(-1).id })));
+  const before = [];
+  for (const u of units) {
+    await seed((st, a) => { st.settings.unlockAll = false; st.lessons = {}; delete st.warmup; for (const id of a.done) st.lessons[id] = { done: true, stars: 3, best: 100, n: 1, at: Date.now() }; }, { done: [...before, ...u.all.filter((x) => x !== u.last)] });
+    await reload("/");
+    if (await walk("/learn/" + u.last, `showcase unit ${u.id}`, { every: false }) && u.id > 1) {
+      const n = await page.evaluate(() => document.querySelector(".showcase")?.children.length || 0);
+      if (!n) results.push({ label: `showcase unit ${u.id}`, issues: [{ k: "no-showcase", t: u.last }] });
     }
+    before.push(...u.all);
   }
 }
 await writeFile(`${OUT}/report.json`, JSON.stringify({ tag, errors, results }, null, 1));
 const counts = {};
 for (const r of results) for (const i of r.issues) counts[i.k] = (counts[i.k] || 0) + 1;
 console.log(`${tag}: проверено экранов ${screens}, с замечаниями ${results.length}`, counts, errors.length ? `ошибок JS: ${errors.length}` : "ошибок JS нет");
-for (const r of results.slice(0, 15)) console.log(" •", r.label, "—", r.issues.slice(0, 2).map((i) => `${i.k}: ${i.t}`).join(" | "), r.file ? `(${r.file.split(/[\/]/).pop()})` : "");
+for (const r of results.slice(0, +(args.show || 15))) console.log(" •", r.label, "—", r.issues.slice(0, 2).map((i) => `${i.k}: ${i.t}`).join(" | "), r.file ? `(${r.file.split(/[\/]/).pop()})` : "");
 await browser.close();
 server.close();
 process.exit(results.length || errors.length ? 1 : 0);

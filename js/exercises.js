@@ -33,7 +33,8 @@ const target = (lesson, o) => {
   return L_ALL;
 };
 // Список «целей» длиной n: каждая цель встречается, прежде чем повториться
-const cycle = (arr, n) => { const out = []; while (out.length < n) out.push(...shuffle(arr)); return out.slice(0, n); };
+// пустой список — пустой результат (иначе цикл не закончится и страница зависнет)
+const cycle = (arr, n) => { const out = []; while (arr.length && out.length < n) out.push(...shuffle(arr)); return out.slice(0, n); };
 
 // ================= Буквы =================
 const G = {};
@@ -636,7 +637,7 @@ export { G as GENERATORS };
 /** Превращает ключ повторения в шаг-упражнение («Практика», разминка в начале урока). */
 export function stepForKey(key) {
   const [t, v] = key.split(":");
-  if (t === "L") return { t: "ex", k: pick1(["letterName", "letterPick", "listenFirst"]), n: 1, letters: [v] };
+  if (t === "L") return { t: "ex", k: pick1(v === "alif" ? ["letterName", "letterPick"] : ["letterName", "letterPick", "listenFirst"]), n: 1, letters: [v] }; // слов «на алиф» нет
   if (t === "M") return { t: "ex", k: pick1(["pointPick", "zonePick"]), n: 1, letters: [v] };
   if (t === "H") return { t: "ex", k: "heavy", n: 1 };
   if (t === "F") return { t: "ex", k: "formPick", n: 1 };
