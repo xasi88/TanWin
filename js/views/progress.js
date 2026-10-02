@@ -57,7 +57,7 @@ export function ProgressView() {
         tile("flame", streakNow(), plural(streakNow(), "день подряд", "дня подряд", "дней подряд"), `рекорд: ${s.streak.best}`),
         tile("nur", s.xp, "нура", `уровень ${lv.n} · до следующего ${lv.need - lv.into}`),
         tile("target", acc + "%", "точность", `${s.stats.answers} ${plural(s.stats.answers, "ответ", "ответа", "ответов")}`),
-        tile("bolt", fmtTime(s.stats.ms), "в занятиях", `${s.stats.lessons} ${plural(s.stats.lessons, "урок", "урока", "уроков")}`))),
+        tile("bolt", fmtTime(s.stats.ms), "в занятиях", `${s.stats.lessons} ${plural(s.stats.lessons, "занятие", "занятия", "занятий")}`))),
     activityChart(),
     h("div.card", null,
       h("div.card-title", null, h("h3", null, "Этапы")),
