@@ -40,6 +40,7 @@ const TABS = [
   { path: "/review", label: "Практика", ic: "repeat" },
   { path: "/read", label: "Чтение", ic: "page", fs: true },
   { path: "/quran", label: "Коран", ic: "book" },
+  { path: "/bookmarks", label: "Закладки", ic: "bookmark", wide: true }, // только в боковой колонке: в нижней панели телефона шесть вкладок — предел
   { path: "/progress", label: "Прогресс", ic: "chart" },
   { path: "/more", label: "Ещё", ic: "more" },
 ];
@@ -51,7 +52,7 @@ function renderNav(active) {
     h("div.nav-tabs", { role: "tablist" }, ...TABS.map((t) => {
       const on = t.path === "/" ? active === "/" : active.startsWith(t.path) || (t.path === "/quran" && active.startsWith("/page"));
       // «Чтение» сразу разворачивает Коран на весь экран (браузер разрешает это только по нажатию)
-      return h("a.tab", { href: "#" + t.path, class: on ? "on" : "", "aria-current": on ? "page" : null, onclick: t.fs ? () => enterFullscreen() : null }, icon(t.ic, { size: 24 }), h("span", null, t.label));
+      return h("a.tab", { href: "#" + t.path, class: (on ? "on" : "") + (t.wide ? " wide-only" : ""), "aria-current": on ? "page" : null, onclick: t.fs ? () => enterFullscreen() : null }, icon(t.ic, { size: 24 }), h("span", null, t.label));
     })),
     canFullscreen() ? h("button.nav-fs", { type: "button", "data-fs-switch": true, onclick: () => setFullscreen(!isFullscreen()) },
       icon(isFullscreen() ? "shrink" : "expand", { size: 18 }), h("span", null, isFullscreen() ? "Выйти из полного экрана" : "На весь экран")) : "",
@@ -92,6 +93,7 @@ const routes = [
   [/^\/read$/, () => import("./views/quran.js").then((m) => m.ReadStart()), "Чтение"],
   [/^\/read\/(\d+)(?:\/(\d+))?$/, (n, a) => import("./views/quran.js").then((m) => m.ReadMode(+n, +a || 0)), (n) => `Чтение: сура ${n}`],
   [/^\/page\/(\d+)$/, (p) => import("./views/quran.js").then((m) => m.MushafPage(+p)), (p) => `Мусхаф: страница ${p}`],
+  [/^\/bookmarks$/, () => import("./views/bookmarks.js").then((m) => m.BookmarksView()), "Закладки"],
   [/^\/progress$/, () => import("./views/progress.js").then((m) => m.ProgressView()), "Прогресс"],
   [/^\/more$/, () => import("./views/more.js").then((m) => m.MoreView()), "Ещё"],
   [/^\/letters$/, () => import("./views/reference.js").then((m) => m.LettersRef()), "Алфавит"],

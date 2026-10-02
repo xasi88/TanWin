@@ -154,7 +154,7 @@ async function check(label) {
   return issues;
 }
 
-const PAGES = ["/surah/1", "/surah/112", "/page/1", "/page/582", "/read/1", "/read/2", "/read/112", "/", "/review", "/quran", "/quran/1", "/quran/2", "/quran/112", "/progress", "/more", "/letters", "/rules", "/method", "/thanks", "/changelog"];
+const PAGES = ["/surah/1", "/surah/112", "/page/1", "/page/582", "/read/1", "/read/2", "/read/112", "/", "/review", "/quran", "/quran/1", "/quran/2", "/quran/112", "/progress", "/bookmarks", "/more", "/letters", "/rules", "/method", "/thanks", "/changelog"];
 await page.goto(`${BASE}/#/`);
 await page.waitForTimeout(1500);
 for (const p of args.nopages ? [] : PAGES) {

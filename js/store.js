@@ -43,6 +43,8 @@ const DEFAULT = () => ({
   stats: { answers: 0, correct: 0, ms: 0, lessons: 0 },
   badges: {},
   hard: {},
+  marks: [], // закладки в Коране: [{ id, s, a, p, at }]
+  readGoal: null, // цель чтения: { from, pages, read, s, a, at, done }
 });
 
 let state = load();

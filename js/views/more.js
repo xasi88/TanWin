@@ -63,6 +63,7 @@ export function MoreView() {
     h("a.more-link.thanks-link", { href: "#/thanks" }, h("span.ml-ic", null, icon("heart", { size: 22, fill: true, sw: 1 })), h("div", null, h("b", null, "Благодарности"), h("small.muted", null, "Люди, благодаря пожертвованиям которых состоялся проект")), icon("right", { size: 18 })),
     CONTACT.whatsapp ? h("button.more-link.contact-link", { type: "button", onclick: openFeedback }, h("span.ml-ic", null, icon("chat", { size: 22 })), h("div", null, h("b", null, "Написать автору в WhatsApp"), h("small.muted", null, "Нашли ошибку или неточность? Есть идея? Напишите — версия и экран подставятся сами")), icon("right", { size: 18 })) : null,
     h("div.more-links", null,
+      link("#/bookmarks", "bookmark", "Закладки и цель чтения", "Сохранённые места в Коране, обратный отсчёт страниц"),
       link("#/method", "sparkle", "Методика", "Как устроено обучение и почему оно работает"),
       link("#/letters", "list", "Алфавит", "Все 28 букв: звуки, формы, махраджи"),
       link("#/rules", "palette", "Правила таджвида", "Цвета мусхафа и примеры из Корана")),
