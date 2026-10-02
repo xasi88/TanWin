@@ -1141,3 +1141,35 @@ button.more-link { width: 100%; text-align: left; font: inherit; cursor: pointer
 .fb-kinds { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .fb-kinds .seg-btn { min-width: 0; padding-left: 4px; padding-right: 4px; }
 @media (max-width: 460px) { .fb-kinds { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Закладки и цель чтения (views/bookmarks.js) */
+.tab.wide-only { display: none; } /* в нижней панели телефона места нет — вкладка только в боковой колонке */
+@media (min-width: 900px) { .tab.wide-only { display: flex; } }
+.goal-strip { display: grid; gap: 3px; justify-items: center; width: min(100%, 420px); }
+.goal-strip[hidden] { display: none; }
+.gs-bar { width: 100%; height: 6px; border-radius: 6px; overflow: hidden; direction: ltr; background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.gs-bar i { display: block; width: 0; height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--accent), var(--good)); transition: width .5s var(--ease); }
+.gs-cap { font-size: .78rem; font-weight: 800; color: var(--accent-2); font-variant-numeric: tabular-nums; text-align: center; }
+.goal-strip.done .gs-cap { color: var(--good); }
+.focus-juz .goal-strip { margin-top: 4px; }
+.page-view > .goal-strip { margin: 0 auto 12px; }
+.bm-body { display: grid; gap: 14px; }
+.bm-h { margin: 6px 0 -4px; }
+.mark-list { display: grid; gap: 10px; }
+.mark-row { display: flex; align-items: center; gap: 2px; padding: 6px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); }
+.mark-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 6px; border: 0; border-radius: 14px; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.mark-open > div { display: grid; min-width: 0; }
+.mark-open .rc-ic { width: 44px; height: 44px; border-radius: 14px; }
+.goal-card, .goal-box { display: grid; gap: 10px; }
+.goal-card h3 { display: flex; align-items: center; gap: 8px; margin: 0; }
+.goal-card p, .goal-box p, .goal-box h2 { margin: 0; }
+.gc-num { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; font-weight: 800; color: var(--ink-2); }
+.gc-num b { font-size: 3rem; line-height: 1; color: var(--accent-2); font-variant-numeric: tabular-nums; }
+.gc-num .ic { color: var(--good); align-self: center; }
+.goal-card .goal-strip { width: 100%; }
+.goal-card .gs-bar { height: 10px; }
+.goal-card .gs-cap { display: none; }
+.goal-card .row { flex-wrap: wrap; }
+/* с полоской цели шапка режима чтения выше: фон под ней плотнее, текст начинается ниже */
+.focus-juz:has(.goal-strip:not([hidden])) { padding-bottom: 20px; background: linear-gradient(var(--bg) 82%, transparent); }
+.focus:has(.goal-strip:not([hidden])) .focus-scroll { padding-top: calc(92px + env(safe-area-inset-top)); }

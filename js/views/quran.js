@@ -8,6 +8,7 @@ import { playWord, playAyah, stop, onPlay, playingId } from "../audio.js";
 import { store, surahDone } from "../store.js";
 import { SURAH_PATH } from "../course.js";
 import { go } from "../app.js";
+import { markBtn, marks, addMark, marksSheet, goalStrip, goalModal, readGoal, goalLeft } from "./bookmarks.js";
 import { enterFullscreen, exitFullscreen, isFullscreen, wantFullscreen, onFullscreenChange, canFullscreen, setFullscreen } from "../fullscreen.js";
 
 export const arNum = (n) => String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[d]);
@@ -52,6 +53,10 @@ export async function QuranList() {
     h("button.card.pages-card", { type: "button", onclick: () => r?.p ? go(`/page/${r.p}`) : pagePicker(1) },
       h("span.rc-ic", null, icon("page", { size: 24 })),
       h("div", null, h("b", null, "Мусхаф по страницам"), h("div.muted", null, "604 страницы и 30 джузов — как в печатном мусхафе Мадины")),
+      icon("right")),
+    h("a.card.pages-card.marks-card", { href: "#/bookmarks" },
+      h("span.rc-ic", null, icon("bookmark", { size: 24 })),
+      h("div", null, h("b", null, "Закладки и цель чтения"), h("div.muted", null, readGoal() && goalLeft() ? `Цель: ${plural(goalLeft(), "осталась", "остались", "осталось")} ${goalLeft()} стр. из ${readGoal().pages}` : marks().length ? `Сохранено мест: ${marks().length}` : "Сохраняйте места и ставьте цель: сколько страниц прочесть")),
       icon("right")),
     h("div.list-tools", null, search, chips),
     h("button.link", { type: "button", onclick: legendModal }, icon("palette", { size: 16 }), " Что означают цвета?"),
@@ -227,7 +232,7 @@ export async function Reader(n, startA = 0) {
     stop();
     view = renderVerses(n, data, meta, { mode, pages: true, hifz: hifzLevel(), colors: true, translation: store.get().settings.translation, onAyah: (a) => player.playFrom(a) });
     player = surahPlayer(n, data, view, { onFinish: () => toast("Сура прослушана. Прочитайте её сами — вслух!") });
-    toolbar.replaceChildren(player.btn, player.repBtn, readBtn(n, () => (store.get().reading?.s === n ? store.get().reading.a : 1)), sizeButton({ cls: "tool" }), hifzBtn(draw), pagesBtn(), reciterBtn(), rateBtn(), modeBtn(), colorBtn(), h("button.tool", { type: "button", title: "Цвета таджвида", onclick: legendModal }, icon("info", { size: 18 })));
+    toolbar.replaceChildren(player.btn, player.repBtn, readBtn(n, () => (store.get().reading?.s === n ? store.get().reading.a : 1)), markBtn(() => { const r = store.get().reading, a = r?.s === n ? r.a : 1; return { s: n, a, p: data.v[a - 1][4][0] }; }), sizeButton({ cls: "tool" }), hifzBtn(draw), pagesBtn(), reciterBtn(), rateBtn(), modeBtn(), colorBtn(), h("button.tool", { type: "button", title: "Цвета таджвида", onclick: legendModal }, icon("info", { size: 18 })));
     body.replaceChildren(
       n !== 1 && n !== 9 ? h("div.bismillah", null, ar(BISMILLAH, { colors: true })) : "",
       view.el,
@@ -335,6 +340,8 @@ export async function ReadMode(n, startA = 0) {
     : h("p.muted", null, "Конец Корана"));
   const jm = juzMap(data.v[Math.max(1, Math.min(startA, data.v.length)) - 1][4][0]);
   jm.el.classList.add("focus-juz");
+  const gs = goalStrip(() => setRunning(false)); // цель выполнена — текст останавливается
+  jm.el.append(gs.el);
   const scroller = h("div.focus-scroll", { tabindex: "-1" },
     h("div.focus-text", null,
       h("div.surah-banner", null, ar(meta.ar), h("small", null, `Сура ${meta.ru}`)),
@@ -448,6 +455,11 @@ export async function ReadMode(n, startA = 0) {
           item("page", "Страница или джуз", () => pagePicker(v[4][0], async (p) => { const parts = await pageContent(p); if (parts[0]) go(`/read/${parts[0].s}/${parts[0].from}`); }), { keep: false }),
           n > 1 ? item("right", "Предыдущая сура", () => go(`/read/${n - 1}`), { keep: false }) : null,
           n < 114 ? item("left", "Следующая сура", () => go(`/read/${n + 1}`), { keep: false }) : null),
+        h("div.label", null, "Закладки и цель"),
+        h("div.rm-row", null,
+          item("bookmark", "Закладка здесь", () => addMark(n, a, v[4][0])),
+          item("list", `Мои закладки${marks().length ? `: ${marks().length}` : ""}`, () => setTimeout(marksSheet, 250), { keep: false }),
+          item("target", readGoal() && goalLeft() ? `Цель: ${plural(goalLeft(), "осталась", "остались", "осталось")} ${goalLeft()} стр.` : "Цель чтения", () => setTimeout(() => goalModal({ s: n, a, p: v[4][0] }, () => { gs.set(pageNow(), n, curAyah()); show(); }), 250), { on: !!(readGoal() && goalLeft()), keep: false })),
         h("div.label", null, "Слушать чтеца"),
         h("div.rm-row", null,
           item(listening ? "stop" : "play", listening ? "Остановить" : "Слушать с этого места", () => listenB.click(), { on: listening, keep: false }),
@@ -509,7 +521,9 @@ export async function ReadMode(n, startA = 0) {
   scroller.addEventListener("touchcancel", touchEnd, { passive: true });
   scroller.addEventListener("wheel", () => hold(500), { passive: true });
   let jmTm = 0;
-  const updJuz = () => { jmTm = 0; if (view.el.isConnected) jm.set(data.v[curAyah() - 1][4][0]); };
+  // страница под глазами читателя; 605 — последняя сура дочитана до конца (для цели «до конца Корана»)
+  const pageNow = () => (n === 114 && scroller.scrollTop >= maxTop() - 2 ? PAGES + 1 : data.v[curAyah() - 1][4][0]);
+  const updJuz = () => { jmTm = 0; if (!view.el.isConnected) return; const a = curAyah(); jm.set(data.v[a - 1][4][0]); gs.set(pageNow(), n, a); };
   scroller.addEventListener("scroll", () => {
     const end = endEl.offsetTop - scroller.clientHeight * 0.35; // полоса сверху — доля прочитанного в суре
     prog.style.width = (end > 0 ? Math.min(1, scroller.scrollTop / end) * 100 : 100) + "%";
@@ -558,6 +572,7 @@ export async function ReadMode(n, startA = 0) {
   requestAnimationFrame(() => requestAnimationFrame(() => {
     if (startA > 1 && startA <= data.v.length) jump(startA);
     scroller.focus({ preventScroll: true });
+    updJuz();
   }));
   syncListen();
   setRunning(auto);
@@ -566,7 +581,7 @@ export async function ReadMode(n, startA = 0) {
 
 // ---------- Страница мусхафа Мадины ----------
 export const PAGES = 604;
-const JUZ_PAGE = [1, 22, 42, 62, 82, 102, 121, 142, 162, 182, 201, 222, 242, 262, 282, 302, 322, 342, 362, 382, 402, 422, 442, 462, 482, 502, 522, 542, 562, 582];
+export const JUZ_PAGE = [1, 22, 42, 62, 82, 102, 121, 142, 162, 182, 201, 222, 242, 262, 282, 302, 322, 342, 362, 382, 402, 422, 442, 462, 482, 502, 522, 542, 562, 582];
 
 /** Аяты страницы p: [{ s, meta, data, from, to }] — на одной странице может быть конец одной суры и начало другой. */
 async function pageContent(p) {
@@ -615,7 +630,7 @@ export async function MushafPage(p) {
       views.push({ part, view });
       frame.append(view.el);
     }
-    toolbar.replaceChildren(player.btn, parts[0] ? readBtn(parts[0].s, () => parts[0].from) : null, sizeButton({ cls: "tool" }), hifzBtn(draw),
+    toolbar.replaceChildren(player.btn, parts[0] ? readBtn(parts[0].s, () => parts[0].from) : null, parts[0] ? markBtn(() => ({ s: parts[0].s, a: parts[0].from, p })) : null, sizeButton({ cls: "tool" }), hifzBtn(draw),
       h("button.tool", { type: "button", class: store.get().settings.tajweed ? "on" : "", title: "Цвета таджвида", "data-tj-btn": true, onclick: () => setTajweed(!store.get().settings.tajweed) }, icon("palette", { size: 18 }), h("span", null, "Таджвид")),
       h("button.tool", { type: "button", title: "Цвета таджвида", onclick: legendModal }, icon("info", { size: 18 })));
   };
@@ -646,6 +661,8 @@ export async function MushafPage(p) {
   const toolbar = h("div.reader-tools");
   draw();
   if (parts[0]) saveReading(parts[0].s, parts[0].from, p, "page");
+  const gs = goalStrip();
+  if (parts[0]) gs.set(p, parts[0].s, parts[0].from);
 
   const nav = (to) => to >= 1 && to <= PAGES && go(`/page/${to}`);
   // в мусхафе следующая страница — слева: свайп вправо или стрелка ←
@@ -669,7 +686,7 @@ export async function MushafPage(p) {
       h("a.icon-btn", { href: parts[0] ? `#/quran/${parts[0].s}/${parts[0].from}` : "#/quran", "aria-label": "К тексту суры" }, icon("left")),
       h("div.rh-title", null, h("h1", null, `Страница ${p}`), h("div.muted", null, `${names}${juz ? ` · джуз ${juz}` : ""}`)),
       h("button.btn.ghost.small-btn", { type: "button", onclick: () => pagePicker(p) }, icon("list", { size: 18 }), "Перейти")),
-    toolbar, frame, pager(),
+    toolbar, gs.el, frame, pager(),
     h("p.muted.small.center", null, "Страницы — как в мусхафе Мадины (604 страницы). Следующая — слева: листайте вправо или нажмите «Следующая»."));
 }
 

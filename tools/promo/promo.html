@@ -1,0 +1,153 @@
+<!doctype html>
+<!-- Кадр рекламного ролика 1080×1920. Время задаёт render.mjs через window.seek(t); для просмотра: ?t=12.5 -->
+<html lang="ru">
+<meta charset="utf-8">
+<style>
+@font-face { font-family: N; src: url("../../fonts/nunito.woff2"); font-weight: 200 1000; }
+@font-face { font-family: A; src: url("../../fonts/hafs.woff2"); }
+* { margin: 0; box-sizing: border-box; }
+html, body { width: 1080px; height: 1920px; overflow: hidden; background: #06382d; }
+body { font-family: N, sans-serif; color: #fff; position: relative; }
+.bg { position: absolute; inset: 0; background: radial-gradient(900px 700px at 50% 22%, rgba(255, 217, 122, .20), transparent 70%), linear-gradient(165deg, #0f8f6c 0%, #075e47 38%, #05332a 100%); }
+.pat { position: absolute; inset: -200px; opacity: .08; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 512 512'%3E%3Cpath d='M256 62l48 92 99-32-32 99 92 48-92 48 32 99-99-32-48 92-48-92-99 32 32-99-92-48 92-48-32-99 99 32Z' fill='none' stroke='%23ffd97a' stroke-width='10'/%3E%3C/svg%3E"); }
+.vig { position: absolute; inset: 0; background: radial-gradient(1200px 1500px at 50% 45%, transparent 55%, rgba(0, 0, 0, .38)); }
+.scene { position: absolute; inset: 0; opacity: 0; }
+.c { position: absolute; left: 0; width: 1080px; text-align: center; }
+g { color: #ffd97a; font-style: normal; }
+h2 { font-size: 74px; font-weight: 900; line-height: 1.16; letter-spacing: -1px; text-shadow: 0 6px 30px rgba(0, 0, 0, .28); }
+.sub { font-size: 40px; font-weight: 800; color: #d6f5ea; letter-spacing: .5px; }
+
+/* 1. «Читай!» */
+.iqra { top: 420px; font-family: A; font-size: 400px; line-height: 1.25; color: #ffd97a; direction: rtl; text-shadow: 0 0 90px rgba(255, 217, 122, .55), 0 10px 40px rgba(0, 0, 0, .3); }
+.read { top: 1010px; font-size: 150px; font-weight: 950; letter-spacing: -2px; }
+.first { top: 1215px; font-size: 50px; font-weight: 800; color: #d6f5ea; line-height: 1.3; }
+.ref { top: 1380px; font-size: 34px; font-weight: 700; color: rgba(255, 255, 255, .6); }
+
+/* Телефон с экранами приложения */
+.phone { position: absolute; left: 240px; top: 560px; width: 600px; height: 1298px; padding: 14px; border-radius: 76px; background: linear-gradient(160deg, #1d2b27, #050908); box-shadow: 0 50px 120px rgba(0, 0, 0, .55), 0 0 0 2px rgba(255, 255, 255, .12) inset, 0 0 90px rgba(255, 217, 122, .16); transform-origin: 50% 45%; opacity: 0; }
+.screen { position: relative; width: 100%; height: 100%; border-radius: 62px; overflow: hidden; background: #fbf7ef; }
+.screen img { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
+.tap { position: absolute; left: 26.2%; top: 37.7%; width: 150px; height: 150px; margin: -75px; border-radius: 50%; background: rgba(14, 159, 120, .45); border: 5px solid rgba(14, 159, 120, .8); opacity: 0; }
+.steps { top: 458px; font-size: 40px; font-weight: 800; color: #ffe9b0; }
+.steps span { display: inline-block; padding: 6px 22px; margin: 0 5px; border-radius: 99px; background: rgba(255, 255, 255, .13); }
+
+/* 6. Три довода */
+.badge { position: absolute; left: 110px; width: 860px; height: 170px; border-radius: 44px; background: #fbf7ef; color: #1e1b2e; display: flex; align-items: center; gap: 34px; padding: 0 44px; font-size: 64px; font-weight: 900; letter-spacing: -1px; box-shadow: 0 24px 60px rgba(0, 0, 0, .35), 0 8px 0 #dfd2b8; }
+.badge i { flex: none; width: 92px; height: 92px; border-radius: 50%; background: linear-gradient(180deg, #19c093, #0a7d5e); display: grid; place-items: center; }
+.badge svg { width: 54px; height: 54px; }
+
+/* 7. Призыв */
+.logo { top: 410px; }
+.logo svg { width: 330px; height: 330px; filter: drop-shadow(0 30px 60px rgba(0, 0, 0, .4)) drop-shadow(0 0 70px rgba(255, 217, 122, .35)); }
+.name { top: 770px; font-size: 150px; font-weight: 950; letter-spacing: -3px; }
+.tag { top: 950px; font-size: 56px; font-weight: 800; color: #ffd97a; }
+.step { top: 1100px; }
+.cta { top: 1345px; }
+.cta b { display: inline-block; padding: 30px 64px; border-radius: 99px; font-size: 56px; font-weight: 900; color: #3d2a05; background: linear-gradient(180deg, #ffe39a, #e8b440); box-shadow: 0 10px 0 #a8791a, 0 30px 70px rgba(0, 0, 0, .4); }
+.arrow { top: 1515px; }
+.arrow svg { width: 110px; height: 110px; }
+</style>
+<body>
+<div class="bg"></div><div class="pat" id="pat"></div><div class="vig"></div>
+
+<div class="scene" data-s="0,7.2">
+  <div class="c iqra" data-at="0.15">ٱقۡرَأۡ</div>
+  <div class="c read" data-at="1.7">«Читай!»</div>
+  <div class="c first" data-at="2.9">С этого слова началось<br>откровение Корана</div>
+  <div class="c ref" data-at="3.6">сура 96, аят 1</div>
+</div>
+
+<div class="scene" data-s="7.2,13.4">
+  <h2 class="c" style="top:235px" data-at="7.4">А вы хотели бы<br>читать <g>Коран сами?</g></h2>
+  <div class="c sub" style="top:432px" data-at="10.0">по-арабски — так, как он был ниспослан</div>
+</div>
+
+<div class="scene" data-s="13.4,20.1">
+  <h2 class="c" style="top:235px" data-at="13.6">TanWin проведёт<br>вас <g>с нуля</g></h2>
+  <div class="c steps" data-at="15.6"><span>буквы</span><span>слоги</span><span>слова</span><span>аяты</span></div>
+</div>
+
+<div class="scene" data-s="20.1,27.7">
+  <h2 class="c" style="top:235px" data-at="20.3">Голос живого чтеца.<br><g>Таджвид — в цвете</g></h2>
+</div>
+
+<div class="scene" data-s="27.7,33.4">
+  <h2 class="c" style="top:235px" data-at="27.9">10 минут в день —<br>и <g>прогресс растёт</g></h2>
+  <div class="c sub" style="top:432px" data-at="30.2">серия дней · точность · уровни</div>
+</div>
+
+<div class="phone" id="phone"><div class="screen">
+  <img src="shots/quran-0.png" data-v="7,13.6">
+  <img src="shots/home.png" data-v="13.6,15.7">
+  <img src="shots/letter.png" data-v="15.7,17.4">
+  <img src="shots/quiz-a.png" data-v="17.4,18.55">
+  <img src="shots/quiz-b.png" data-v="18.55,20.4">
+  <img src="shots/quran-0.png" data-v="20.4,22.0">
+  <img src="shots/quran-1.png" data-v="22.0,22.9">
+  <img src="shots/quran-2.png" data-v="22.9,23.8">
+  <img src="shots/quran-3.png" data-v="23.8,27.9">
+  <img src="shots/progress.png" data-v="27.9,33.7">
+  <img src="shots/home.png" data-v="33.7,42">
+  <div class="tap" id="tap"></div>
+</div></div>
+
+<div class="scene" data-s="33.4,40.6">
+  <div class="badge" style="top:270px" data-at="33.6"><i><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>Бесплатно</div>
+  <div class="badge" style="top:480px" data-at="35.3"><i><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>Без регистрации</div>
+  <div class="badge" style="top:690px" data-at="37.4"><i><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>Прямо в телефоне</div>
+</div>
+
+<div class="scene" data-s="40.6,60">
+  <div class="c logo" data-at="40.8"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#12b58a"/><stop offset="1" stop-color="#075e47"/></linearGradient><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd97a"/><stop offset="1" stop-color="#d49a24"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(#b)"/><path d="M256 62l48 92 99-32-32 99 92 48-92 48 32 99-99-32-48 92-48-92-99 32 32-99-92-48 92-48-32-99 99 32Z" fill="url(#gg)"/><circle cx="256" cy="270" r="118" fill="#0b3b30"/><path d="M256 222c-26-18-62-24-96-20v122c34-4 70 2 96 20Z" fill="#ffd97a"/><path d="M256 222c26-18 62-24 96-20v122c-34-4-70 2-96 20Z" fill="#f2c257"/><path d="M180 236c20-1 40 3 58 11M180 262c20-1 40 3 58 11M180 288c20-1 40 3 58 11M332 236c-20-1-40 3-58 11M332 262c-20-1-40 3-58 11M332 288c-20-1-40 3-58 11" stroke="#0b3b30" stroke-width="7" stroke-linecap="round" fill="none" opacity=".55"/></svg></div>
+  <div class="c name" data-at="41.2">TanWin</div>
+  <div class="c tag" data-at="41.6">Путь к чтению Корана</div>
+  <h2 class="c step" data-at="42.3">Сделайте первый шаг<br><g>сегодня</g></h2>
+  <div class="c cta" data-at="43.9"><b>Ссылка в описании</b></div>
+  <div class="c arrow" id="arrow" data-at="44.3"><svg viewBox="0 0 24 24" fill="none" stroke="#ffd97a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v15M5.5 12.5L12 19l6.5-6.5"/></svg></div>
+</div>
+
+<script>
+const clamp = (x) => Math.max(0, Math.min(1, x));
+const io = (x) => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const out = (x) => 1 - Math.pow(1 - x, 3);
+const kf = (t, pts) => { // значение по ключевым точкам [[время, значение], …]
+  if (t <= pts[0][0]) return pts[0][1];
+  for (let i = 0; i < pts.length - 1; i++) { const [a, va] = pts[i], [b, vb] = pts[i + 1]; if (t < b) return va + (vb - va) * io((t - a) / (b - a)); }
+  return pts[pts.length - 1][1];
+};
+const $ = (s) => document.querySelector(s), $$ = (s) => [...document.querySelectorAll(s)];
+const scenes = $$(".scene"), items = $$("[data-at]"), shots = $$(".screen img");
+const phone = $("#phone"), tap = $("#tap"), pat = $("#pat"), arrow = $("#arrow");
+
+window.DURATION = 48;
+window.seek = (t) => {
+  pat.style.transform = `translate(${-t * 2.2}px, ${-t * 3.4}px) rotate(${t * .12}deg)`;
+  for (const s of scenes) {
+    const [a, b] = s.dataset.s.split(",").map(Number);
+    s.style.opacity = clamp((t - a) / .45) * clamp((b - t) / .4);
+    s.style.transform = `translateY(${-out(clamp((t - b + .4) / .4)) * 40}px)`;
+  }
+  for (const el of items) {
+    const p = clamp((t - +el.dataset.at) / .6);
+    el.style.opacity = p;
+    const base = el.classList.contains("badge") ? `translateX(${(1 - out(p)) * -90}px)` : `translateY(${(1 - out(p)) * 56}px)`;
+    el.style.transform = base + (el.classList.contains("iqra") ? ` scale(${.9 + .1 * out(clamp(t / 6))})` : "");
+  }
+  for (const img of shots) {
+    const [a, b] = img.dataset.v.split(",").map(Number);
+    img.style.opacity = clamp((t - a) / .28) * (t < b + .3 ? 1 : 0); // новый экран проявляется поверх прежнего
+  }
+  phone.style.opacity = kf(t, [[7.5, 0], [8.2, 1], [40.3, 1], [40.9, 0]]);
+  const y = kf(t, [[7.5, 420], [8.6, 0], [20.2, 0], [21.2, 30], [25.2, 30], [26.2, 0], [33.3, 0], [34.3, 400], [40.2, 400], [40.9, 560]]);
+  const sc = kf(t, [[20.2, 1], [21.2, 1.18], [25.2, 1.18], [26.2, 1]]);
+  phone.style.transform = `translateY(${y + Math.sin(t * 1.1) * 6}px) scale(${sc})`;
+  const tp = clamp((t - 18.15) / .55);
+  tap.style.opacity = tp > 0 && tp < 1 ? 1 - tp : 0;
+  tap.style.transform = `scale(${.3 + tp * 1.1})`;
+  arrow.style.marginTop = `${Math.abs(Math.sin((t - 44.3) * 3.2)) * 26}px`;
+};
+const t0 = +new URLSearchParams(location.search).get("t");
+Promise.all([document.fonts.ready, ...shots.map((i) => i.decode().catch(() => {}))]).then(() => { window.seek(t0); window.READY = true; });
+</script>
+</body>
+</html>
