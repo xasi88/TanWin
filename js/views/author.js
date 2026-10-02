@@ -18,6 +18,6 @@ export function AuthorView() {
       h("div.th-ar", null, ar("ٱلسَّلَامُ عَلَيۡكُمۡ")),
       h("p.al-hello", null, keep("Ассаляму алейкум, дорогие братья и сёстры!")),
       ...LETTER.map((p) => h("p", null, ...[p].flat().map((x) => Array.isArray(x) ? h("a", { href: x[0] }, keep(x[1])) : keep(x)))),
-      h("p.al-bye", null, keep("До встречи в Раю, братья и сёстры мои!")),
+      h("p.al-bye", null, keep("До встречи в Раю, братья и сёстры мои, ин ша Аллах! Аллахумма амин!")),
       h("p.al-sign", null, keep("С уважением,"), h("br"), h("b", null, keep("Хаси Абдулла, сын Алама")))));
 }
