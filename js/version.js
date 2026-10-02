@@ -2,7 +2,7 @@
 // При выпуске новой версии: поднимите APP_VERSION, добавьте запись В НАЧАЛО CHANGELOG,
 // затем `node tools/build.mjs`, commit и push.
 
-export const APP_VERSION = "1.15.1";
+export const APP_VERSION = "1.15.2";
 
 // Контакт автора для сообщений об ошибках. Номер — только цифры, с кодом страны (например, 79001234567).
 export const CONTACT = {
@@ -14,6 +14,10 @@ export const CONTACT = {
 export const METRIKA_ID = 113307386;
 
 export const CHANGELOG = [
+  {
+    v: "1.15.2", date: "2026-10-02", title: "Исправлено имя автора",
+    items: ["В подписи послания исправлено имя автора: Хаси Абдуллах"],
+  },
   {
     v: "1.15.1", date: "2026-10-02", title: "Уточнение в послании",
     items: ["В послании от разработчика дополнено прощание"],
