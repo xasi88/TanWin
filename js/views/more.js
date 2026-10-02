@@ -4,6 +4,7 @@ import { store, backupDone } from "../store.js";
 import { RECITERS } from "../data.js";
 import { go, installApp } from "../app.js";
 import { isInstalled } from "../install.js";
+import { canFullscreen, wantFullscreen, enterFullscreen, exitFullscreen } from "../fullscreen.js";
 import { APP_VERSION, CHANGELOG } from "../version.js";
 import { devBanner, feedbackButton } from "../feedback.js";
 import { feedbackLink } from "../version.js";
@@ -25,6 +26,16 @@ function toggle(label, key, sub) {
   return h("div.set-row", null, h("div", null, h("span.set-label", null, label), sub ? h("small.muted", null, sub) : null), t);
 }
 const set = (k) => (v) => store.set((s) => { s.settings[k] = v; });
+/** «Полный экран»: переключатель сразу разворачивает или сворачивает приложение. */
+function fullscreenToggle() {
+  if (!canFullscreen()) return null;
+  const label = "Полный экран";
+  const t = h("button.switch", { type: "button", role: "switch", "data-fs-switch": true, "aria-label": label }, h("i"));
+  const sync = () => { const on = wantFullscreen(); t.classList.toggle("on", on); t.setAttribute("aria-checked", on ? "true" : "false"); };
+  t.addEventListener("click", () => { const on = !wantFullscreen(); store.set((s) => { s.settings.fullscreen = on; }); sync(); if (on) enterFullscreen(); else exitFullscreen(); });
+  sync();
+  return h("div.set-row", null, h("div", null, h("span.set-label", null, label), h("small.muted", null, "Без адресной строки и панелей браузера: приложение разворачивается при первом нажатии. Выйти — «назад» на телефоне или Esc на компьютере.")), t);
+}
 
 export function MoreView() {
   const s = store.get();
@@ -65,6 +76,7 @@ export function MoreView() {
     h("section.card.settings", null,
       h("h3", null, "Вид"),
       seg("Тема", [["auto", "Авто"], ["light", "Светлая"], ["dark", "Тёмная"]], s.settings.theme, set("theme")),
+      fullscreenToggle(),
       sizeRow("arScale", "Размер арабского текста", "Можно менять и прямо в уроке или при чтении — кнопка «Aa»", preview),
       sizeRow("uiScale", "Размер остального текста", "Русский текст, кнопки и меню"),
       toggle("Цвета таджвида", "tajweed", "Раскрашивать правила в мусхафе"),

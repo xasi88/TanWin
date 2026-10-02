@@ -6,7 +6,8 @@ import { saveProgressFile } from "./more.js";
 import { lessonUnlocked, surahUnlocked, surahsOpen, unitProgress, nextTarget, applySkip, courseProgress, allOpen } from "../path.js";
 import { surahMeta } from "../data.js";
 import { playLesson } from "../lesson.js";
-import { go, celebrate } from "../app.js";
+import { go, celebrate, installApp } from "../app.js";
+import { isInstalled } from "../install.js";
 import { devBanner } from "../feedback.js";
 import { continueReading } from "./quran.js";
 
@@ -61,6 +62,22 @@ function backupCard() {
       h("div.row.gap.wrap", null,
         h("button.btn.primary.small-btn", { type: "button", onclick: async () => { await saveProgressFile(); if (!backupDue()) card.remove(); } }, icon("down", { size: 16 }), "Сохранить файл"),
         h("button.btn.ghost.small-btn", { type: "button", onclick: () => { backupLater(); card.remove(); } }, "Через неделю"))));
+  return card;
+}
+
+/** На телефоне и планшете в браузере: предложение установить приложение — оно открывается на весь экран, без адресной строки. */
+function installCard() {
+  let hidden = false;
+  try { hidden = !!localStorage.getItem("tanwin.installHint"); } catch {}
+  if (hidden || isInstalled() || !matchMedia("(pointer: coarse)").matches) return null;
+  const card = h("div.card.backup-card.install-card", null,
+    h("span.rc-ic", null, icon("down", { size: 24 })),
+    h("div", null,
+      h("b", null, "Установите TanWin как приложение"),
+      h("div.muted", null, "Значок на главном экране, запуск на весь экран — без адресной строки браузера — и работа без интернета."),
+      h("div.row.gap.wrap", null,
+        h("button.btn.primary.small-btn", { type: "button", onclick: installApp }, icon("down", { size: 16 }), "Установить"),
+        h("button.btn.ghost.small-btn", { type: "button", onclick: () => { try { localStorage.setItem("tanwin.installHint", "1"); } catch {} card.remove(); } }, "Не сейчас"))));
   return card;
 }
 
@@ -175,9 +192,10 @@ export function HomeView() {
         continueCard(),
         reviewCard(),
         continueReading(),
+        installCard(),
         backupCard(),
         h("footer.home-foot", null, h("a", { href: "#/method" }, "Методика"), " · ", h("a", { href: "#/letters" }, "Алфавит"), " · ", h("a", { href: "#/rules" }, "Таджвид"), " · ", h("a", { href: "#/thanks" }, "Благодарности"))),
-      h("div.path", null, ...[...UNITS, SURAH_UNIT].map((u) => unitBlock(u, target)))));
+      h("div.path.home-main", null, ...[...UNITS, SURAH_UNIT].map((u) => unitBlock(u, target)))));
   // прокрутка к текущему узлу
   requestAnimationFrame(() => {
     const cur = page.querySelector(".unit.open .node.current");

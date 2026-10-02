@@ -7,6 +7,7 @@ import { checkBadges, courseProgress, nextTarget, lessonById } from "./path.js";
 import { APP_VERSION } from "./version.js";
 import { canPrompt, install, isInstalled, onInstallChange, manualHint } from "./install.js";
 import { initMetrika, hit, track } from "./metrika.js";
+import { initFullscreen } from "./fullscreen.js";
 
 const view = $("#view");
 const nav = $("#nav");
@@ -74,6 +75,7 @@ const routes = [
   [/^\/practice\/(\w+)$/, (k) => import("./views/review.js").then((m) => m.PracticeRoute(k)), (k) => `Практика: ${k}`],
   [/^\/quran$/, () => import("./views/quran.js").then((m) => m.QuranList()), "Коран"],
   [/^\/quran\/(\d+)(?:\/(\d+))?$/, (n, a) => import("./views/quran.js").then((m) => m.Reader(+n, +a || 0)), (n) => `Коран: сура ${n}`],
+  [/^\/read\/(\d+)(?:\/(\d+))?$/, (n, a) => import("./views/quran.js").then((m) => m.ReadMode(+n, +a || 0)), (n) => `Чтение: сура ${n}`],
   [/^\/page\/(\d+)$/, (p) => import("./views/quran.js").then((m) => m.MushafPage(+p)), (p) => `Мусхаф: страница ${p}`],
   [/^\/progress$/, () => import("./views/progress.js").then((m) => m.ProgressView()), "Прогресс"],
   [/^\/more$/, () => import("./views/more.js").then((m) => m.MoreView()), "Ещё"],
@@ -84,7 +86,7 @@ const routes = [
   [/^\/changelog$/, () => import("./views/changelog.js").then((m) => m.ChangelogView()), "Версии"],
   [/^\/welcome$/, () => import("./views/onboard.js").then((m) => m.Onboarding()), "Знакомство"],
 ];
-const FULLSCREEN = /^\/(learn|surah|practice|welcome)/;
+const FULLSCREEN = /^\/(learn|surah|practice|welcome|read)/;
 
 let routing = 0;
 async function route() {
@@ -129,6 +131,7 @@ async function start() {
   matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", applySettings);
   store.on(() => applySettings());
   window.addEventListener("hashchange", route);
+  initFullscreen();
   startMetrika();
   view.replaceChildren(h("div.boot", null, logo(72), h("div.spinner")));
   try { await Promise.all([loadBank(), loadSurahs(), document.fonts?.load?.('40px "Amiri Quran"', "بسم")]); }
