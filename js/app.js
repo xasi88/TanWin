@@ -8,6 +8,7 @@ import { APP_VERSION } from "./version.js";
 import { canPrompt, install, isInstalled, onInstallChange, manualHint } from "./install.js";
 import { initMetrika, hit, track } from "./metrika.js";
 import { initFeedback, setScreen } from "./feedback.js";
+import { fill } from "./tutor.js";
 import { initFullscreen, canFullscreen, isFullscreen, setFullscreen, onFullscreenChange, enterFullscreen } from "./fullscreen.js";
 
 const view = $("#view");
@@ -136,8 +137,8 @@ export const go = (p) => { location.hash = "#" + p; };
 /** Показать новые награды и события после урока. */
 export function celebrate(events = []) {
   const fresh = checkBadges();
-  if (events.includes("level")) toast(h("span", null, icon("sparkle", { size: 18 }), ` Новый уровень: ${levelInfo().n}!`), 3200);
-  else if (events.includes("goal")) toast(h("span", null, icon("flame", { size: 18, fill: true, sw: 1 }), ` Цель дня выполнена! Серия: ${streakNow()}`), 3200);
+  if (events.includes("level")) toast(h("span", null, icon("sparkle", { size: 18 }), " " + fill(`{n}, новый уровень — ${levelInfo().n}!`)), 3200);
+  else if (events.includes("goal")) toast(h("span", null, icon("flame", { size: 18, fill: true, sw: 1 }), " " + fill(`{n}, цель дня выполнена! Серия: ${streakNow()}`)), 3200);
   fresh.forEach((b, i) => setTimeout(() => toast(h("span.toast-badge", null, h("span.tb-ic", null, b.icon), h("span", null, h("b", null, "Новая награда: "), b.name)), 3000), 800 + i * 3200));
 }
 

@@ -3,6 +3,7 @@ import { h, ar, icon } from "../ui.js";
 import { store } from "../store.js";
 import { logo, go } from "../app.js";
 import { track } from "../metrika.js";
+import { fill } from "../tutor.js";
 
 export function Onboarding() {
   let step = 0;
@@ -22,11 +23,12 @@ export function Onboarding() {
       next("Начать")),
     () => h("div.ob-screen", null,
       h("h2", null, "Как к вам обращаться?"),
-      h("p.muted", null, "Необязательно — просто чтобы приветствовать вас."),
+      h("p.muted", null, "Необязательно — но так уроки станут личными: мы будем обращаться к вам по имени и отмечать ваши успехи."),
       (() => { const i = h("input.text-in.big", { type: "text", value: data.name, placeholder: "Имя", maxlength: "30", "aria-label": "Имя" }); i.addEventListener("input", () => (data.name = i.value.trim())); setTimeout(() => i.focus(), 100); return i; })(),
       next("Дальше")),
     () => h("div.ob-screen", null,
-      h("h2", null, "Сколько времени в день?"),
+      h("h2", null, data.name ? `Приятно познакомиться, ${fill("{n}", data.name)}!` : "Сколько времени в день?"),
+      data.name ? h("p.lead", null, "Сколько времени в день вы готовы уделять?") : null,
       h("p.muted", null, "Регулярность важнее длительности. Цель можно изменить в любой момент."),
       h("div.goal-opts", null, ...[[10, "Лёгкий темп", "≈ 5 минут"], [30, "Обычный", "≈ 10 минут"], [50, "Серьёзный", "≈ 15 минут"], [80, "Интенсив", "≈ 25 минут"]].map(([v, t, s]) => {
         const b = h("button.goal-opt", { type: "button", class: data.goal === v ? "on" : "" }, h("b", null, t), h("span", null, s), h("small", null, `${v} нура`));
@@ -35,7 +37,7 @@ export function Onboarding() {
       })),
       next("Дальше")),
     () => h("div.ob-screen", null,
-      h("h2", null, "С чего начнём?"),
+      h("h2", null, fill("{n}, с чего начнём?", data.name)),
       h("div.start-opts", null,
         startOpt("✦", "Я начинаю с нуля", "Не знаю арабских букв", "/learn/1.1"),
         startOpt("ب", "Я знаю буквы", "Сдам проверку алфавита и пойду дальше", "/learn/2.9"),
