@@ -8,3 +8,7 @@ __pycache__/
 node_modules/
 .DS_Store
 Thumbs.db
+# Рекламный ролик: снимки, озвучка и готовое видео пересобираются (tools/promo/*.mjs, voice.py)
+tools/promo/out/
+tools/promo/shots/
+tools/promo/audio/
