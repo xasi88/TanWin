@@ -59,6 +59,7 @@ export function MoreView() {
 
   return h("div.page.more", null,
     h("header.page-head", null, h("h1", null, "Ещё")),
+    h("a.more-link.author-link", { href: "#/author" }, h("span.ml-ic", null, icon("chat", { size: 22 })), h("div", null, h("b", null, "Послание от разработчика"), h("small.muted", null, "Как и зачем появился TanWin — слово автора")), icon("right", { size: 18 })),
     !isInstalled() ? h("button.more-link.install", { type: "button", onclick: installApp }, h("span.ml-ic", null, icon("down", { size: 22 })), h("div", null, h("b", null, "Установить приложение"), h("small.muted", null, "Отдельное окно на рабочем столе или телефоне, работает без интернета")), icon("right", { size: 18 })) : null,
     h("a.more-link.thanks-link", { href: "#/thanks" }, h("span.ml-ic", null, icon("heart", { size: 22, fill: true, sw: 1 })), h("div", null, h("b", null, "Благодарности"), h("small.muted", null, "Люди, благодаря пожертвованиям которых состоялся проект")), icon("right", { size: 18 })),
     CONTACT.whatsapp ? h("button.more-link.contact-link", { type: "button", onclick: openFeedback }, h("span.ml-ic", null, icon("chat", { size: 22 })), h("div", null, h("b", null, "Написать автору в WhatsApp"), h("small.muted", null, "Нашли ошибку или неточность? Есть идея? Напишите — версия и экран подставятся сами")), icon("right", { size: 18 })) : null,

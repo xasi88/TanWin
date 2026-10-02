@@ -1173,3 +1173,14 @@ button.more-link { width: 100%; text-align: left; font: inherit; cursor: pointer
 /* с полоской цели шапка режима чтения выше: фон под ней плотнее, текст начинается ниже */
 .focus-juz:has(.goal-strip:not([hidden])) { padding-bottom: 20px; background: linear-gradient(var(--bg) 82%, transparent); }
 .focus:has(.goal-strip:not([hidden])) .focus-scroll { padding-top: calc(92px + env(safe-area-inset-top)); }
+
+/* Послание от разработчика (views/author.js) */
+.author-link { margin-bottom: 10px; background: linear-gradient(90deg, var(--accent-soft), var(--card)); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.author-link .ml-ic { background: var(--accent); color: var(--accent-ink); }
+.author-letter { max-width: 720px; margin: 0 auto; padding: clamp(18px, 5vw, 36px); font-size: 1.08rem; line-height: 1.75; }
+.author-letter .th-ar { text-align: center; }
+.author-letter p { margin: 0 0 1em; }
+.al-hello { text-align: center; font-weight: 800; color: var(--ink-2); }
+.al-bye { font-weight: 800; margin-top: 1.4em; }
+.al-sign { margin: 0; text-align: right; color: var(--ink-2); }
+.al-sign b { color: var(--ink); font-size: 1.15rem; }
