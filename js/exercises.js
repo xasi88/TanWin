@@ -4,9 +4,10 @@ import { LETTERS, byId, byChar, SHAPE_FAMILIES, SOUND_PAIRS, HEAVY, forms, ZONES
 import { CONS, clusters, M, translit, analyze, stripStops } from "./arabic.js";
 import { words, lessonWords, letterExamples, minimalPairs, loadSurah, bank, rareExamples } from "./data.js";
 import { RULES, parseMarkup, plain, rulesIn } from "./rules.js";
-import { SURAH_PATH } from "./course.js";
+import { SURAH_PATH, knownLetters } from "./course.js";
 import { h, ar, arParts, tr, icon, shuffle, pick, sample, wordChip, rich } from "./ui.js";
-import { playWord, preloadWord } from "./audio.js";
+import { playWord, preloadWord, playLetter, playSyll, preloadLetter } from "./audio.js";
+import { syllText as sylAr, syllTr as sylRu, blendsFor, blendBoard, blendTr, playBlend, V3, VOWELS, SYLL_IDS } from "./syllables.js";
 import { diagram, spreadChoices } from "./diagram.js";
 
 const L_ALL = LETTERS.map((l) => l.id);
@@ -71,6 +72,55 @@ G.listenFirst = (o, lesson) => {
       after: () => h("div.after-word", null, wordChip(ex, { showTr: true, big: true })),
     }, [letterOpt(id, true), ...similarLetters(id, 3, ids).map((x) => letterOpt(x, false))]);
   }).filter(Boolean);
+};
+// На слух: название буквы → какая это буква
+G.letterListen = (o, lesson) => cycle(target(lesson, o).filter((id) => id !== "hamza"), o.n).map((id) => {
+  const l = byId[id];
+  preloadLetter(id);
+  return withOpts({ kind: "letterListen", key: "L:" + id, layout: "grid4",
+    play: () => playLetter(id),
+    prompt: () => promptText("Какую букву вы слышите?", "Можно слушать сколько угодно раз."),
+    explain: `Это ${l.name} — ${l.dots}.`,
+  }, [letterOpt(id, true), ...similarLetters(id, 3, target(lesson, o)).map((x) => letterOpt(x, false))]);
+});
+// На слух: слог (буква с огласовкой) → какой это слог
+G.sylListen = (o, lesson) => {
+  const vs = o.vowels || V3;
+  const ids = (o.letters || target(lesson, o)).filter((id) => id !== "alif");
+  return cycle(ids, o.n).map((id) => {
+    const v = pick(vs);
+    preloadLetter(id, v);
+    // неверные варианты: та же буква с другой огласовкой и похожие буквы с той же
+    const sameLetter = V3.filter((x) => x !== v).map((x) => sylAr(id, x));
+    const sameVowel = similarLetters(id, 4, ids).filter((x) => x !== "alif").map((x) => sylAr(x, v));
+    const wrong = uniq(vs.length > 1 ? [sameLetter[0], ...sameVowel.slice(0, 2), sameLetter[1], ...sameVowel.slice(2)] : sameVowel).filter((t) => t && t !== sylAr(id, v)).slice(0, 3);
+    return withOpts({ kind: "sylListen", key: "V:" + v, layout: "grid4",
+      play: () => playSyll(id, v),
+      prompt: () => promptText("Какой слог вы слышите?", "Смотрите и на букву, и на огласовку."),
+      explain: `${byId[id].name} + ${VOWELS[v].name} = «${sylRu(id, v)}».`,
+    }, [arOpt(sylAr(id, v), true, "opt-letter"), ...wrong.map((t) => arOpt(t, false, "opt-letter"))]);
+  });
+};
+// Собрать слово из слогов: плитки соединяются в слово по мере сборки
+G.blend = (o, lesson) => {
+  const own = o.letters || (Array.isArray(lesson?.letters) ? lesson.letters : null);
+  const scope = { letters: own, known: knownLetters(lesson?.id), vowels: o.vowels || V3, need: o.need || null, maxLen: o.maxLen || 3 };
+  return blendsFor({ ...scope, n: o.n }).map((b) => {
+    // лишние плитки: те же буквы с другой огласовкой
+    const have = new Set(b.sylls.map((x) => x.text));
+    const extra = [];
+    for (const x of shuffle(b.sylls)) for (const v of shuffle(V3)) {
+      const text = x.text.replace(VOWELS[x.v].mark, VOWELS[v].mark);
+      if (extra.length < 2 && !have.has(text)) { have.add(text); extra.push({ id: x.id, v, text }); }
+    }
+    b.sylls.forEach((x) => preloadLetter(x.id, x.v));
+    return { kind: "blend", key: "V:mix", word: b.word || undefined,
+      play: () => playBlend(b),
+      prompt: () => h("div.q-center", null, promptText("Соберите слово из слогов", "Послушайте и нажимайте на слоги по порядку — справа налево."), h("div.q-tr.small", null, tr(blendTr(b)))),
+      explain: `${b.sylls.map((x) => sylRu(x.id, x.v)).join(" + ")} = «${b.tr}»`,
+      after: () => (b.word ? wordChip(b.word, { showTr: true, big: true }) : h("div.after-word", null, ar(b.text, { cls: "q-word" }))),
+      custom: (api) => blendBoard(b, extra, api.answer) };
+  });
 };
 G.pairListen = (o) => {
   const all = minimalPairs();
@@ -172,10 +222,12 @@ const VOW = { fatha: [M.FATHA, "а"], kasra: [M.KASRA, "и"], damma: [M.DAMMA, "
 const SYL_LETTERS = L_ALL.filter((x) => !["alif", "hamza"].includes(x));
 const sylText = (id, v) => { const ch = byId[id].ch; return v === "fathatan" ? ch + M.FATHATAN + (id === "ta" ? "" : "ا") : ch + VOW[v][0]; };
 const sylTr = (id, v) => (CONS[byId[id].ch] || "") + VOW[v][1];
-G.syllable = (o) => {
+G.syllable = (o, lesson) => {
   const vs = o.vowels || ["fatha"];
+  const own = o.own && Array.isArray(lesson?.letters) ? lesson.letters.filter((x) => SYL_LETTERS.includes(x)) : null;
+  const ids = o.letters || (own?.length ? own : SYL_LETTERS);
   return Array.from({ length: o.n }, () => {
-    const id = pick(SYL_LETTERS), v = pick(vs);
+    const id = pick(ids), v = pick(vs);
     const right = sylTr(id, v);
     const alts = uniq([
       ...Object.keys(VOW).filter((x) => x !== v && (vs.length > 1 ? vs.includes(x) || vs.length < 3 : true)).map((x) => sylTr(id, x)),
@@ -183,6 +235,7 @@ G.syllable = (o) => {
     ]).filter((t) => t !== right);
     return withOpts({ kind: "syllable", key: "V:" + v, layout: "grid2",
       prompt: () => h("div.q-center", null, promptText("Как читается слог?"), ar(sylText(id, v), { cls: "q-big" })),
+      onAnswer: () => { if (VOWELS[v]) playSyll(id, v); },
       explain: `${byId[id].name} + ${{ fatha: "фатха", kasra: "касра", damma: "дамма", fathatan: "фатхатан", kasratan: "касратан", dammatan: "даммтан" }[v]} = «${right}».`,
     }, [trOpt(right, true), ...shuffle(alts).slice(0, 3).map((t) => trOpt(t, false))]);
   });
