@@ -460,7 +460,7 @@ export async function ReadMode(n, startA = 0) {
           item("palette", st.tajweed ? "Цвета таджвида: вкл." : "Цвета таджвида: выкл.", () => setTajweed(!store.get().settings.tajweed), { on: st.tajweed }),
           item("info", "Что означают цвета", () => setTimeout(legendModal, 250), { keep: false }),
           canFullscreen() ? item(isFullscreen() ? "shrink" : "expand", isFullscreen() ? "Выйти из полного экрана" : "На весь экран", () => { if (isFullscreen()) { keepOpen = true; setFullscreen(false); } else setFullscreen(true); }, { keep: false }) : null),
-        h("p.muted.small", null, "Размер текста и шрифт — кнопка «Aa» на панели. Скорость прокрутки — «−» и «+». В режиме заучивания нажмите на скрытое слово, чтобы подсмотреть."),
+        h("p.muted.small", null, "Размер текста и шрифт — кнопка «Aa» на панели. Скорость прокрутки — «−» и «+». Нажмите на слово и удерживайте — его прочитает чтец. В режиме заучивания нажмите на скрытое слово, чтобы подсмотреть."),
         h("div.label", null, "Сура"),
         h("div.rm-row", null,
           item("check", "Я прочитал(а) эту суру", () => { store.set((s) => { s.reads = s.reads || {}; s.reads[n] = (s.reads[n] || 0) + 1; }); toast("Отмечено: сура прочитана ✓"); }, { keep: false }),
@@ -471,9 +471,33 @@ export async function ReadMode(n, startA = 0) {
     return box;
   }, { cls: "sheet", onClose: () => show() });
   // нажатие на текст не открывает карточку слова, а показывает или прячет панель
+  // долгое нажатие на слово — карточка слова: его читает чтец, видны транскрипция и правила таджвида
+  let pressTm = 0, pressAt = null, pressed = false;
+  const pressOff = () => { clearTimeout(pressTm); pressAt = null; };
+  scroller.addEventListener("pointerdown", (e) => {
+    const w = e.target.closest?.(".qw");
+    pressOff(); pressed = false;
+    if (!w || (e.pointerType === "mouse" && e.button !== 0)) return;
+    pressAt = [e.clientX, e.clientY];
+    pressTm = setTimeout(() => {
+      pressAt = null;
+      const a = +w.closest("[data-a]")?.dataset.a, wi = +w.dataset.wi;
+      if (!a || !view.el.isConnected) return;
+      pressed = true; // отпускание пальца после этого не должно прятать или показывать панель
+      if (running) setRunning(false);
+      if (listening) stop();
+      navigator.vibrate?.(12);
+      wordPop(n, a, wi, data.v[a - 1][0][wi], meta);
+    }, 480);
+  });
+  scroller.addEventListener("pointermove", (e) => { if (pressAt && Math.hypot(e.clientX - pressAt[0], e.clientY - pressAt[1]) > 9) pressOff(); });
+  for (const ev of ["pointerup", "pointercancel", "pointerleave"]) scroller.addEventListener(ev, pressOff);
+  scroller.addEventListener("scroll", pressOff, { passive: true });
+  scroller.addEventListener("contextmenu", (e) => { if (e.target.closest?.(".qw")) e.preventDefault(); }); // на телефоне долгое нажатие иначе открывает меню браузера
   scroller.addEventListener("click", (e) => {
     if (e.target.closest(".focus-next")) return;
     e.preventDefault(); e.stopPropagation();
+    if (pressed) { pressed = false; return; }
     const hid = e.target.closest(".qw.hid:not(.shown)"); // заучивание: скрытое слово открывается нажатием
     if (hid) { hid.classList.add("shown"); return; }
     if (root.classList.contains("quiet")) show(); else root.classList.add("quiet");

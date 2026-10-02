@@ -75,7 +75,7 @@ export function MoreView() {
       seg("Цель дня", [[10, "5 мин"], [30, "10 мин"], [50, "15 мин"], [80, "25 мин"]], s.profile.goal, (v) => store.set((st) => { st.profile.goal = v; }))),
     h("section.card.settings", null,
       h("h3", null, "Вид"),
-      seg("Тема", [["auto", "Авто"], ["light", "Светлая"], ["dark", "Тёмная"]], s.settings.theme, set("theme")),
+      seg("Тема", [["auto", "Как на устройстве"], ["light", "Светлая"], ["dark", "Тёмная"]], s.settings.theme, set("theme")),
       fullscreenToggle(),
       seg("Арабский шрифт", Object.entries(AR_FONTS).map(([k, f]) => [k, f.name]), arFont(), set("arFont")),
       h("small.muted.set-note", null, "«Мадина» — шрифт печатного мусхафа Мадины (стоит по умолчанию). «Амири» — прежний шрифт приложения. «Шехерезада» — широкие просветы между знаками. «Ното» — простой и ровный. Менять можно и при чтении — кнопка «Aa»."),

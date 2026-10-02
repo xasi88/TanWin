@@ -1108,3 +1108,4 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .focus .verses.ayat .translation { text-align: left; }
 @media (max-width: 480px) { .focus-bar { flex-wrap: nowrap; gap: 3px; padding: 6px; } .focus-bar .sp-btn, .focus-bar .icon-btn { width: 36px; height: 38px; } .focus-bar .play-btn { width: 44px; height: 44px; } .focus-speed { min-width: 1.3em; font-size: 1.05rem; } }
 @media (max-width: 340px) { .focus-bar { flex-wrap: wrap; } }
+.focus .qw { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
