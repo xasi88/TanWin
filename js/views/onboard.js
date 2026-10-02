@@ -1,12 +1,13 @@
 // Знакомство: что даст курс, цель дня, стартовая точка.
-import { h, ar, icon } from "../ui.js";
+import { h, ar, icon, keep } from "../ui.js";
 import { store } from "../store.js";
 import { logo, go } from "../app.js";
 import { track } from "../metrika.js";
+import { fill } from "../tutor.js";
 
 export function Onboarding() {
   let step = 0;
-  const data = { name: store.get().profile.name || "", goal: store.get().profile.goal || 30 };
+  const data = { name: store.get().profile.name || "", goal: store.get().profile.goal || 30, form: store.get().profile.form || "vy", gender: store.get().profile.gender || "" };
   const root = h("div.onboard");
   const dots = () => h("div.ob-dots", null, ...[0, 1, 2, 3].map((i) => h("i", { class: i === step ? "on" : "" })));
   const screens = [
@@ -22,11 +23,15 @@ export function Onboarding() {
       next("Начать")),
     () => h("div.ob-screen", null,
       h("h2", null, "Как к вам обращаться?"),
-      h("p.muted", null, "Необязательно — просто чтобы приветствовать вас."),
+      h("p.muted", null, "Необязательно — но так уроки станут личными: мы будем обращаться к вам по имени и отмечать ваши успехи."),
       (() => { const i = h("input.text-in.big", { type: "text", value: data.name, placeholder: "Имя", maxlength: "30", "aria-label": "Имя" }); i.addEventListener("input", () => (data.name = i.value.trim())); setTimeout(() => i.focus(), 100); return i; })(),
+      h("div.ob-ask", null, h("span.set-label", null, "Как обращаться"), choice("form", [["vy", "На «вы»"], ["ty", "На «ты»"]])),
+      h("div.ob-ask", null, h("span.set-label", null, "Кто учится"), choice("gender", [["m", "Ученик"], ["f", "Ученица"]])),
+      h("p.muted.small", null, keep("От этого зависят слова в уроках: «прочитал» или «прочитала», «нажмите» или «нажми». Изменить можно в разделе «Ещё».")),
       next("Дальше")),
     () => h("div.ob-screen", null,
-      h("h2", null, "Сколько времени в день?"),
+      h("h2", null, data.name ? `Приятно познакомиться, ${fill("{n}", data.name)}!` : "Сколько времени в день?"),
+      data.name ? h("p.lead", null, "Сколько времени в день вы готовы уделять?") : null,
       h("p.muted", null, "Регулярность важнее длительности. Цель можно изменить в любой момент."),
       h("div.goal-opts", null, ...[[10, "Лёгкий темп", "≈ 5 минут"], [30, "Обычный", "≈ 10 минут"], [50, "Серьёзный", "≈ 15 минут"], [80, "Интенсив", "≈ 25 минут"]].map(([v, t, s]) => {
         const b = h("button.goal-opt", { type: "button", class: data.goal === v ? "on" : "" }, h("b", null, t), h("span", null, s), h("small", null, `${v} нура`));
@@ -35,7 +40,7 @@ export function Onboarding() {
       })),
       next("Дальше")),
     () => h("div.ob-screen", null,
-      h("h2", null, "С чего начнём?"),
+      h("h2", null, fill("{n}, с чего начнём?", data.name)),
       h("div.start-opts", null,
         startOpt("✦", "Я начинаю с нуля", "Не знаю арабских букв", "/learn/1.1"),
         startOpt("ب", "Я знаю буквы", "Сдам проверку алфавита и пойду дальше", "/learn/2.9"),
@@ -44,11 +49,23 @@ export function Onboarding() {
         startOpt("ٱ", "Я уже читаю", "Проверю чтение аятов и перейду к сурам и таджвиду", "/learn/8.7"))),
   ];
   function pt(ic, t, s) { return h("div.ob-pt", null, h("span.ob-pt-ic", null, icon(ic, { size: 22 })), h("div", null, h("b", null, t), h("small", null, s))); }
-  function next(label) { return h("button.btn.primary.wide.big", { type: "button", onclick: () => { step++; draw(); } }, label, icon("right", { size: 20 })); }
+  // обращение и род действуют сразу — уже на следующих экранах знакомства
+  const saveProfile = () => store.set((st) => { st.profile.name = data.name; st.profile.goal = data.goal; st.profile.form = data.form; st.profile.gender = data.gender; });
+  function next(label) { return h("button.btn.primary.wide.big", { type: "button", onclick: () => { saveProfile(); step++; draw(); } }, label, icon("right", { size: 20 })); }
+  function choice(key, options) {
+    const box = h("div.seg", { role: "radiogroup" });
+    options.forEach(([v, t]) => {
+      const b = h("button.seg-btn", { type: "button", role: "radio", "aria-checked": data[key] === v ? "true" : "false", class: data[key] === v ? "on" : "" }, keep(t));
+      b.addEventListener("click", () => { data[key] = v; box.querySelectorAll("button").forEach((x) => { x.classList.toggle("on", x === b); x.setAttribute("aria-checked", x === b); }); });
+      box.append(b);
+    });
+    return box;
+  }
   function startOpt(g, t, s, path) {
     const b = h("button.start-opt", { type: "button" }, h("span.so-g", null, ar(g)), h("div", null, h("b", null, t), h("small", null, s)), icon("right"));
     b.addEventListener("click", () => {
-      store.set((st) => { st.profile.name = data.name; st.profile.goal = data.goal; st.profile.onboarded = true; });
+      saveProfile();
+      store.set((st) => { st.profile.onboarded = true; });
       track("onboarded", { Старт: t });
       go(path === "/learn/1.1" ? "/" : path);
       if (path === "/learn/1.1") setTimeout(() => go(path), 50);

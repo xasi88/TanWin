@@ -1,5 +1,5 @@
 // «Ещё»: настройки, справочники, данные, об источниках.
-import { h, ar, icon, toast, confirmBox, SIZES, AR_FONTS, arFont } from "../ui.js";
+import { h, ar, icon, toast, confirmBox, SIZES, AR_FONTS, arFont, keep } from "../ui.js";
 import { store, backupDone } from "../store.js";
 import { RECITERS } from "../data.js";
 import { go, installApp } from "../app.js";
@@ -25,6 +25,8 @@ function toggle(label, key, sub) {
   return h("div.set-row", null, h("div", null, h("span.set-label", null, label), sub ? h("small.muted", null, sub) : null), t);
 }
 const set = (k) => (v) => store.set((s) => { s.settings[k] = v; });
+// обращение и род меняют тексты всего приложения — перерисовываем экран
+const profile = (k) => (v) => { store.set((s) => { s.profile[k] = v; }); window.dispatchEvent(new Event("hashchange")); };
 /** «Полный экран»: переключатель сразу разворачивает или сворачивает приложение. */
 function fullscreenToggle() {
   if (!canFullscreen()) return null;
@@ -71,6 +73,9 @@ export function MoreView() {
     h("section.card.settings", null,
       h("h3", null, "Профиль и цель"),
       h("div.set-row", null, h("span.set-label", null, "Имя"), name),
+      seg("Обращение", [["vy", keep("На «вы»")], ["ty", keep("На «ты»")]], s.profile.form || "vy", profile("form")),
+      seg("Кто учится", [["", "Не указано"], ["m", "Ученик"], ["f", "Ученица"]], s.profile.gender || "", profile("gender")),
+      h("small.muted.set-note", null, keep("От этого зависят слова в уроках: «прочитал» или «прочитала», «нажмите» или «нажми».")),
       seg("Цель дня", [[10, "5 мин"], [30, "10 мин"], [50, "15 мин"], [80, "25 мин"]], s.profile.goal, (v) => store.set((st) => { st.profile.goal = v; }))),
     h("section.card.settings", null,
       h("h3", null, "Вид"),

@@ -1,6 +1,7 @@
 // Плеер урока: карточки теории, упражнения, повтор ошибок, итог.
 import { h, ar, rich, tr, icon, wordChip, playBtn, toast, confetti, ring, shuffle, sample, plural, modal, mixed, sizeButton } from "./ui.js";
-import { build, quiz, ruleIndex } from "./exercises.js";
+import { build, quiz, ruleIndex, stepForKey } from "./exercises.js";
+import { g, you } from "./speech.js";
 import { byId, forms, POINTS, ZONES, LETTERS } from "./letters.js";
 import { letterExamples, lessonWords, words, minimalPairs, loadSurah, wordKey, rareExamples } from "./data.js";
 import { RULES, parseMarkup, plain, rulesIn } from "./rules.js";
@@ -11,6 +12,7 @@ import { letterIntro, letterForms, harakatTiles, syllTile, blendCard, blendsFor,
 import { knownLetters } from "./course.js";
 import { store, addXp, srsSeen, finishLesson, todayXp, hardSeen } from "./store.js";
 import { track } from "./metrika.js";
+import { lessonVoice, weakSpots } from "./tutor.js";
 
 const FORM_NAMES = [["fin", "в конце"], ["med", "в середине"], ["ini", "в начале"], ["iso", "отдельно"]];
 
@@ -191,8 +193,8 @@ function readStep(step, api) {
     const trEl = tr(w.tr, { hidden: true });
     const reveal = h("button.btn.secondary.wide", { type: "button" }, icon("eye", { size: 18 }), "Проверить себя");
     const judge = h("div.row.gap.hidden", null,
-      h("button.btn.bad", { type: "button", onclick: () => next(false) }, icon("x", { size: 18 }), "Ошибся"),
-      h("button.btn.good", { type: "button", onclick: () => next(true) }, icon("check", { size: 18 }), "Прочитал верно"));
+      h("button.btn.bad", { type: "button", onclick: () => next(false) }, icon("x", { size: 18 }), g("Ошибся", "Ошиблась")),
+      h("button.btn.good", { type: "button", onclick: () => next(true) }, icon("check", { size: 18 }), g("Прочитал верно", "Прочитала верно")));
     reveal.addEventListener("click", () => { trEl.classList.remove("hid"); playWord(w.a); reveal.classList.add("hidden"); judge.classList.remove("hidden"); });
     box.replaceChildren(
       h("div.rd-count", null, `${i + 1} / ${ws.length}`),
@@ -200,7 +202,7 @@ function readStep(step, api) {
       h("button.rd-word", { type: "button", onclick: () => playWord(w.a), "aria-label": "Послушать" }, ar(w.d, { cls: "q-word" })),
       h("div.rd-tr", null, trEl), reveal, judge);
   };
-  const next = (ok) => { if (ok) good++; srsSeen("W:" + step.level, ok); hardSeen(w.a, ok); api.addXp(ok ? 4 : 1); i++; i < ws.length ? show() : api.done({ good, total: ws.length }); };
+  const next = (ok) => { if (ok) good++; srsSeen("W:" + step.level, ok); hardSeen(ws[i].a, ok); api.addXp(ok ? 4 : 1); i++; i < ws.length ? show() : api.done({ good, total: ws.length }); };
   show();
   return box;
 }
@@ -220,13 +222,13 @@ function speakStep(step, api) {
   mic.addEventListener("click", async () => {
     if (!canRecord()) return;
     if (!recording) {
-      try { stop(); await startRecording(); recording = true; mic.classList.add("rec"); status.textContent = "Идёт запись… нажмите ещё раз, чтобы остановить"; }
-      catch { status.textContent = "Нет доступа к микрофону. Разрешите его в настройках браузера."; }
+      try { stop(); await startRecording(); recording = true; mic.classList.add("rec"); status.textContent = you("Идёт запись… нажмите ещё раз, чтобы остановить"); }
+      catch { status.textContent = you("Нет доступа к микрофону. Разрешите его в настройках браузера."); }
     } else {
       const r = await stopRecording(); recording = false; mic.classList.remove("rec");
       if (!r) return;
       myUrl = r.url;
-      status.textContent = "Сравните свою запись с чтецом: длина гласных, удвоения, паузы.";
+      status.textContent = you("Сравните свою запись с чтецом: длина гласных, удвоения, паузы.");
       playMine.classList.remove("hidden");
       judge.classList.remove("hidden");
       envelope(r.blob, 48).then((e) => mine.replaceChildren(h("div.wave-label", null, "Вы"), wave(e, "mine"))).catch(() => {});
@@ -253,6 +255,23 @@ export function blendScope(st, lesson) {
   return { letters: own, known: knownLetters(lesson?.id), vowels: st.vowels || V3, need: st.need || null, minLen: st.minLen || 2, maxLen: st.maxLen || 3 };
 }
 
+// ---------- «Смотрите, что вы уже умеете» ----------
+// В конце этапа — настоящее слово или аят Корана, которые ученик теперь читает сам.
+const SHOW_LEVEL = { 4: "damma", 5: "damma", 6: "tanween", 7: "shadda" };
+const SHOW_VERSE = { 8: "1:2", 9: "112:1", 10: "114:1", 11: "1:6", 12: "113:1", 13: "103:1" };
+async function showcase(u) {
+  const head = h("div.label", null, icon("sparkle", { size: 16 }), "Смотрите, что вы уже умеете");
+  if (SHOW_VERSE[u.id]) return [head, h("p", null, "Этот аят Корана вы теперь читаете сами — слово за словом. Прочитайте вслух, потом послушайте чтеца."), await verseBlock(SHOW_VERSE[u.id])];
+  if (SHOW_LEVEL[u.id]) {
+    const ws = sample(lessonWords({ level: SHOW_LEVEL[u.id], maxLen: 5 }, 3).slice(0, 40), 3);
+    return ws.length ? [head, h("p", null, "Эти слова из Корана вы теперь читаете сами. Прочитайте вслух, потом нажмите на слово — и проверьте себя по чтецу."), wordsRow(ws, { showTr: false })] : null;
+  }
+  if (u.id === 2 || u.id === 3) return [head,
+    h("p", null, u.id === 2 ? "Это первое слово Корана. Вы уже узнаёте в нём каждую букву: ба, син, мим." : "Это первое слово Корана. Теперь вы видите буквы и внутри слова: ба — в начале, син — в середине, мим — в конце."),
+    ar("بِسۡمِ", { cls: "card-big" }), lettersRow(["ba", "sin", "mim"])];
+  return null;
+}
+
 // ---------- Плеер ----------
 /**
  * Запускает урок в контейнере root. opts: { title, questionsOnly (для повторения), isTest, surah, onExit, id }
@@ -263,6 +282,14 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
   root.replaceChildren(h("div.lesson-loading", null, h("div.spinner"), h("p", null, "Готовим урок…")));
   // Разворачиваем шаги в экраны
   const screens = [];
+  // Разминка: то, в чём ученик ошибался на прошлом занятии, — первыми вопросами этого урока
+  const warm = id && !isTest && !isSurah ? store.get().warmup : null;
+  for (const key of warm?.keys || []) {
+    const st = stepForKey(key);
+    try { if (st) (await build(st, { letters: st.letters })).forEach((q) => screens.push({ type: "q", q })); } catch {}
+  }
+  const usedWarm = screens.length > 0;
+  const warmLabel = usedWarm ? weakSpots(warm.keys) : "";
   for (const st of steps) {
     if (st.t === "ex") (await build(st, { id: lesson?.id, letters: st.letters || lesson?.letters })).forEach((q) => screens.push({ type: "q", q }));
     else if (st.t === "quiz") screens.push({ type: "q", q: quiz(st) });
@@ -281,6 +308,8 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
   let idx = 0, firstTryOk = 0, answered = 0, xp = 0, combo = 0, bestCombo = 0;
   const t0 = Date.now();
   const mistakes = [];
+  const voice = lessonVoice({ id, isTest, isSurah, title });
+  const tutorNote = () => h("p.tutor-note", null, icon("sparkle", { size: 16 }), h("span", null, mixed(voice.intro({ warm: warmLabel }))));
 
   const bar = h("div.lp-bar-fill");
   const xpEl = h("span.lp-xp", null, icon("nur", { size: 16, fill: true, sw: 1 }), h("b", null, "0"));
@@ -323,6 +352,8 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
     idx++;
     progress();
     if (idx >= screens.length) return finish();
+    const half = voice.halfway(idx, screens.length);
+    if (half) toast(half, 2800);
     show();
   }
 
@@ -343,7 +374,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
     else if (s.type === "speak") body = speakStep(s.st, { addXp: gain, done: () => go() });
     else if (s.type === "custom") body = await s.st.render({ addXp: gain, done: () => go() });
     const needsNext = !["read", "speak"].includes(s.type) && !(s.type === "custom" && s.st.selfNext);
-    stage.replaceChildren(h("div.lp-content", null, body, needsNext ? h("div.lp-actions", null, nextBtn(idx === 0 ? "Начнём" : "Далее")) : null));
+    stage.replaceChildren(h("div.lp-content", null, idx === 0 ? tutorNote() : null, body, needsNext ? h("div.lp-actions", null, nextBtn(idx === 0 ? "Начнём" : "Далее")) : null));
     // звук сразу: название буквы, три слога или первый пример сложения (а не слово, начинающееся с буквы)
     const here = idx;
     const auto = (fn, ms) => setTimeout(() => stage.isConnected && idx === here && fn(), ms);
@@ -355,6 +386,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
     const q = s.q;
     let locked = false;
     const content = h("div.lp-content.q");
+    if (idx === 0) content.append(tutorNote());
     if (isTest) content.append(h("div.test-badge", null, icon("target", { size: 14 }), "Проверка"));
     content.append(q.prompt());
     if (q.play) {
@@ -367,12 +399,14 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
       if (locked) return; locked = true;
       answered++;
       const first = !q._retry;
+      let miss = null;
       if (ok) {
         sfx.correct(); combo++; bestCombo = Math.max(bestCombo, combo);
         if (first) { firstTryOk++; gain(10); } else gain(3);
         if (combo === 5 || combo === 10 || combo === 20) comboEl.replaceChildren(icon("flame", { size: 16, fill: true, sw: 1 }), `${combo} подряд!`), comboEl.classList.add("show"), setTimeout(() => comboEl.classList.remove("show"), 1800);
       } else {
         sfx.wrong(); combo = 0;
+        miss = voice.miss({ retry: !!q._retry });
         if (!isTest && !q._retry) screens.push({ type: "q", q: { ...q, _retry: true, options: q.options && shuffle(q.options) } });
         if (!mistakes.includes(q)) mistakes.push(q);
       }
@@ -384,9 +418,10 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
       sheet.replaceChildren(
         h("div.sheet-in", null,
           h("div.sheet-head", null, icon(ok ? "check" : "x", { size: 26, sw: 3 }),
-            h("b", null, ok ? pickPraise() : "Не совсем"),
+            h("b", null, ok ? voice.praise({ combo, retry: !!q._retry }) : miss.head),
             ok ? null : correctOpt ? h("span.sheet-right", null, "Верно: ", correctOpt.node()) : null),
           q.explain && (!ok || isTest || q.kind === "quiz") ? h("p.sheet-explain", null, rich(q.explain)) : null,
+          miss ? h("p.sheet-tutor", null, miss.text) : null,
           q.after ? h("div.sheet-after", null, q.after()) : null,
           h("button.btn.primary.wide", { type: "button", onclick: () => { sfx.tap(); go(); } }, ok ? "Далее" : "Понятно", icon("right", { size: 18 }))));
       progress();
@@ -428,9 +463,20 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
     const st = passed ? res.stars : 0;
     const goal = store.get().profile.goal;
     const tx = todayXp();
+    const note = voice.resultNote({ passed, first: res.first, pct });
+    // личный разбор: что было трудно — с этого начнётся следующий урок
+    const weak = isSurah ? [] : [...new Set(mistakes.map((m) => m.key).filter(Boolean))].slice(0, 3);
+    if (usedWarm || weak.length) store.set((s) => { if (usedWarm) delete s.warmup; if (weak.length) s.warmup = { keys: weak, at: Date.now() }; });
+    const weakText = weak.length ? weakSpots(weak) : "";
+    const unit = voice.unitDone({ passed, first: res.first });
+    const show = unit ? h("div.showcase") : null;
+    if (show) showcase(unit).then((kids) => (kids ? show.append(...kids) : show.remove())).catch(() => show.remove());
     stage.replaceChildren(h("div.lp-content.result", null,
       h("div.res-stars", null, ...[1, 2, 3].map((i) => h("span", { class: i <= st ? "on" : "", style: { "--i": i } }, icon("star", { size: 54, fill: true, sw: 1 })))),
-      h("h1", null, passed ? (pct === 100 ? "Безупречно!" : pct >= 80 ? "Отличная работа!" : "Урок пройден!") : "Почти получилось"),
+      h("h1", null, voice.resultTitle({ passed, pct })),
+      note ? h("p.tutor-line", null, note) : null,
+      weakText ? h("p.tutor-weak", null, icon("target", { size: 18 }), h("span", null, mixed(voice.weakNote(weakText)))) : null,
+      show,
       h("p.muted", null, passed ? (isTest ? "Проверка сдана — следующий этап открыт." : "Новые знания уже в «Повторении».") : "Для проверки нужно 80% верных ответов с первой попытки. Повторите и попробуйте снова — вы справитесь."),
       h("div.res-stats", null,
         stat("Точность", pct + "%", "target"),
@@ -438,7 +484,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
         stat("Время", fmtTime(ms), "bolt")),
       h("div.res-goal", null, ring(tx / goal, { size: 58, stroke: 7, label: Math.min(100, Math.round((tx / goal) * 100)) + "%" }),
         h("div", null, h("b", null, tx >= goal ? "Цель дня выполнена!" : "Цель дня"), h("div.muted", null, `${tx} из ${goal} нура сегодня`))),
-      mistakes.some((m) => m.key) && !isTest ? h("p.muted.small", null, "Темы с ошибками чаще появятся в «Практике» — так они запомнятся лучше.") : null,
+      !weakText && mistakes.some((m) => m.key) && !isTest ? h("p.muted.small", null, "Темы с ошибками чаще появятся в «Практике» — так они запомнятся лучше.") : null,
       h("div.lp-actions", null,
         !passed ? h("button.btn.secondary.wide", { type: "button", onclick: () => playLesson(root, { id, title, steps, isTest, onExit, isSurah, lesson }) }, "Ещё раз") : null,
         h("button.btn.primary.wide", { type: "button", onclick: () => onExit?.({ passed, pct, events }) }, "Продолжить", icon("right", { size: 18 })))));
@@ -451,8 +497,6 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
   show();
 }
 
-const PRAISE = ["Верно!", "Отлично!", "Правильно!", "Так держать!", "Машаллах!", "Здорово!"];
-const pickPraise = () => PRAISE[Math.floor(Math.random() * PRAISE.length)];
 const stat = (label, value, ic) => h("div.stat", null, icon(ic, { size: 20 }), h("b", null, value), h("small", null, label));
 export const fmtTime = (ms) => {
   const s = Math.round(ms / 1000);

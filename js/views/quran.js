@@ -1,5 +1,6 @@
 // Мусхаф: список сур и читалка с таджвидом, пословным аудио и синхронной подсветкой.
-import { h, ar, icon, tr, modal, toast, plural, rich, sizeButton, setTajweed } from "../ui.js";
+import { h, ar, icon, tr, modal, toast, plural, rich, sizeButton, setTajweed, keep } from "../ui.js";
+import { g } from "../speech.js";
 import { loadSurahs, loadSurah, surahMeta, wordKey, RECITERS, pad } from "../data.js";
 import { RULES, LEGEND, parseMarkup, plain, rulesIn } from "../rules.js";
 import { translit, stripStops } from "../arabic.js";
@@ -106,7 +107,7 @@ export function renderVerses(s, data, meta, { mode = "mushaf", colors = true, tr
     } else {
       const row = h("div.ayah-row", { "data-a": a, "data-p": page || "" },
         h("div.ar-line", { dir: "rtl" }, ...words.flatMap((w) => [w, " "]), mark),
-        translation && v[1] ? h("p.translation", { dir: "ltr" }, h("b", null, a + ". "), v[1]) : null);
+        translation && v[1] ? h("p.translation", { dir: "ltr" }, h("b", null, a + ". "), keep(v[1])) : null);
       el.append(row); ayahEls[a] = row;
     }
   }
@@ -231,7 +232,7 @@ export async function Reader(n, startA = 0) {
       n !== 1 && n !== 9 ? h("div.bismillah", null, ar(BISMILLAH, { colors: true })) : "",
       view.el,
       h("div.reader-end", null,
-        h("button.btn.secondary", { type: "button", onclick: () => { store.set((s) => { s.reads = s.reads || {}; s.reads[n] = (s.reads[n] || 0) + 1; }); toast("Отмечено: сура прочитана ✓"); } }, icon("check", { size: 18 }), "Я прочитал(а) эту суру"),
+        h("button.btn.secondary", { type: "button", onclick: () => { store.set((s) => { s.reads = s.reads || {}; s.reads[n] = (s.reads[n] || 0) + 1; }); toast("Отмечено: сура прочитана ✓"); } }, icon("check", { size: 18 }), `Я ${g("прочитал", "прочитала", "прочитал(а)")} эту суру`),
         n < 114 ? h("a.btn.ghost", { href: `#/quran/${n + 1}` }, "Следующая сура", icon("right", { size: 18 })) : null,
         h("button.btn.ghost", { type: "button", onclick: () => cacheSurah(n, data) }, icon("down", { size: 18 }), "Скачать аудио для офлайна")));
     trackReading(n, data, view, mode);
@@ -463,7 +464,7 @@ export async function ReadMode(n, startA = 0) {
         h("p.muted.small", null, "Размер текста и шрифт — кнопка «Aa» на панели. Скорость прокрутки — «−» и «+». Нажмите на слово и удерживайте — его прочитает чтец. В режиме заучивания нажмите на скрытое слово, чтобы подсмотреть."),
         h("div.label", null, "Сура"),
         h("div.rm-row", null,
-          item("check", "Я прочитал(а) эту суру", () => { store.set((s) => { s.reads = s.reads || {}; s.reads[n] = (s.reads[n] || 0) + 1; }); toast("Отмечено: сура прочитана ✓"); }, { keep: false }),
+          item("check", `Я ${g("прочитал", "прочитала", "прочитал(а)")} эту суру`, () => { store.set((s) => { s.reads = s.reads || {}; s.reads[n] = (s.reads[n] || 0) + 1; }); toast("Отмечено: сура прочитана ✓"); }, { keep: false }),
           item("down", "Скачать аудио для офлайна", () => cacheSurah(n, data), { keep: false }),
           item("book", "Открыть в разделе «Коран»", () => close(), { keep: false })));
     };

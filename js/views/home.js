@@ -10,13 +10,14 @@ import { go, celebrate, installApp } from "../app.js";
 import { isInstalled } from "../install.js";
 import { devBanner } from "../feedback.js";
 import { continueReading } from "./quran.js";
+import { homeLine, studentName } from "../tutor.js";
 
 const hue = (u) => `var(--c-${u.hue})`;
 const unitOfLesson = (id) => UNITS.find((u) => u.lessons.some((l) => l.id === id));
 
 function greeting() {
   const hr = new Date().getHours();
-  const name = store.get().profile.name;
+  const name = studentName();
   const g = hr < 5 ? "Доброй ночи" : hr < 12 ? "Доброе утро" : hr < 18 ? "Добрый день" : "Добрый вечер";
   return name ? `${g}, ${name}!` : `${g}!`;
 }
@@ -180,14 +181,13 @@ function unitBlock(u, target) {
 }
 
 export function HomeView() {
-  const cp = courseProgress();
   const target = nextTarget();
   const page = h("div.page.home", null,
     h("div.home-grid", null,
       h("aside.home-side", null,
         devBanner(),
         h("header.home-head", null,
-          h("div", null, h("h1", null, greeting()), h("p.muted", null, cp.done ? `Пройдено ${Math.round(cp.pct * 100)}% пути к чтению Корана` : "Начнём путь к чтению Корана")),
+          h("div", null, h("h1", null, greeting()), h("p.muted", null, homeLine())),
           statsBar()),
         continueCard(),
         reviewCard(),

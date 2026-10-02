@@ -4,43 +4,22 @@ import { store, srsDue, lessonDone, hardWords } from "../store.js";
 import { bank } from "../data.js";
 import { learnedLevel, allOpen } from "../path.js";
 import { playLesson } from "../lesson.js";
+import { stepForKey } from "../exercises.js";
 import { go, celebrate } from "../app.js";
 
 const LEVEL_RU = { fatha: "фатха", kasra: "фатха и касра", damma: "три огласовки", tanween: "танвин", madd: "мадд", sukun: "сукун", shadda: "шадда", full: "всё" };
 
-/** Превращает ключ повторения в шаг-упражнение. */
-function stepFor(key) {
-  const [t, v] = key.split(":");
-  if (t === "L") return { t: "ex", k: pick1(["letterName", "letterPick", "listenFirst"]), n: 1, letters: [v] };
-  if (t === "M") return { t: "ex", k: pick1(["pointPick", "zonePick"]), n: 1, letters: [v] };
-  if (t === "H") return { t: "ex", k: "heavy", n: 1 };
-  if (t === "F") return { t: "ex", k: "formPick", n: 1 };
-  if (t === "V") return { t: "ex", k: "syllable", n: 1, vowels: v === "mix" ? ["fatha", "kasra", "damma"] : [v] };
-  if (t === "W") return { t: "ex", k: pick1(["readWord", "listenWord"]), n: 1, level: v };
-  if (t === "P") return { t: "ex", k: "pairListen", n: 1, pairs: [v.split("-")] };
-  if (t === "R") {
-    if (v === "izhar") return { t: "ex", k: "nunRule", n: 1 };
-    if (v === "allah") return { t: "ex", k: "allahLam", n: 1 };
-    if (v === "ra") return { t: "ex", k: "raRule", n: 1 };
-    if (v === "l") return { t: "ex", k: "sunMoon", n: 1 };
-    if (["n", "p", "o", "u", "x"].includes(v) && Math.random() < 0.5) return { t: "ex", k: "maddCount", n: 1 };
-    return { t: "ex", k: "ruleSpot", n: 1, code: v };
-  }
-  if (t === "S") return v === "waqf" ? { t: "ex", k: "waqfForm", n: 1 } : { t: "ex", k: "stopSign", n: 1 };
-  return null;
-}
-const pick1 = (a) => a[Math.floor(Math.random() * a.length)];
 
 function reviewSteps(max = 14) {
   const srs = store.get().srs;
   const due = srsDue().sort((a, b) => srs[a].box - srs[b].box || srs[a].due - srs[b].due).slice(0, max);
-  return shuffle(due).map(stepFor).filter(Boolean);
+  return shuffle(due).map(stepForKey).filter(Boolean);
 }
 /** Смешанная тренировка по всему пройденному (когда повторять нечего). */
 function mixedSteps() {
   const keys = Object.keys(store.get().srs);
   const lv = learnedLevel();
-  const steps = shuffle(keys).slice(0, 10).map(stepFor).filter(Boolean);
+  const steps = shuffle(keys).slice(0, 10).map(stepForKey).filter(Boolean);
   if (lv) steps.push({ t: "ex", k: "readWord", n: 3, level: lv }, { t: "ex", k: "listenWord", n: 2, level: lv });
   return shuffle(steps);
 }

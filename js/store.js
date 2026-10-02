@@ -32,7 +32,7 @@ function migrate(s) {
 const DEFAULT = () => ({
   v: 2,
   course: COURSE,
-  profile: { name: "", created: Date.now(), goal: 30, onboarded: false },
+  profile: { name: "", form: "vy", gender: "", created: Date.now(), goal: 30, onboarded: false }, // form: «вы» или «ты», gender: "m" | "f" | ""
   settings: { theme: "auto", arScale: 1, reciter: "husary", translit: "tap", tajweed: true, sfx: true, translation: true, rate: 1, unlockAll: false, uiScale: 1, analytics: true, arFont: "hafs" },
   lessons: {},
   surahs: {},
