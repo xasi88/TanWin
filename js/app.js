@@ -7,6 +7,7 @@ import { checkBadges, courseProgress, nextTarget, lessonById } from "./path.js";
 import { APP_VERSION } from "./version.js";
 import { canPrompt, install, isInstalled, onInstallChange, manualHint } from "./install.js";
 import { initMetrika, hit, track } from "./metrika.js";
+import { initFeedback, setScreen } from "./feedback.js";
 import { initFullscreen, canFullscreen, isFullscreen, setFullscreen, onFullscreenChange, enterFullscreen } from "./fullscreen.js";
 
 const view = $("#view");
@@ -119,7 +120,9 @@ async function route() {
       view.replaceChildren(el);
       view.classList.remove("view-enter"); void view.offsetWidth; view.classList.add("view-enter");
       if (!full) window.scrollTo(0, 0);
-      hit(path, typeof title === "function" ? title(...m.slice(1)) : title);
+      const name = typeof title === "function" ? title(...m.slice(1)) : title;
+      setScreen(name, path); // для кнопки «Написать разработчику»
+      hit(path, name);
     } catch (e) {
       console.error(e);
       view.replaceChildren(h("div.page", null, h("div.card", null, h("h2", null, "Что-то пошло не так"), h("p", null, "Проверьте подключение к интернету и обновите страницу."), h("pre.small", null, String(e?.message || e)), h("a.btn.primary", { href: "#/" }, "На главную"))));
@@ -145,6 +148,7 @@ async function start() {
   store.on(() => applySettings());
   window.addEventListener("hashchange", route);
   initFullscreen();
+  initFeedback();
   startMetrika();
   view.replaceChildren(h("div.boot", null, logo(72), h("div.spinner")));
   try { await Promise.all([loadBank(), loadSurahs(), document.fonts?.load?.('40px "Amiri Quran"', "بسم"), document.fonts?.load?.(`40px ${AR_FONTS[arFont()].css}`, "بسم")]); }

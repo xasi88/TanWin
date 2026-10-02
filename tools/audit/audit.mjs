@@ -65,7 +65,7 @@ page.on("pageerror", (e) => errors.push(e.message));
 const AUDIT = () => {
   const W = innerWidth, issues = [];
   const BOX = ".card, .opt, .word-chip, .match-btn, .alpha-cell, .form-cell, .syll, .st-cell, .vt-word, .sn-btn, .rd-word, .hero-card, .unit-head, .node-disc, .modal, .sheet-in, .drill, .more-link, .surah-row, .tile, .stat, .schip, .badge-cell, .m-cell, .rw-cell, .stop-cell, .verse-block, .verses, .seg-btn, .btn, .hs-pill, .hs-goal, .dev-banner, .version, .donor, .res-goal, .ob-pt, .start-opt, .goal-opt, .si-plan div, .map-info, .q-big, .rd-word, .lc-glyph, .snd-tile, .li-glyph, .bb-out, .blend";
-  const OVERLAY = ".lp-sheet, .lp-actions, #nav, #toast, .lp-top, .reader-tools, .focus-bar, .focus-juz";
+  const OVERLAY = ".fb-tab, .lp-sheet, .lp-actions, #nav, #toast, .lp-top, .reader-tools, .focus-bar, .focus-juz";
   const modalOpen = document.querySelector("#modal-root .modal-wrap:not(.out)");
   const roots = modalOpen ? [modalOpen] : [document.querySelector("#app")];
   const texts = [];

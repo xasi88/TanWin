@@ -5,9 +5,8 @@ import { RECITERS } from "../data.js";
 import { go, installApp } from "../app.js";
 import { isInstalled } from "../install.js";
 import { canFullscreen, wantFullscreen, setFullscreen } from "../fullscreen.js";
-import { APP_VERSION, CHANGELOG } from "../version.js";
-import { devBanner, feedbackButton } from "../feedback.js";
-import { feedbackLink } from "../version.js";
+import { APP_VERSION, CHANGELOG, CONTACT } from "../version.js";
+import { devBanner, feedbackButton, openFeedback } from "../feedback.js";
 import { track, metrikaAvailable } from "../metrika.js";
 
 function seg(label, options, value, onChange) {
@@ -60,7 +59,7 @@ export function MoreView() {
     h("header.page-head", null, h("h1", null, "Ещё")),
     !isInstalled() ? h("button.more-link.install", { type: "button", onclick: installApp }, h("span.ml-ic", null, icon("down", { size: 22 })), h("div", null, h("b", null, "Установить приложение"), h("small.muted", null, "Отдельное окно на рабочем столе или телефоне, работает без интернета")), icon("right", { size: 18 })) : null,
     h("a.more-link.thanks-link", { href: "#/thanks" }, h("span.ml-ic", null, icon("heart", { size: 22, fill: true, sw: 1 })), h("div", null, h("b", null, "Благодарности"), h("small.muted", null, "Люди, благодаря пожертвованиям которых состоялся проект")), icon("right", { size: 18 })),
-    feedbackLink() ? h("a.more-link.contact-link", { href: feedbackLink("Хочу сообщить: "), target: "_blank", rel: "noopener" }, h("span.ml-ic", null, icon("chat", { size: 22 })), h("div", null, h("b", null, "Написать автору в WhatsApp"), h("small.muted", null, "Нашли ошибку или неточность? Есть идея? Напишите — версия и экран подставятся сами")), icon("right", { size: 18 })) : null,
+    CONTACT.whatsapp ? h("button.more-link.contact-link", { type: "button", onclick: openFeedback }, h("span.ml-ic", null, icon("chat", { size: 22 })), h("div", null, h("b", null, "Написать автору в WhatsApp"), h("small.muted", null, "Нашли ошибку или неточность? Есть идея? Напишите — версия и экран подставятся сами")), icon("right", { size: 18 })) : null,
     h("div.more-links", null,
       link("#/method", "sparkle", "Методика", "Как устроено обучение и почему оно работает"),
       link("#/letters", "list", "Алфавит", "Все 28 букв: звуки, формы, махраджи"),
