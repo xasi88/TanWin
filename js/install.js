@@ -1,11 +1,13 @@
 // Установка приложения на рабочий стол / домашний экран (PWA).
 // Событие beforeinstallprompt ловится сразу при загрузке, иначе браузер его не повторит.
+import { track } from "./metrika.js";
+
 let evt = null;
 const listeners = new Set();
 const emit = () => listeners.forEach((f) => f());
 
 window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); evt = e; emit(); });
-window.addEventListener("appinstalled", () => { evt = null; emit(); });
+window.addEventListener("appinstalled", () => { evt = null; emit(); track("app_installed"); });
 
 export const onInstallChange = (f) => { listeners.add(f); return () => listeners.delete(f); };
 export const isInstalled = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;

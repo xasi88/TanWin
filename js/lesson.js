@@ -8,6 +8,7 @@ import { M, CONS, stripStops } from "./arabic.js";
 import { diagram } from "./diagram.js";
 import { playWord, playAyah, stop, sfx, canRecord, startRecording, stopRecording, envelope, playUrl } from "./audio.js";
 import { store, addXp, srsSeen, finishLesson, todayXp, hardSeen } from "./store.js";
+import { track } from "./metrika.js";
 
 const FORM_NAMES = [["fin", "в конце"], ["med", "в середине"], ["ini", "в начале"], ["iso", "отдельно"]];
 
@@ -396,6 +397,8 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
     const events = addXp(xp);
     let res = { stars: 0, first: false };
     if (passed && id) res = finishLesson(id, { pct, ms, answers: answered, correct: firstTryOk, isSurah });
+    track(!id ? "practice_done" : isSurah ? "surah_done" : isTest ? (passed ? "test_passed" : "test_failed") : "lesson_done",
+      { [isSurah ? "Сура" : id ? "Урок" : "Тренировка"]: id ? `${id}. ${title}` : title, "Точность, %": pct, "Впервые": res.first ? "да" : "нет" });
     sfx.finish();
     if (passed) confetti(res.stars === 3 ? 110 : 60);
     const st = passed ? res.stars : 0;
