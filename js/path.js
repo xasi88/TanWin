@@ -66,7 +66,9 @@ export function applySkip(testId) {
   store.set((s) => {
     for (const uu of UNITS) {
       if (uu.id > u.id) break;
-      for (const l of uu.lessons) if (!s.lessons[l.id]) s.lessons[l.id] = { done: true, stars: 0, best: 0, n: 0, skipped: true, at: Date.now() };
+      // в своём этапе проверка закрывает только уроки до неё (в этапе 7 проверок две)
+      const upTo = uu === u ? uu.lessons.slice(0, uu.lessons.findIndex((l) => l.id === testId) + 1) : uu.lessons;
+      for (const l of upTo) if (!s.lessons[l.id]) s.lessons[l.id] = { done: true, stars: 0, best: 0, n: 0, skipped: true, at: Date.now() };
     }
   });
 }
