@@ -99,6 +99,7 @@ const routes = [
   [/^\/letters$/, () => import("./views/reference.js").then((m) => m.LettersRef()), "Алфавит"],
   [/^\/rules$/, () => import("./views/reference.js").then((m) => m.RulesRef()), "Правила таджвида"],
   [/^\/method$/, () => import("./views/reference.js").then((m) => m.MethodView()), "Методика"],
+  [/^\/author$/, () => import("./views/author.js").then((m) => m.AuthorView()), "Послание от разработчика"],
   [/^\/thanks$/, () => import("./views/thanks.js").then((m) => m.ThanksView()), "Благодарности"],
   [/^\/changelog$/, () => import("./views/changelog.js").then((m) => m.ChangelogView()), "Версии"],
   [/^\/welcome$/, () => import("./views/onboard.js").then((m) => m.Onboarding()), "Знакомство"],

@@ -2,7 +2,7 @@
 // При выпуске новой версии: поднимите APP_VERSION, добавьте запись В НАЧАЛО CHANGELOG,
 // затем `node tools/build.mjs`, commit и push.
 
-export const APP_VERSION = "1.14.0";
+export const APP_VERSION = "1.15.0";
 
 // Контакт автора для сообщений об ошибках. Номер — только цифры, с кодом страны (например, 79001234567).
 export const CONTACT = {
@@ -14,6 +14,12 @@ export const CONTACT = {
 export const METRIKA_ID = 113307386;
 
 export const CHANGELOG = [
+  {
+    v: "1.15.0", date: "2026-10-02", title: "Послание от разработчика",
+    items: [
+      "В разделе «Ещё» появилось послание автора: как и зачем создан TanWin, кому он подойдёт и откуда взяты материалы",
+    ],
+  },
   {
     v: "1.14.0", date: "2026-10-02", title: "Закладки и цель чтения",
     items: [
