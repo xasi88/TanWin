@@ -226,6 +226,23 @@ export function gone(el, off) {
   return true;
 }
 
+// ---------- Арабский шрифт ----------
+// Семейства объявлены в css/app.css; выбранное попадает в переменную --ar-font (см. applySettings в app.js).
+export const AR_FONTS = {
+  amiri: { name: "Амири", css: '"Amiri Quran"' },
+  hafs: { name: "Мадина", css: '"TW Hafs"' },
+  scheherazade: { name: "Шехерезада", css: '"TW Scheherazade"' },
+  noto: { name: "Ното", css: '"TW Noto Naskh"' },
+};
+export const arFont = () => (AR_FONTS[store.get().settings.arFont] ? store.get().settings.arFont : "hafs");
+
+// ---------- Цвета таджвида при чтении Корана ----------
+/** Включает или выключает цвета правил в читалке, на странице мусхафа и в режиме чтения (без перерисовки — через класс tj-off). */
+export function setTajweed(on) {
+  store.set((s) => { s.settings.tajweed = on; });
+  for (const b of document.querySelectorAll("[data-tj-btn]")) { b.classList.toggle("on", on); if (b.matches(".switch")) b.setAttribute("aria-checked", on ? "true" : "false"); }
+}
+
 // ---------- Размер текста ----------
 export const SIZES = {
   arScale: { label: "Арабский", min: 0.8, max: 2.4, step: 0.1 },
@@ -236,9 +253,9 @@ export function stepSize(key, d) {
   const { min, max, step } = SIZES[key];
   store.set((s) => { s.settings[key] = Math.round(Math.min(max, Math.max(min, (s.settings[key] || 1) + d * step)) * 100) / 100; });
 }
-/** Кнопка «Aa»: панель «−/+» для арабского и остального текста прямо в уроке или читалке. */
+/** Кнопка «Aa»: панель «−/+» для арабского и остального текста и выбор арабского шрифта прямо в уроке или читалке. */
 export function sizeButton({ cls = "icon-btn" } = {}) {
-  const b = h("button.size-btn", { type: "button", class: cls, "aria-label": "Размер текста", title: "Размер текста", "aria-haspopup": "dialog" }, h("b.aa", null, "Aa"));
+  const b = h("button.size-btn", { type: "button", class: cls, "aria-label": "Размер текста и шрифт", title: "Размер текста и шрифт", "aria-haspopup": "dialog" }, h("b.aa", null, "Aa"));
   b.addEventListener("click", () => sizePanel(b));
   return b;
 }
@@ -254,7 +271,14 @@ function sizePanel(anchor) {
     upd();
     return h("div.sp-row", null, h("span", null, label), less, val, more);
   };
-  const el = h("div.size-pop", { role: "dialog", "aria-label": "Размер текста" }, row("arScale"), row("uiScale"));
+  const fonts = h("div.sp-fonts", { role: "radiogroup", "aria-label": "Арабский шрифт" });
+  const updFonts = () => [...fonts.children].forEach((b) => { const on = b.dataset.k === arFont(); b.classList.toggle("on", on); b.setAttribute("aria-checked", on ? "true" : "false"); });
+  for (const [k, f] of Object.entries(AR_FONTS)) fonts.append(h("button.seg-btn", { type: "button", role: "radio", "data-k": k, onclick: () => { store.set((s) => { s.settings.arFont = k; }); updFonts(); } }, f.name));
+  updFonts();
+  const tjOn = !!store.get().settings.tajweed;
+  const tj = h("button.switch", { type: "button", role: "switch", "data-tj-btn": true, "aria-label": "Цвета таджвида", "aria-checked": tjOn ? "true" : "false", class: tjOn ? "on" : "", onclick: () => setTajweed(!store.get().settings.tajweed) }, h("i"));
+  const el = h("div.size-pop", { role: "dialog", "aria-label": "Размер текста и шрифт" }, row("arScale"), row("uiScale"), h("div.sp-font", null, h("span", null, "Арабский шрифт"), fonts),
+    h("div.sp-row.sp-tj", null, h("span", null, "Цвета таджвида"), tj));
   document.body.append(el);
   // панель — под кнопкой, а если снизу нет места (кнопка внизу экрана) — над ней
   const place = () => { const r = anchor.getBoundingClientRect(), ph = el.offsetHeight; el.style.top = Math.round(r.bottom + 8 + ph > innerHeight ? Math.max(8, r.top - 8 - ph) : r.bottom + 8) + "px"; el.style.right = Math.max(8, Math.round(innerWidth - r.right)) + "px"; };

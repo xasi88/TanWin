@@ -1,5 +1,5 @@
 // TanWin — оболочка приложения: маршруты, навигация, тема, офлайн.
-import { h, $, icon, toast, checkShaping, queueFit } from "./ui.js";
+import { h, $, icon, toast, checkShaping, queueFit, AR_FONTS, arFont } from "./ui.js";
 import { store, streakNow, levelInfo, todayXp, protectStorage } from "./store.js";
 import { loadBank, loadSurahs } from "./data.js";
 import { stop } from "./audio.js";
@@ -21,6 +21,13 @@ export function applySettings() {
   root.style.setProperty("--ui-scale", s.uiScale || 1);
   root.style.setProperty("--ar-k", (s.arScale || 1) / (s.uiScale || 1));
   root.classList.toggle("ar-big", (s.arScale || 1) > 1.4);
+  root.classList.toggle("tj-off", !s.tajweed); // цвета таджвида в мусхафе: текст размечен всегда, цвет снимается стилем
+  const font = AR_FONTS[arFont()].css;
+  if (root.style.getPropertyValue("--ar-font") !== font) {
+    root.style.setProperty("--ar-font", font);
+    // у другого шрифта другая ширина слов — после загрузки файла заново подгоняем крупные слова под карточки
+    document.fonts?.load?.(`40px ${font}`, "بسم")?.then(queueFit, () => {});
+  }
   const dark = s.theme === "dark" || (s.theme === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#0b1020" : "#fbf7ef");
 }
@@ -137,7 +144,7 @@ async function start() {
   initFullscreen();
   startMetrika();
   view.replaceChildren(h("div.boot", null, logo(72), h("div.spinner")));
-  try { await Promise.all([loadBank(), loadSurahs(), document.fonts?.load?.('40px "Amiri Quran"', "بسم")]); }
+  try { await Promise.all([loadBank(), loadSurahs(), document.fonts?.load?.('40px "Amiri Quran"', "بسم"), document.fonts?.load?.(`40px ${AR_FONTS[arFont()].css}`, "بسم")]); }
   catch (e) { console.error(e); }
   checkShaping();
   // крупный арабский текст подгоняется под ширину экрана: после каждой отрисовки, поворота экрана, смены масштаба

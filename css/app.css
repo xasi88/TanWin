@@ -1,5 +1,10 @@
 /* TanWin — стили. Две темы: «пергамент» (светлая) и «ночное небо» (тёмная). */
 @font-face { font-family: "Amiri Quran"; src: url("../fonts/amiri-quran.woff2") format("woff2"); font-display: swap; }
+/* Арабские шрифты на выбор. Вертикальные метрики приведены к Amiri Quran (+1.40/−0.80 em), размер — к его видимой величине:
+   вёрстка рассчитана на них, и при смене шрифта строки и карточки не «прыгают». Файл загружается, только когда шрифт выбран. */
+@font-face { font-family: "TW Hafs"; src: url("../fonts/hafs.woff2") format("woff2"); font-display: swap; ascent-override: 140%; descent-override: 80%; line-gap-override: 0%; }
+@font-face { font-family: "TW Scheherazade"; src: url("../fonts/scheherazade.woff2") format("woff2"); font-display: swap; ascent-override: 132%; descent-override: 88%; line-gap-override: 0%; size-adjust: 92%; } /* у этого шрифта огласовки под буквой уходят глубже — строка сдвинута вверх */
+@font-face { font-family: "TW Noto Naskh"; src: url("../fonts/noto-naskh.woff2") format("woff2"); font-display: swap; ascent-override: 140%; descent-override: 80%; line-gap-override: 0%; size-adjust: 91%; }
 @font-face { font-family: "Nunito"; src: url("../fonts/nunito.woff2") format("woff2"); font-weight: 200 1000; font-display: swap; }
 
 :root {
@@ -113,7 +118,7 @@ input, select { font: inherit; }
 
 /* ---------- Арабский текст ---------- */
 .ar {
-  font-family: "Amiri Quran", "Scheherazade New", "Noto Naskh Arabic", serif;
+  font-family: var(--ar-font, "Amiri Quran"), "Amiri Quran", "Scheherazade New", "Noto Naskh Arabic", serif;
   font-size: calc(var(--s, 1.5em) * var(--ar-k) * var(--fit, 1)); line-height: 2.05; font-weight: 400;
   direction: rtl; unicode-bidi: isolate; font-feature-settings: "calt", "liga";
   overflow-wrap: normal; word-break: normal; /* слово не рвём посередине — если не влезает, его уменьшит fitArabic() */
@@ -124,6 +129,7 @@ input, select { font: inherit; }
 .hero-ar, .node-disc, .uh-ar, .ub-ic, .so-g, .m-cell, .sr-ar, .rh-ar, .schip, .si-ar, .ob-ar, .th-ar, .lc-ar, .ls-band,
 h1, h2, h3, .node-label, .hero-body, .lesson-sheet { --ar-k: 1; }
 .tj { transition: color .2s; }
+.tj-off .reader .tj, .tj-off .focus .tj { color: inherit; } /* «Цвета таджвида» выключены: читалка, страница мусхафа, режим чтения */
 .r-w { color: var(--r-w); } .r-l { color: var(--r-l); } .r-s { color: var(--r-s); }
 .r-n { color: var(--r-n); } .r-p { color: var(--r-p); } .r-o { color: var(--r-o); } .r-u { color: var(--r-u); } .r-x { color: var(--r-x); }
 .r-q { color: var(--r-q); } .r-g { color: var(--r-g); } .r-f { color: var(--r-f); } .r-F { color: var(--r-F); } .r-i { color: var(--r-i); }
@@ -915,6 +921,10 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .sp-btn { width: 46px; height: 46px; border-radius: 14px; border: 2px solid var(--line-2); background: var(--card-2); color: var(--ink); font-weight: 950; font-size: 1.3rem; cursor: pointer; box-shadow: 0 3px 0 var(--line-2); }
 .sp-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line-2); }
 .sp-btn:disabled { opacity: .4; cursor: default; }
+.sp-tj { grid-template-columns: 1fr auto; }
+.sp-font { display: grid; gap: 6px; }
+.sp-font > span { font-weight: 800; }
+.sp-fonts { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 4px; border-radius: 14px; background: var(--card-3); }
 .sp-val { min-width: 3.4em; text-align: center; font-variant-numeric: tabular-nums; }
 .lp-top .size-btn { flex: none; }
 .page-view .rh-title h1 { font-size: clamp(1.35rem, 1.1rem + 1vw, 1.8rem); }
@@ -971,16 +981,17 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .focus .page-mark { pointer-events: none; }
 .focus-end { display: grid; justify-items: center; margin-top: 28px; }
 /* дорожная карта: 30 джузов точками (пятёрками), пройденные закрашены, текущий заполняется */
-.juz-map { display: grid; justify-items: center; gap: 3px; }
-.jm-dots { display: flex; align-items: center; gap: 3px; direction: ltr; }
-.jm-dots i { --off: color-mix(in srgb, var(--gold) 24%, transparent); flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--off); }
+.juz-map { display: grid; justify-items: center; gap: 3px; min-width: 0; }
+/* на самых узких экранах точки сжимаются, чтобы все 30 помещались в строку */
+.jm-dots { display: flex; align-items: center; justify-content: center; gap: 3px; direction: ltr; width: 100%; min-width: 0; }
+.jm-dots i { --off: color-mix(in srgb, var(--gold) 24%, transparent); flex: 0 1 7px; min-width: 0; aspect-ratio: 1; border-radius: 50%; background: var(--off); }
 .jm-dots i:nth-child(5n):not(:last-child) { margin-right: 5px; }
 .jm-dots i.done { background: var(--gold); }
 .jm-dots i.cur { background: linear-gradient(90deg, var(--gold) calc(var(--f) * 100%), var(--off) 0); box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 40%, transparent); }
-.jm-cap { font-size: .72rem; font-weight: 800; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.jm-cap { font-size: .72rem; font-weight: 800; color: var(--ink-3); font-variant-numeric: tabular-nums; text-align: center; max-width: 100%; overflow-wrap: anywhere; }
 .focus-juz { position: absolute; z-index: 2; top: 0; left: 0; right: 0; padding: calc(12px + env(safe-area-inset-top)) 8px 14px; background: linear-gradient(var(--bg) 70%, transparent); pointer-events: none; transition: opacity .35s var(--ease); }
 .focus.quiet .focus-juz { opacity: .6; }
-.juz-card { display: grid; gap: 8px; width: 100%; font: inherit; color: var(--ink); text-align: center; cursor: pointer; padding: 14px 12px; }
+.juz-card { display: grid; gap: 8px; width: 100%; min-width: 0; font: inherit; color: var(--ink); text-align: center; cursor: pointer; padding: 14px 12px; }
 .focus-prog { position: absolute; z-index: 2; top: 0; left: 0; width: 0; height: 3px; border-radius: 0 3px 3px 0; background: linear-gradient(90deg, var(--gold), var(--gold-2)); }
 .focus-bar { position: absolute; z-index: 2; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 8px 10px; max-width: calc(100% - 12px);
   border-radius: 24px; border: 1px solid var(--line); background: color-mix(in srgb, var(--card) 92%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: var(--shadow-lg);

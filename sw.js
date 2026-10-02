@@ -1,5 +1,5 @@
 // Service worker TanWin: офлайн-режим. Список файлов и версия обновляются командой: node tools/build.mjs
-const VERSION = "aa216323d3";
+const VERSION = "3d514bbc3b";
 const CORE = `tanwin-core-${VERSION}`;
 const AUDIO = "tanwin-audio";
 /*FILES*/
@@ -49,9 +49,14 @@ const FILES = [
   "data/rare.json",
   "data/surahs.json",
   "fonts/OFL-Amiri.txt",
+  "fonts/OFL-NotoNaskh.txt",
+  "fonts/OFL-Scheherazade.txt",
   "fonts/OFL.txt",
   "fonts/amiri-quran.woff2",
+  "fonts/hafs.woff2",
+  "fonts/noto-naskh.woff2",
   "fonts/nunito.woff2",
+  "fonts/scheherazade.woff2",
   "icons/icon-192.png",
   "icons/icon-512.png",
   "icons/icon-maskable-512.png",

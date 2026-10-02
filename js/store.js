@@ -11,7 +11,7 @@ const dayDiff = (a, b) => Math.round((new Date(b) - new Date(a)) / 86400000);
 const DEFAULT = () => ({
   v: 2,
   profile: { name: "", created: Date.now(), goal: 30, onboarded: false },
-  settings: { theme: "auto", arScale: 1, reciter: "husary", translit: "tap", tajweed: true, sfx: true, translation: true, rate: 1, unlockAll: false, uiScale: 1, analytics: true },
+  settings: { theme: "auto", arScale: 1, reciter: "husary", translit: "tap", tajweed: true, sfx: true, translation: true, rate: 1, unlockAll: false, uiScale: 1, analytics: true, arFont: "hafs" },
   lessons: {},
   surahs: {},
   xp: 0,

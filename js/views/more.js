@@ -1,5 +1,5 @@
 // «Ещё»: настройки, справочники, данные, об источниках.
-import { h, ar, icon, toast, confirmBox, SIZES } from "../ui.js";
+import { h, ar, icon, toast, confirmBox, SIZES, AR_FONTS, arFont } from "../ui.js";
 import { store, backupDone } from "../store.js";
 import { RECITERS } from "../data.js";
 import { go, installApp } from "../app.js";
@@ -77,9 +77,11 @@ export function MoreView() {
       h("h3", null, "Вид"),
       seg("Тема", [["auto", "Авто"], ["light", "Светлая"], ["dark", "Тёмная"]], s.settings.theme, set("theme")),
       fullscreenToggle(),
+      seg("Арабский шрифт", Object.entries(AR_FONTS).map(([k, f]) => [k, f.name]), arFont(), set("arFont")),
+      h("small.muted.set-note", null, "«Мадина» — шрифт печатного мусхафа Мадины (стоит по умолчанию). «Амири» — прежний шрифт приложения. «Шехерезада» — широкие просветы между знаками. «Ното» — простой и ровный. Менять можно и при чтении — кнопка «Aa»."),
       sizeRow("arScale", "Размер арабского текста", "Можно менять и прямо в уроке или при чтении — кнопка «Aa»", preview),
       sizeRow("uiScale", "Размер остального текста", "Русский текст, кнопки и меню"),
-      toggle("Цвета таджвида", "tajweed", "Раскрашивать правила в мусхафе"),
+      toggle("Цвета таджвида", "tajweed", "Раскрашивать правила в мусхафе. Переключается и при чтении — кнопка «Aa»"),
       toggle("Перевод смыслов", "translation", "Перевод Э. Кулиева в режиме «По аятам»")),
     h("section.card.settings", null,
       h("h3", null, "Звук и подсказки"),
@@ -102,7 +104,7 @@ export function MoreView() {
     h("section.card.about", null,
       h("h3", null, "Об источниках"),
       h("p", null, "Текст Корана (мусхаф Мадины, риваят Хафса от Асыма), разметка таджвида, пословное аудио и тайминги слов — ", h("a", { href: "https://quran.com", target: "_blank", rel: "noopener" }, "Quran.com"), ". Аудио аятов: Махмуд Халиль аль-Хусари (обучающее чтение) и Мишари Рашид аль-Афаси — ", h("a", { href: "https://everyayah.com", target: "_blank", rel: "noopener" }, "EveryAyah"), " и Quran.com. Перевод смыслов — Эльмир Кулиев."),
-      h("p", null, "Шрифты: Amiri Quran (Khaled Hosny) и Nunito — лицензия SIL Open Font License."),
+      h("p", null, "Шрифты: Amiri Quran (Khaled Hosny), Scheherazade New (SIL Global), Noto Naskh Arabic (Google) и Nunito — лицензия SIL Open Font License; KFGQPC Uthmanic Script Hafs — Комплекс имени короля Фахда по изданию Священного Корана (Медина)."),
       h("p.muted.small", null, "Приложение не заменяет учителя. Чтение Корана традиционно передаётся из уст в уста (талакки): когда пройдёте путь, прочитайте знающему человеку — он поправит тонкости произношения.")));
 }
 const link = (href, ic, t, sub) => h("a.more-link", { href }, h("span.ml-ic", null, icon(ic, { size: 22 })), h("div", null, h("b", null, t), h("small.muted", null, sub)), icon("right", { size: 18 }));

@@ -9,6 +9,7 @@
 //   node tools/audit/audit.mjs                          — телефон 390 px, обычные размеры, Chromium
 //   node tools/audit/audit.mjs --ar 2.4 --ui 1.4        — самый крупный арабский и остальной текст
 //   node tools/audit/audit.mjs --width 320 --engine webkit --theme dark
+//   node tools/audit/audit.mjs --font scheherazade      — другой арабский шрифт (amiri, hafs, scheherazade, noto)
 //   node tools/audit/audit.mjs --pages                  — только разделы, без уроков (быстро, ~1 мин)
 //   node tools/audit/audit.mjs --lessons 11             — только уроки, чьи номера начинаются с «11»
 // Итог — в консоли; снимки проблемных экранов и подробный отчёт — в tools/audit/out/.
@@ -23,8 +24,9 @@ catch { console.error("Нужен Playwright:  cd tools/audit && npm install && 
 
 const args = Object.fromEntries(process.argv.slice(2).join(" ").split(/\s*--/).filter(Boolean).map((x) => { const [k, ...v] = x.trim().split(/\s+/); return [k, v.length ? v.join(" ") : true]; }));
 const eng = args.engine || "chromium", width = +(args.width || 390), scale = +(args.ar || 1), ui = +(args.ui || 1), theme = args.theme || "light";
+const font = args.font || ""; // --font amiri | hafs | scheherazade | noto (по умолчанию — как в приложении)
 const filter = args.lessons === true ? "" : args.lessons || "", pagesOnly = !!args.pages, variant = args.variant || "fresh";
-const tag = `${eng}-${width}-ar${scale}-ui${ui}-${theme}`;
+const tag = `${eng}-${width}-ar${scale}-ui${ui}-${theme}${font ? "-" + font : ""}`;
 
 // маленький статический сервер для корня проекта
 const root = fileURLToPath(new URL("../..", import.meta.url));
@@ -44,18 +46,18 @@ await mkdir(OUT, { recursive: true });
 const browser = await playwright[eng === "webkit" ? "webkit" : "chromium"].launch();
 const ctx = await browser.newContext({ viewport: { width, height: 844 }, deviceScaleFactor: 1, serviceWorkers: "block", colorScheme: theme === "dark" ? "dark" : "light" });
 await ctx.route(/qurancdn|everyayah|mp3/, (r) => r.abort());
-await ctx.addInitScript(([s, u, variant, theme]) => {
+await ctx.addInitScript(([s, u, variant, theme, font]) => {
   Object.defineProperty(navigator, "standalone", { get: () => true }); // как установленное приложение
   if (sessionStorage.getItem("seeded")) return;
   sessionStorage.setItem("seeded", "1");
-  const st = { profile: { onboarded: true, name: "Тест", goal: 30, created: Date.now() }, settings: { arScale: s, uiScale: u, theme, unlockAll: variant === "fresh", sfx: false, translit: "show" }, lessons: {} };
+  const st = { profile: { onboarded: true, name: "Тест", goal: 30, created: Date.now() }, settings: { arScale: s, uiScale: u, theme, unlockAll: variant === "fresh", sfx: false, translit: "show", ...(font ? { arFont: font } : {}) }, lessons: {} };
   if (variant === "mid") {
     for (const id of ["1.1", "2.1", "2.2", "2.3", "2.4", "2.5", "2.6", "2.7", "2.8", "2.9", "3.1", "3.2"]) st.lessons[id] = { done: true, stars: 2, best: 88, n: 1, at: Date.now() - 86400000 * 9 };
     st.xp = 1234; st.stats = { answers: 300, correct: 260, ms: 3600000, lessons: 12 };
     st.reading = { s: 2, a: 25, p: 5, mode: "ayah", at: Date.now() };
   }
   localStorage.setItem("tanwin.v2", JSON.stringify(st));
-}, [scale, ui, variant, theme]);
+}, [scale, ui, variant, theme, font]);
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
@@ -63,7 +65,7 @@ page.on("pageerror", (e) => errors.push(e.message));
 const AUDIT = () => {
   const W = innerWidth, issues = [];
   const BOX = ".card, .opt, .word-chip, .match-btn, .alpha-cell, .form-cell, .syll, .st-cell, .vt-word, .sn-btn, .rd-word, .hero-card, .unit-head, .node-disc, .modal, .sheet-in, .drill, .more-link, .surah-row, .tile, .stat, .schip, .badge-cell, .m-cell, .rw-cell, .stop-cell, .verse-block, .verses, .seg-btn, .btn, .hs-pill, .hs-goal, .dev-banner, .version, .donor, .res-goal, .ob-pt, .start-opt, .goal-opt, .si-plan div, .map-info, .q-big, .rd-word, .lc-glyph";
-  const OVERLAY = ".lp-sheet, .lp-actions, #nav, #toast, .lp-top, .reader-tools";
+  const OVERLAY = ".lp-sheet, .lp-actions, #nav, #toast, .lp-top, .reader-tools, .focus-bar, .focus-juz";
   const modalOpen = document.querySelector("#modal-root .modal-wrap:not(.out)");
   const roots = modalOpen ? [modalOpen] : [document.querySelector("#app")];
   const texts = [];
@@ -149,7 +151,7 @@ async function check(label) {
   return issues;
 }
 
-const PAGES = ["/surah/1", "/surah/112", "/page/1", "/page/582", "/", "/review", "/quran", "/quran/1", "/quran/2", "/quran/112", "/progress", "/more", "/letters", "/rules", "/method", "/thanks", "/changelog"];
+const PAGES = ["/surah/1", "/surah/112", "/page/1", "/page/582", "/read/1", "/read/2", "/read/112", "/", "/review", "/quran", "/quran/1", "/quran/2", "/quran/112", "/progress", "/more", "/letters", "/rules", "/method", "/thanks", "/changelog"];
 await page.goto(`${BASE}/#/`);
 await page.waitForTimeout(1500);
 for (const p of PAGES) {
