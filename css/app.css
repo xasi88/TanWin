@@ -1,5 +1,10 @@
 /* TanWin — стили. Две темы: «пергамент» (светлая) и «ночное небо» (тёмная). */
 @font-face { font-family: "Amiri Quran"; src: url("../fonts/amiri-quran.woff2") format("woff2"); font-display: swap; }
+/* Арабские шрифты на выбор. Вертикальные метрики приведены к Amiri Quran (+1.40/−0.80 em), размер — к его видимой величине:
+   вёрстка рассчитана на них, и при смене шрифта строки и карточки не «прыгают». Файл загружается, только когда шрифт выбран. */
+@font-face { font-family: "TW Hafs"; src: url("../fonts/hafs.woff2") format("woff2"); font-display: swap; ascent-override: 140%; descent-override: 80%; line-gap-override: 0%; }
+@font-face { font-family: "TW Scheherazade"; src: url("../fonts/scheherazade.woff2") format("woff2"); font-display: swap; ascent-override: 140%; descent-override: 80%; line-gap-override: 0%; size-adjust: 112%; }
+@font-face { font-family: "TW Noto Naskh"; src: url("../fonts/noto-naskh.woff2") format("woff2"); font-display: swap; ascent-override: 140%; descent-override: 80%; line-gap-override: 0%; size-adjust: 91%; }
 @font-face { font-family: "Nunito"; src: url("../fonts/nunito.woff2") format("woff2"); font-weight: 200 1000; font-display: swap; }
 
 :root {
@@ -113,7 +118,7 @@ input, select { font: inherit; }
 
 /* ---------- Арабский текст ---------- */
 .ar {
-  font-family: "Amiri Quran", "Scheherazade New", "Noto Naskh Arabic", serif;
+  font-family: var(--ar-font, "Amiri Quran"), "Amiri Quran", "Scheherazade New", "Noto Naskh Arabic", serif;
   font-size: calc(var(--s, 1.5em) * var(--ar-k) * var(--fit, 1)); line-height: 2.05; font-weight: 400;
   direction: rtl; unicode-bidi: isolate; font-feature-settings: "calt", "liga";
   overflow-wrap: normal; word-break: normal; /* слово не рвём посередине — если не влезает, его уменьшит fitArabic() */
@@ -915,6 +920,9 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .sp-btn { width: 46px; height: 46px; border-radius: 14px; border: 2px solid var(--line-2); background: var(--card-2); color: var(--ink); font-weight: 950; font-size: 1.3rem; cursor: pointer; box-shadow: 0 3px 0 var(--line-2); }
 .sp-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line-2); }
 .sp-btn:disabled { opacity: .4; cursor: default; }
+.sp-font { display: grid; gap: 6px; }
+.sp-font > span { font-weight: 800; }
+.sp-fonts { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 4px; border-radius: 14px; background: var(--card-3); }
 .sp-val { min-width: 3.4em; text-align: center; font-variant-numeric: tabular-nums; }
 .lp-top .size-btn { flex: none; }
 .page-view .rh-title h1 { font-size: clamp(1.35rem, 1.1rem + 1vw, 1.8rem); }
