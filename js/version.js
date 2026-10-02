@@ -11,7 +11,7 @@ export const CONTACT = {
 };
 
 // Номер счётчика Яндекс.Метрики (metrika.yandex.ru → счётчик → номер под названием). 0 — статистика выключена.
-export const METRIKA_ID = 0;
+export const METRIKA_ID = 113307386;
 
 export const CHANGELOG = [
   {
