@@ -632,3 +632,26 @@ export function quiz(step) {
     [{ node: () => h("span", null, rich(right)), correct: true, label: right }, ...wrong.map((t) => ({ node: () => h("span", null, rich(t)), correct: false, label: t }))]);
 }
 export { G as GENERATORS };
+
+/** Превращает ключ повторения в шаг-упражнение («Практика», разминка в начале урока). */
+export function stepForKey(key) {
+  const [t, v] = key.split(":");
+  if (t === "L") return { t: "ex", k: pick1(["letterName", "letterPick", "listenFirst"]), n: 1, letters: [v] };
+  if (t === "M") return { t: "ex", k: pick1(["pointPick", "zonePick"]), n: 1, letters: [v] };
+  if (t === "H") return { t: "ex", k: "heavy", n: 1 };
+  if (t === "F") return { t: "ex", k: "formPick", n: 1 };
+  if (t === "V") return { t: "ex", k: "syllable", n: 1, vowels: v === "mix" ? ["fatha", "kasra", "damma"] : [v] };
+  if (t === "W") return { t: "ex", k: pick1(["readWord", "listenWord"]), n: 1, level: v };
+  if (t === "P") return { t: "ex", k: "pairListen", n: 1, pairs: [v.split("-")] };
+  if (t === "R") {
+    if (v === "izhar") return { t: "ex", k: "nunRule", n: 1 };
+    if (v === "allah") return { t: "ex", k: "allahLam", n: 1 };
+    if (v === "ra") return { t: "ex", k: "raRule", n: 1 };
+    if (v === "l") return { t: "ex", k: "sunMoon", n: 1 };
+    if (["n", "p", "o", "u", "x"].includes(v) && Math.random() < 0.5) return { t: "ex", k: "maddCount", n: 1 };
+    return { t: "ex", k: "ruleSpot", n: 1, code: v };
+  }
+  if (t === "S") return v === "waqf" ? { t: "ex", k: "waqfForm", n: 1 } : { t: "ex", k: "stopSign", n: 1 };
+  return null;
+}
+const pick1 = (a) => a[Math.floor(Math.random() * a.length)];

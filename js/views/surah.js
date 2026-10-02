@@ -1,5 +1,6 @@
 // Урок-сура: знакомство → слушаем с подсветкой → находим правила → читаем сами за чтецом.
 import { h, ar, icon, tr, rich, playBtn, plural, sample } from "../ui.js";
+import { g } from "../speech.js";
 import { loadSurah, loadSurahs, wordKey } from "../data.js";
 import { RULES, LEGEND, rulesIn, plain } from "../rules.js";
 import { playAyah, playWord, stop, canRecord, startRecording, stopRecording, playUrl } from "../audio.js";
@@ -96,7 +97,7 @@ function readAlongStep(n, meta, data) {
         if (!recOn) { try { stop(); await startRecording(); recOn = true; mic.classList.add("rec"); mic.lastChild.textContent = "Стоп"; } catch { mic.lastChild.textContent = "Нет доступа к микрофону"; } }
         else { const r = await stopRecording(); recOn = false; mic.classList.remove("rec"); mic.lastChild.textContent = "Записать ещё"; if (r) { myUrl = r.url; mine.classList.remove("hidden"); } }
       });
-      const next = h("button.btn.primary.wide", { type: "button" }, a < data.v.length ? `Прочитал(а) — к аяту ${a + 1}` : "Прочитал(а) всю суру", icon("right", { size: 18 }));
+      const next = h("button.btn.primary.wide", { type: "button" }, a < data.v.length ? `${g("Прочитал", "Прочитала", "Прочитал(а)")} — к аяту ${a + 1}` : `${g("Прочитал", "Прочитала", "Прочитал(а)")} всю суру`, icon("right", { size: 18 }));
       next.addEventListener("click", async () => { if (recOn) { await stopRecording(); recOn = false; } api.addXp(3); a++; a <= data.v.length ? show() : api.done(); });
       box.replaceChildren(
         h("div.ra-head", null, h("h2", null, "Читаем сами"), h("span.pill", null, `Аят ${a} из ${data.v.length}`)),

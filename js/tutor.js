@@ -4,6 +4,9 @@ import { store, streakNow, todayXp, goalDoneToday, today } from "./store.js";
 import { UNITS, SURAH_PATH } from "./course.js";
 import { courseProgress, unitProgress } from "./path.js";
 import { plural } from "./ui.js";
+import { g } from "./speech.js";
+import { byId } from "./letters.js";
+import { RULES } from "./rules.js";
 
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 export const studentName = () => { const n = (store.get().profile.name || "").trim(); return n ? cap(n) : ""; };
@@ -30,6 +33,7 @@ const SUPPORT_RETRY = ["{n}, это трудное место — оно ещё 
 const SUPPORT_TEST = ["{n}, запомните верный ответ — и идём дальше.", "{n}, одна ошибка ничего не решает. Продолжаем."];
 
 const unitOf = (id) => UNITS.find((u) => u.lessons.some((l) => l.id === id));
+const lastOf = (u, id) => u.lessons.at(-1).id === id;
 const doneLessons = () => Object.values(store.get().lessons).filter((l) => l.done && !l.skipped).length;
 
 /** Голос на один урок: помнит, что уже сказано, чтобы не повторяться и не называть имя в каждой фразе. */
@@ -38,12 +42,13 @@ export function lessonVoice({ id, isTest = false, isSurah = false, title = "" } 
   const pick = (list) => { const c = list.filter((x) => x !== last); return (last = c[Math.floor(Math.random() * c.length)]); };
   return {
     /** Слова в начале урока. */
-    intro() {
+    intro({ warm = "" } = {}) {
       const st = store.get();
+      if (warm) return fill(`{n}, начнём с короткого повтора. В прошлый раз было трудно: ${warm}.`);
       if (isSurah) return fill(`{n}, читаем суру «${title}». Слушайте чтеца и следите за словами.`);
       if (!id) return fill("{n}, немного практики — и пройденное останется с вами надолго.");
       if (isTest) return fill("{n}, это проверка этапа. Покажите, чему вы научились: нужно 80% верных ответов.");
-      if (st.lessons[id]?.done) return fill("{n}, возвращаться к пройденному — признак хорошего ученика. Освежим этот урок.");
+      if (st.lessons[id]?.done) return fill(`{n}, возвращаться к пройденному — признак ${g("хорошего ученика", "хорошей ученицы")}. Освежим этот урок.`);
       const k = doneLessons();
       if (!k && !Object.keys(st.lessons).length) return fill("{n}, добро пожаловать! Это ваш первый урок. Идём маленькими шагами — спешить некуда.");
       const u = unitOf(id);
@@ -62,7 +67,7 @@ export function lessonVoice({ id, isTest = false, isSurah = false, title = "" } 
       if (retry) return fill(pick(PRAISE_RETRY));
       if ([5, 10, 20].includes(combo)) return fill(pick(PRAISE_COMBO).replace("{c}", combo));
       if (back) return fill(pick(PRAISE_BACK));
-      return n % 3 === 1 ? fill(pick(PRAISE_N)) : pick(PRAISE);
+      return n % 3 === 1 ? fill(pick(PRAISE_N)).replace("Молодец", g("Молодец", "Умница")) : pick(PRAISE);
     },
     /** Ошибка: короткий заголовок и слова поддержки. */
     miss({ retry = false } = {}) {
@@ -75,6 +80,19 @@ export function lessonVoice({ id, isTest = false, isSurah = false, title = "" } 
       if (half || total < 10 || idx < Math.ceil(total / 2) || idx >= total - 2) return null;
       half = true;
       return fill("{n}, половина урока позади — отлично идёте!");
+    },
+    /** Личный разбор ошибок на итоговом экране: что было трудно и что с этим будет дальше. */
+    weakNote(label) {
+      return `Сегодня было трудно: ${label}. Следующий урок начнём с короткого повтора — и всё встанет на место.`;
+    },
+    /** Этап, который этот урок завершил (тогда на итоге показываем «Смотрите, что вы уже умеете»). */
+    unitDone({ passed, first }) {
+      if (!passed || !id || isSurah) return null;
+      const u = unitOf(id);
+      if (!u) return null;
+      if (isTest) return lastOf(u, id) ? u : null; // проверка посреди этапа этап не завершает
+      const p = unitProgress(u);
+      return first && p.done === p.total ? u : null;
     },
     /** Заголовок итогового экрана. */
     resultTitle({ passed, pct }) {
@@ -96,6 +114,7 @@ export function lessonVoice({ id, isTest = false, isSurah = false, title = "" } 
       }
       const u = unitOf(id);
       if (!u) return null;
+      if (isTest && !lastOf(u, id)) return say("{n}, проверка сдана — идём дальше по этапу.");
       if (isTest) return say(`{n}, этап ${u.id} «${u.title}» позади. Пройдено ${all}% пути к чтению Корана.`);
       if (!first) {
         const best = store.get().lessons[id]?.best || 0;
@@ -107,6 +126,26 @@ export function lessonVoice({ id, isTest = false, isSurah = false, title = "" } 
       return say(`{n}, пройдено ${p.done} из ${p.total} уроков этапа «${u.title}» — это уже ${all}% всего пути.`);
     },
   };
+}
+
+const VOWEL_RU = { fatha: "слоги с фатхой", kasra: "слоги с касрой", damma: "слоги с даммой", mix: "слоги с разными огласовками" };
+const RULE_RU = { izhar: "изхар", allah: "лям в слове «Аллах»", ra: "твёрдая и мягкая ра" };
+/** Ключи ошибок (как в интервальном повторении) → понятные слова: «буквы ت и ث», «слоги с касрой». */
+export function weakSpots(keys) {
+  const letters = [], other = [];
+  const add = (list, x) => { if (x && !list.includes(x)) list.push(x); };
+  for (const key of keys) {
+    const [t, v] = key.split(":");
+    if ("LMFH".includes(t)) add(letters, byId[v]?.ch);
+    else if (t === "P") v.split("-").forEach((x) => add(letters, byId[x]?.ch));
+    else if (t === "V") add(other, VOWEL_RU[v] || "слоги");
+    else if (t === "W") add(other, "чтение слов");
+    else if (t === "R") add(other, RULE_RU[v] || (RULES[v] ? `правило «${RULES[v].name}»` : "правила таджвида"));
+    else if (t === "S") add(other, "остановка в конце аята");
+  }
+  const ls = letters.slice(0, 4);
+  if (ls.length) other.unshift(ls.length === 1 ? `буква ${ls[0]}` : `буквы ${ls.slice(0, -1).join(", ")} и ${ls.at(-1)}`);
+  return other.slice(0, 2).join(", ");
 }
 
 /** Строка под приветствием на главном экране: замечаем серию, перерыв и пройденный путь. */

@@ -2,6 +2,7 @@
 import { parseMarkup } from "./rules.js";
 import { playWord, playingId, onPlay, stop } from "./audio.js";
 import { store } from "./store.js";
+import { you } from "./speech.js";
 
 export const $ = (s, r = document) => r.querySelector(s);
 export const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -18,15 +19,19 @@ export function h(tag, attrs, ...kids) {
     else if (k === "style" && typeof v === "object") for (const [sk, sv] of Object.entries(v)) sk.startsWith("--") ? el.style.setProperty(sk, sv) : (el.style[sk] = sv);
     else if (k === "class") el.classList.add(...String(v).split(/\s+/).filter(Boolean));
     else if (k === "html") el.innerHTML = v;
-    else el.setAttribute(k, v === true ? "" : v);
+    else el.setAttribute(k, v === true ? "" : TEXT_ATTRS.has(k) ? you(v) : v);
   }
   append(el, kids);
   return el;
 }
+// Подписи, которые видит или слышит ученик, — в них тоже действует обращение на «ты».
+const TEXT_ATTRS = new Set(["aria-label", "placeholder", "title"]);
+/** Текст, который нельзя переводить на «ты»: перевод аятов, цитаты. */
+export const keep = (t) => document.createTextNode(t);
 function append(el, kids) {
   for (const k of kids.flat(Infinity)) {
     if (k == null || k === false) continue;
-    el.append(k instanceof Node ? k : document.createTextNode(String(k)));
+    el.append(k instanceof Node ? k : document.createTextNode(you(String(k))));
   }
 }
 
@@ -126,11 +131,11 @@ export function mixed(text) {
   const re = /[؀-ۿ][؀-ۿً-ٰٟۖ-ۭ ]*/g;
   let i = 0, m;
   while ((m = re.exec(text))) {
-    if (m.index > i) frag.append(text.slice(i, m.index));
+    if (m.index > i) frag.append(you(text.slice(i, m.index)));
     frag.append(ar(m[0].trim(), { cls: "inline" }), m[0].endsWith(" ") ? " " : "");
     i = re.lastIndex;
   }
-  if (i < text.length) frag.append(text.slice(i));
+  if (i < text.length) frag.append(you(text.slice(i)));
   return frag;
 }
 
@@ -326,7 +331,7 @@ export function playBtn(id, fn, { label = "Слушать", size = "md", cls = "
 // ---------- Всплывающие элементы ----------
 export function toast(msg, ms = 2600) {
   const t = $("#toast");
-  t.replaceChildren(msg instanceof Node ? msg : document.createTextNode(msg));
+  t.replaceChildren(msg instanceof Node ? msg : document.createTextNode(you(msg)));
   t.classList.add("show");
   clearTimeout(t._tm);
   t._tm = setTimeout(() => t.classList.remove("show"), ms);

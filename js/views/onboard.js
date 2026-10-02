@@ -1,5 +1,5 @@
 // Знакомство: что даст курс, цель дня, стартовая точка.
-import { h, ar, icon } from "../ui.js";
+import { h, ar, icon, keep } from "../ui.js";
 import { store } from "../store.js";
 import { logo, go } from "../app.js";
 import { track } from "../metrika.js";
@@ -7,7 +7,7 @@ import { fill } from "../tutor.js";
 
 export function Onboarding() {
   let step = 0;
-  const data = { name: store.get().profile.name || "", goal: store.get().profile.goal || 30 };
+  const data = { name: store.get().profile.name || "", goal: store.get().profile.goal || 30, form: store.get().profile.form || "vy", gender: store.get().profile.gender || "" };
   const root = h("div.onboard");
   const dots = () => h("div.ob-dots", null, ...[0, 1, 2, 3].map((i) => h("i", { class: i === step ? "on" : "" })));
   const screens = [
@@ -25,6 +25,9 @@ export function Onboarding() {
       h("h2", null, "Как к вам обращаться?"),
       h("p.muted", null, "Необязательно — но так уроки станут личными: мы будем обращаться к вам по имени и отмечать ваши успехи."),
       (() => { const i = h("input.text-in.big", { type: "text", value: data.name, placeholder: "Имя", maxlength: "30", "aria-label": "Имя" }); i.addEventListener("input", () => (data.name = i.value.trim())); setTimeout(() => i.focus(), 100); return i; })(),
+      h("div.ob-ask", null, h("span.set-label", null, "Как обращаться"), choice("form", [["vy", "На «вы»"], ["ty", "На «ты»"]])),
+      h("div.ob-ask", null, h("span.set-label", null, "Кто учится"), choice("gender", [["m", "Ученик"], ["f", "Ученица"]])),
+      h("p.muted.small", null, keep("От этого зависят слова в уроках: «прочитал» или «прочитала», «нажмите» или «нажми». Изменить можно в разделе «Ещё».")),
       next("Дальше")),
     () => h("div.ob-screen", null,
       h("h2", null, data.name ? `Приятно познакомиться, ${fill("{n}", data.name)}!` : "Сколько времени в день?"),
@@ -46,11 +49,23 @@ export function Onboarding() {
         startOpt("ٱ", "Я уже читаю", "Проверю чтение аятов и перейду к сурам и таджвиду", "/learn/8.7"))),
   ];
   function pt(ic, t, s) { return h("div.ob-pt", null, h("span.ob-pt-ic", null, icon(ic, { size: 22 })), h("div", null, h("b", null, t), h("small", null, s))); }
-  function next(label) { return h("button.btn.primary.wide.big", { type: "button", onclick: () => { step++; draw(); } }, label, icon("right", { size: 20 })); }
+  // обращение и род действуют сразу — уже на следующих экранах знакомства
+  const saveProfile = () => store.set((st) => { st.profile.name = data.name; st.profile.goal = data.goal; st.profile.form = data.form; st.profile.gender = data.gender; });
+  function next(label) { return h("button.btn.primary.wide.big", { type: "button", onclick: () => { saveProfile(); step++; draw(); } }, label, icon("right", { size: 20 })); }
+  function choice(key, options) {
+    const box = h("div.seg", { role: "radiogroup" });
+    options.forEach(([v, t]) => {
+      const b = h("button.seg-btn", { type: "button", role: "radio", "aria-checked": data[key] === v ? "true" : "false", class: data[key] === v ? "on" : "" }, keep(t));
+      b.addEventListener("click", () => { data[key] = v; box.querySelectorAll("button").forEach((x) => { x.classList.toggle("on", x === b); x.setAttribute("aria-checked", x === b); }); });
+      box.append(b);
+    });
+    return box;
+  }
   function startOpt(g, t, s, path) {
     const b = h("button.start-opt", { type: "button" }, h("span.so-g", null, ar(g)), h("div", null, h("b", null, t), h("small", null, s)), icon("right"));
     b.addEventListener("click", () => {
-      store.set((st) => { st.profile.name = data.name; st.profile.goal = data.goal; st.profile.onboarded = true; });
+      saveProfile();
+      store.set((st) => { st.profile.onboarded = true; });
       track("onboarded", { Старт: t });
       go(path === "/learn/1.1" ? "/" : path);
       if (path === "/learn/1.1") setTimeout(() => go(path), 50);
