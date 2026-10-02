@@ -144,7 +144,7 @@ function wordsForCard(o) {
   } else if (o.heavyStart) {
     pool = words({ level: o.level, maxLen: 5, filter: (w) => ["kha", "sad", "dad", "ghayn", "tta", "qaf", "zza"].includes(w.firstL) });
   } else {
-    pool = lessonWords({ level: o.level, need: o.need || "", avoid: o.avoid || "", startsWith: o.startsWith || null, maxLen: o.maxLen || 5, filter: o.vowelA ? (w) => /َىٰ?$/.test(w.d) : null }, o.n);
+    pool = lessonWords({ level: o.level, need: o.need || "", avoid: o.avoid || "", startsWith: o.startsWith || null, maxLen: o.maxLen || 5, filter: o.vowelA ? (w) => /َىٰ?$/.test(w.d) : o.zero ? (w) => w.d.includes("۟") : null }, o.n);
   }
   return sample(pool.slice(0, 40), o.n);
 }

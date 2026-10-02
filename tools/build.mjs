@@ -8,7 +8,7 @@ import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
-const SKIP = new Set(["sw.js", "README.md", "CNAME", ".git", "node_modules", "tools", "docs", ".claude", "q"]);
+const SKIP = new Set(["og.png", "sw.js", "README.md", "CNAME", ".git", "node_modules", "tools", "docs", ".claude", "q"]);
 const files = [];
 (function walk(dir) {
   for (const name of readdirSync(dir)) {

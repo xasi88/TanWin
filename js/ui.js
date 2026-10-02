@@ -38,6 +38,10 @@ function append(el, kids) {
 /** Арабский текст. Разметка таджвида [код…] раскрашивается, если colors=true. */
 export function ar(text, { cls = "", colors = true, tag = "span", size } = {}) {
   const el = h(`${tag}.ar`, { dir: "rtl", lang: "ar", class: cls, style: size ? { "--s": size } : null });
+  // «Кружок — не читается» (U+06DF): в шрифте «Мадина» этого знака нет, тот же кружок в нём — U+0652.
+  text = text.replace(/\u06DF/g, "\u0652");
+  // Знак без буквы (в объяснениях) ставим на чёрточку-татвиль, чтобы он не «падал» на строку
+  if (text.length === 1 && isMarkCh(text)) text = "ـ" + text;
   if (text.includes("[")) arParts(el, parseMarkup(text).map(([t, code]) => [t, code && colors ? `tj r-${code}` : ""]));
   else el.textContent = text;
   return el;
@@ -45,7 +49,7 @@ export function ar(text, { cls = "", colors = true, tag = "span", size } = {}) {
 
 /** Слово из кусочков [текст, класс]: кусочки с классом — в <span> (цвет правила, подсветка). */
 export function arParts(el, parts) {
-  for (const [t, c] of splitShaping ? glue(parts) : parts) el.append(c ? h("span", { class: c }, t) : t);
+  for (const [t0, c] of splitShaping ? glue(parts) : parts) { const t = t0.replace(/۟/g, "ْ"); el.append(c ? h("span", { class: c }, t) : t); }
   return el;
 }
 

@@ -39,6 +39,16 @@ function compact(html) {
   }
   return runs.map(([c, t]) => (c ? `[${c}${t}]` : t)).join("");
 }
+// В тексте с разметкой таджвида знаки «не читается» (кружок U+06DF и вытянутый нолик U+06E0) заменены сукуном U+06E1.
+// Возвращаем их по обычному тексту того же слова: k-й знак из {сукун, кружок, нолик} соответствует k-му U+06E1.
+const zeroStats = { fixed: 0, skipped: 0 };
+function fixZero(cw, uthmani) {
+  const marks = [...uthmani].filter((c) => c === "ْ" || c === "۟" || c === "۠");
+  if (!marks.some((c) => c !== "ْ")) return cw;
+  if ([...cw].filter((c) => c === "ۡ").length !== marks.length) { zeroStats.skipped++; return cw; }
+  let k = 0;
+  return cw.replace(/ۡ/g, () => { const m = marks[k++]; if (m === "ْ") return "ۡ"; zeroStats.fixed++; return m; });
+}
 const plainOf = (compactText) => compactText.replace(/\[[a-zA-Z]/g, "").replace(/\]/g, "");
 
 // Русские названия сур (транслитерация)
@@ -59,7 +69,7 @@ for (let s = 1; s <= 114; s++) {
   const ch = chapters[s - 1];
   const verses = V.map((v, idx) => {
     const words = v.words.filter((w) => w.char_type_name === "word");
-    const cw = words.map((w) => compact(w.text_uthmani_tajweed));
+    const cw = words.map((w) => fixZero(compact(w.text_uthmani_tajweed), w.text_uthmani));
     const tr = (v.translations?.[0]?.text || "").replace(/<sup[^>]*>.*?<\/sup>/g, "").replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
     const segs = (S) => {
       const row = S.find((r) => r[0] === v.verse_number);
@@ -142,4 +152,5 @@ const FEAT = { fatha: "a", kasra: "i", damma: "u", tanween: "T", tanweenAlif: "A
 const out = keep.map((e) => [e.d, e.a, e.n, e.L, e.tr, e.f.map((x) => FEAT[x] || "").join(""), e.cur ? 1 : 0]);
 writeFileSync(join(root, "data", "bank.json"), JSON.stringify(out));
 const byL = {}; for (const e of keep) byL[e.L] = (byL[e.L] || 0) + 1;
+console.log("знаки «не читается» восстановлены:", zeroStats);
 console.log("surahs:", surahs.length, "bank:", out.length, byL, "rules:", ruleStats);
