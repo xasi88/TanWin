@@ -202,6 +202,7 @@ const P = {
   list: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",
   palette: "M12 3a9 9 0 1 0 0 18c1 0 1.5-.7 1.5-1.5 0-1.2-1-1.3-1-2.5 0-.8.7-1.5 1.5-1.5H16a5 5 0 0 0 5-5c0-4.1-4-7.5-9-7.5ZM7.5 11h.01M10 7.5h.01M14.5 7.5h.01",
   chat: "M21 11.5a8.4 8.4 0 0 1-12.2 7.5L3 21l2-5.5A8.4 8.4 0 1 1 21 11.5ZM8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01",
+  expand: "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5",
   heart: "M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z",
 };
 export function icon(name, { size = 22, sw = 2, fill = false, cls = "" } = {}) {
@@ -254,7 +255,8 @@ function sizePanel(anchor) {
   };
   const el = h("div.size-pop", { role: "dialog", "aria-label": "Размер текста" }, row("arScale"), row("uiScale"));
   document.body.append(el);
-  const place = () => { const r = anchor.getBoundingClientRect(); el.style.top = Math.round(r.bottom + 8) + "px"; el.style.right = Math.max(8, Math.round(innerWidth - r.right)) + "px"; };
+  // панель — под кнопкой, а если снизу нет места (кнопка внизу экрана) — над ней
+  const place = () => { const r = anchor.getBoundingClientRect(), ph = el.offsetHeight; el.style.top = Math.round(r.bottom + 8 + ph > innerHeight ? Math.max(8, r.top - 8 - ph) : r.bottom + 8) + "px"; el.style.right = Math.max(8, Math.round(innerWidth - r.right)) + "px"; };
   place();
   const outside = (e) => { if (!el.contains(e.target) && !anchor.contains(e.target)) close(); };
   const esc = (e) => e.key === "Escape" && close();
