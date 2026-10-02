@@ -234,7 +234,14 @@ export const AR_FONTS = {
   scheherazade: { name: "Шехерезада", css: '"TW Scheherazade"' },
   noto: { name: "Ното", css: '"TW Noto Naskh"' },
 };
-export const arFont = () => (AR_FONTS[store.get().settings.arFont] ? store.get().settings.arFont : "amiri");
+export const arFont = () => (AR_FONTS[store.get().settings.arFont] ? store.get().settings.arFont : "hafs");
+
+// ---------- Цвета таджвида при чтении Корана ----------
+/** Включает или выключает цвета правил в читалке, на странице мусхафа и в режиме чтения (без перерисовки — через класс tj-off). */
+export function setTajweed(on) {
+  store.set((s) => { s.settings.tajweed = on; });
+  for (const b of document.querySelectorAll("[data-tj-btn]")) { b.classList.toggle("on", on); if (b.matches(".switch")) b.setAttribute("aria-checked", on ? "true" : "false"); }
+}
 
 // ---------- Размер текста ----------
 export const SIZES = {
@@ -268,7 +275,10 @@ function sizePanel(anchor) {
   const updFonts = () => [...fonts.children].forEach((b) => { const on = b.dataset.k === arFont(); b.classList.toggle("on", on); b.setAttribute("aria-checked", on ? "true" : "false"); });
   for (const [k, f] of Object.entries(AR_FONTS)) fonts.append(h("button.seg-btn", { type: "button", role: "radio", "data-k": k, onclick: () => { store.set((s) => { s.settings.arFont = k; }); updFonts(); } }, f.name));
   updFonts();
-  const el = h("div.size-pop", { role: "dialog", "aria-label": "Размер текста и шрифт" }, row("arScale"), row("uiScale"), h("div.sp-font", null, h("span", null, "Арабский шрифт"), fonts));
+  const tjOn = !!store.get().settings.tajweed;
+  const tj = h("button.switch", { type: "button", role: "switch", "data-tj-btn": true, "aria-label": "Цвета таджвида", "aria-checked": tjOn ? "true" : "false", class: tjOn ? "on" : "", onclick: () => setTajweed(!store.get().settings.tajweed) }, h("i"));
+  const el = h("div.size-pop", { role: "dialog", "aria-label": "Размер текста и шрифт" }, row("arScale"), row("uiScale"), h("div.sp-font", null, h("span", null, "Арабский шрифт"), fonts),
+    h("div.sp-row.sp-tj", null, h("span", null, "Цвета таджвида"), tj));
   document.body.append(el);
   // панель — под кнопкой, а если снизу нет места (кнопка внизу экрана) — над ней
   const place = () => { const r = anchor.getBoundingClientRect(), ph = el.offsetHeight; el.style.top = Math.round(r.bottom + 8 + ph > innerHeight ? Math.max(8, r.top - 8 - ph) : r.bottom + 8) + "px"; el.style.right = Math.max(8, Math.round(innerWidth - r.right)) + "px"; };

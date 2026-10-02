@@ -1,5 +1,5 @@
 // Мусхаф: список сур и читалка с таджвидом, пословным аудио и синхронной подсветкой.
-import { h, ar, icon, tr, modal, toast, plural, rich, sizeButton } from "../ui.js";
+import { h, ar, icon, tr, modal, toast, plural, rich, sizeButton, setTajweed } from "../ui.js";
 import { loadSurahs, loadSurah, surahMeta, wordKey, RECITERS, pad } from "../data.js";
 import { RULES, LEGEND, parseMarkup, plain, rulesIn } from "../rules.js";
 import { translit, stripStops } from "../arabic.js";
@@ -224,11 +224,11 @@ export async function Reader(n, startA = 0) {
   let view, player;
   const draw = () => {
     stop();
-    view = renderVerses(n, data, meta, { mode, pages: true, hifz: hifzLevel(), colors: store.get().settings.tajweed, translation: store.get().settings.translation, onAyah: (a) => player.playFrom(a) });
+    view = renderVerses(n, data, meta, { mode, pages: true, hifz: hifzLevel(), colors: true, translation: store.get().settings.translation, onAyah: (a) => player.playFrom(a) });
     player = surahPlayer(n, data, view, { onFinish: () => toast("Сура прослушана. Прочитайте её сами — вслух!") });
     toolbar.replaceChildren(player.btn, player.repBtn, readBtn(n, () => (store.get().reading?.s === n ? store.get().reading.a : 1)), sizeButton({ cls: "tool" }), hifzBtn(draw), pagesBtn(), reciterBtn(), rateBtn(), modeBtn(), colorBtn(), h("button.tool", { type: "button", title: "Цвета таджвида", onclick: legendModal }, icon("info", { size: 18 })));
     body.replaceChildren(
-      n !== 1 && n !== 9 ? h("div.bismillah", null, ar(BISMILLAH, { colors: store.get().settings.tajweed })) : "",
+      n !== 1 && n !== 9 ? h("div.bismillah", null, ar(BISMILLAH, { colors: true })) : "",
       view.el,
       h("div.reader-end", null,
         h("button.btn.secondary", { type: "button", onclick: () => { store.set((s) => { s.reads = s.reads || {}; s.reads[n] = (s.reads[n] || 0) + 1; }); toast("Отмечено: сура прочитана ✓"); } }, icon("check", { size: 18 }), "Я прочитал(а) эту суру"),
@@ -251,7 +251,7 @@ export async function Reader(n, startA = 0) {
     const a = r?.s === n ? r.a : 1;
     go(`/page/${data.v[a - 1][4][0]}`);
   } }, icon("page", { size: 18 }), h("span", null, "Страницы"));
-  const colorBtn = () => h("button.tool", { type: "button", class: store.get().settings.tajweed ? "on" : "", title: "Цвета таджвида", onclick: () => { store.set((s) => { s.settings.tajweed = !s.settings.tajweed; }); draw(); } }, icon("palette", { size: 18 }), h("span", null, "Таджвид"));
+  const colorBtn = () => h("button.tool", { type: "button", class: store.get().settings.tajweed ? "on" : "", title: "Цвета таджвида", "data-tj-btn": true, onclick: () => setTajweed(!store.get().settings.tajweed) }, icon("palette", { size: 18 }), h("span", null, "Таджвид"));
   draw();
   if (startA > 1 && startA <= data.v.length) requestAnimationFrame(() => requestAnimationFrame(() => view.scrollTo(startA, "auto")));
   return h("div.page.reader", null,
@@ -299,7 +299,7 @@ export async function ReadMode(n, startA = 0) {
   resumeScroll = false;
   const [list, data] = await Promise.all([loadSurahs(), loadSurah(n)]);
   const meta = list[n - 1];
-  const colors = store.get().settings.tajweed;
+  const colors = true; // цвет снимается стилем (класс tj-off), если таджвид выключен
   const view = renderVerses(n, data, meta, { mode: "mushaf", bare: true, colors, pages: true });
   const nextSurah = (keepGoing) => { resumeScroll = keepGoing; location.replace(`#/read/${n + 1}`); };
   const endEl = h("div.focus-end", null, n < 114
@@ -488,14 +488,14 @@ export async function MushafPage(p) {
     for (const part of parts) {
       if (part.from === 1) {
         frame.append(h("div.surah-banner", null, ar(part.meta.ar), h("small", { dir: "ltr" }, `Сура ${part.meta.ru}`)));
-        if (part.s !== 1 && part.s !== 9) frame.append(h("div.bismillah", null, ar(BISMILLAH, { colors: store.get().settings.tajweed })));
+        if (part.s !== 1 && part.s !== 9) frame.append(h("div.bismillah", null, ar(BISMILLAH, { colors: true })));
       }
-      const view = renderVerses(part.s, part.data, part.meta, { mode: "mushaf", bare: true, hifz: hifzLevel(), colors: store.get().settings.tajweed, from: part.from, to: part.to, onAyah: (a) => player.playFrom(part.s, a) });
+      const view = renderVerses(part.s, part.data, part.meta, { mode: "mushaf", bare: true, hifz: hifzLevel(), colors: true, from: part.from, to: part.to, onAyah: (a) => player.playFrom(part.s, a) });
       views.push({ part, view });
       frame.append(view.el);
     }
     toolbar.replaceChildren(player.btn, parts[0] ? readBtn(parts[0].s, () => parts[0].from) : null, sizeButton({ cls: "tool" }), hifzBtn(draw),
-      h("button.tool", { type: "button", class: store.get().settings.tajweed ? "on" : "", title: "Цвета таджвида", onclick: () => { store.set((s) => { s.settings.tajweed = !s.settings.tajweed; }); draw(); } }, icon("palette", { size: 18 }), h("span", null, "Таджвид")),
+      h("button.tool", { type: "button", class: store.get().settings.tajweed ? "on" : "", title: "Цвета таджвида", "data-tj-btn": true, onclick: () => setTajweed(!store.get().settings.tajweed) }, icon("palette", { size: 18 }), h("span", null, "Таджвид")),
       h("button.tool", { type: "button", title: "Цвета таджвида", onclick: legendModal }, icon("info", { size: 18 })));
   };
   // проигрыватель страницы: аяты подряд, через границу сур
