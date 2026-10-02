@@ -7,7 +7,7 @@ import { playWord, playAyah, stop, onPlay, playingId } from "../audio.js";
 import { store, surahDone } from "../store.js";
 import { SURAH_PATH } from "../course.js";
 import { go } from "../app.js";
-import { enterFullscreen, exitFullscreen, isFullscreen, wantFullscreen, onFullscreenChange } from "../fullscreen.js";
+import { enterFullscreen, exitFullscreen, isFullscreen, wantFullscreen, onFullscreenChange, canFullscreen, setFullscreen } from "../fullscreen.js";
 
 export const arNum = (n) => String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[d]);
 const BISMILLAH = "بِسۡمِ [wٱ]للَّهِ [wٱ][lل]رَّحۡمَ[nـٰ]نِ [wٱ][lل]رَّح[pِي]مِ";
@@ -47,6 +47,7 @@ export async function QuranList() {
   return h("div.page.quran-page", null,
     h("header.page-head", null, h("h1", null, "Коран"), h("p.muted", null, "Мусхаф Мадины, риваят Хафса от Асыма. Цветной таджвид, пословное аудио, чтецы аль-Хусари и Мишари аль-Афаси.")),
     continueReading(),
+    r?.p ? h("button.card.juz-card", { type: "button", title: "Перейти к странице или джузу", onclick: () => pagePicker(r.p) }, h("b", null, "Дорожная карта чтения"), juzMap(r.p).el) : null,
     h("button.card.pages-card", { type: "button", onclick: () => r?.p ? go(`/page/${r.p}`) : pagePicker(1) },
       h("span.rc-ic", null, icon("page", { size: 24 })),
       h("div", null, h("b", null, "Мусхаф по страницам"), h("div.muted", null, "604 страницы и 30 джузов — как в печатном мусхафе Мадины")),
@@ -271,20 +272,51 @@ function readBtn(s, ayah) {
     icon("expand", { size: 18 }), h("span", null, "Чтение"));
 }
 
+// ---------- Дорожная карта: 30 джузов точками ----------
+/** Пройденные джузы закрашены, текущий заполняется по мере чтения, остальные — впереди. set(page) обновляет карту. */
+export function juzMap(page) {
+  const dots = Array.from({ length: 30 }, () => h("i"));
+  const cap = h("small.jm-cap");
+  const el = h("div.juz-map", null, h("div.jm-dots", { "aria-hidden": "true" }, dots), cap);
+  let shown = 0;
+  const set = (p) => {
+    if (!p || p === shown) return;
+    shown = p;
+    let j = 0;
+    while (j < 29 && JUZ_PAGE[j + 1] <= p) j++;
+    const f = (p - JUZ_PAGE[j]) / ((JUZ_PAGE[j + 1] || PAGES + 1) - JUZ_PAGE[j]);
+    dots.forEach((d, i) => { d.className = i < j ? "done" : i === j ? "cur" : ""; d.style.setProperty("--f", i === j ? f.toFixed(3) : 0); });
+    cap.textContent = `Джуз ${j + 1} · стр. ${p} · пройдено ${j}, осталось ${29 - j}`;
+  };
+  set(page);
+  return { el, set };
+}
+
+let resumeScroll = false; // автопрокрутка дошла до конца суры — следующая сура продолжает идти сама
+
 export async function ReadMode(n, startA = 0) {
+  const auto = resumeScroll;
+  resumeScroll = false;
   const [list, data] = await Promise.all([loadSurahs(), loadSurah(n)]);
   const meta = list[n - 1];
   const colors = store.get().settings.tajweed;
-  const view = renderVerses(n, data, meta, { mode: "mushaf", bare: true, colors });
+  const view = renderVerses(n, data, meta, { mode: "mushaf", bare: true, colors, pages: true });
+  const nextSurah = (keepGoing) => { resumeScroll = keepGoing; location.replace(`#/read/${n + 1}`); };
+  const endEl = h("div.focus-end", null, n < 114
+    ? h("button.btn.secondary.focus-next", { type: "button", onclick: () => nextSurah(running) }, `Дальше: сура ${list[n].ru}`, icon("right", { size: 18 }))
+    : h("p.muted", null, "Конец Корана"));
+  const jm = juzMap(data.v[Math.max(1, Math.min(startA, data.v.length)) - 1][4][0]);
+  jm.el.classList.add("focus-juz");
   const scroller = h("div.focus-scroll", { tabindex: "-1" },
     h("div.focus-text", null,
       h("div.surah-banner", null, ar(meta.ar), h("small", null, `Сура ${meta.ru}`)),
       n !== 1 && n !== 9 ? h("div.bismillah", null, ar(BISMILLAH, { colors })) : null,
-      view.el));
+      view.el, endEl));
   const prog = h("i.focus-prog");
+  const words = data.v.reduce((k, v) => k + v[0].length, 0);
 
   // --- автопрокрутка ---
-  let speed = readSpeed(), running = false, raf = 0, last = 0, pos = 0, touching = false, holdUntil = 0, wake = null;
+  let speed = readSpeed(), running = false, raf = 0, last = 0, pos = 0, touching = false, holdUntil = 0, wake = null, ran = 0;
   const maxTop = () => scroller.scrollHeight - scroller.clientHeight;
   const pxPerSec = () => speed * SPEED.px * (store.get().settings.arScale || 1); // крупнее текст — выше строка: темп в строках тот же
   const tick = (t) => {
@@ -293,10 +325,15 @@ export async function ReadMode(n, startA = 0) {
     const dt = Math.min(100, t - last);
     last = t;
     // палец на экране, колесо мыши, клавиши — читатель листает сам; продолжаем с нового места
-    if (touching || t < holdUntil || Math.abs(scroller.scrollTop - pos) > 3) { pos = scroller.scrollTop; return; }
+    if (!scroller.clientHeight || touching || t < holdUntil || Math.abs(scroller.scrollTop - pos) > 3) { pos = scroller.scrollTop; return; }
+    ran += dt;
+    // конец суры поднялся в верхнюю треть экрана: дальше идёт следующая сура. Короткой суре, которая видна целиком, даём время на чтение
+    if (endEl.getBoundingClientRect().top - scroller.getBoundingClientRect().top < scroller.clientHeight * 0.35 || pos >= maxTop() - 1) {
+      if (ran >= Math.min(60000, words * 700 * SPEED.def / speed)) { if (n < 114) nextSurah(true); else setRunning(false); }
+      return;
+    }
     pos += pxPerSec() * dt / 1000;
     scroller.scrollTop = pos;
-    if (pos >= maxTop() - 1) setRunning(false);
   };
   const lockScreen = async () => { try { wake = await navigator.wakeLock?.request("screen"); } catch {} }; // экран не гаснет, пока текст идёт
   const setRunning = (on) => {
@@ -326,7 +363,18 @@ export async function ReadMode(n, startA = 0) {
   const bar = h("div.focus-bar", { role: "toolbar", "aria-label": "Автопрокрутка" },
     h("button.icon-btn", { type: "button", "aria-label": "Выйти из режима чтения", title: "Выйти", onclick: () => close() }, icon("close")),
     playB, slower, val, faster, sizeButton());
-  const root = h("div.focus", null, prog, scroller, bar);
+  // отдельная кнопка полного экрана: выйти из него можно, не закрывая режим чтения
+  let keepOpen = false;
+  const fsB = canFullscreen() ? h("button.icon-btn", { type: "button", "data-fs-switch": true, onclick: () => { if (isFullscreen()) { keepOpen = true; setFullscreen(false); } else enterFullscreen(); } }) : null;
+  const syncFs = () => {
+    if (!fsB) return;
+    const on = isFullscreen(), label = on ? "Выйти из полного экрана" : "На весь экран";
+    fsB.replaceChildren(icon(on ? "shrink" : "expand"));
+    fsB.title = label; fsB.setAttribute("aria-label", label);
+  };
+  syncFs();
+  if (fsB) bar.append(fsB);
+  const root = h("div.focus", null, prog, jm.el, scroller, bar);
   let hideTm = 0;
   const show = () => {
     root.classList.remove("quiet");
@@ -334,13 +382,19 @@ export async function ReadMode(n, startA = 0) {
     hideTm = setTimeout(() => { if (!running) return; if (document.querySelector(".size-pop")) show(); else root.classList.add("quiet"); }, 2600);
   };
   // нажатие на текст не открывает карточку слова, а показывает или прячет панель
-  scroller.addEventListener("click", (e) => { e.stopPropagation(); if (root.classList.contains("quiet") || !running) show(); else root.classList.add("quiet"); }, true);
+  scroller.addEventListener("click", (e) => { if (e.target.closest(".focus-next")) return; e.preventDefault(); e.stopPropagation(); if (root.classList.contains("quiet") || !running) show(); else root.classList.add("quiet"); }, true);
   scroller.addEventListener("touchstart", () => { touching = true; }, { passive: true });
   const touchEnd = () => { touching = false; hold(900); }; // даём докатиться прокрутке по инерции
   scroller.addEventListener("touchend", touchEnd, { passive: true });
   scroller.addEventListener("touchcancel", touchEnd, { passive: true });
   scroller.addEventListener("wheel", () => hold(500), { passive: true });
-  scroller.addEventListener("scroll", () => { prog.style.width = (maxTop() > 0 ? Math.min(1, scroller.scrollTop / maxTop()) * 100 : 0) + "%"; }, { passive: true });
+  let jmTm = 0;
+  const updJuz = () => { jmTm = 0; if (view.el.isConnected) jm.set(data.v[curAyah() - 1][4][0]); };
+  scroller.addEventListener("scroll", () => {
+    const end = endEl.offsetTop - scroller.clientHeight * 0.35; // полоса сверху — доля прочитанного в суре
+    prog.style.width = (end > 0 ? Math.min(1, scroller.scrollTop / end) * 100 : 100) + "%";
+    if (!jmTm) jmTm = setTimeout(updJuz, 250);
+  }, { passive: true });
   root.addEventListener("pointermove", (e) => { if (e.pointerType === "mouse" && root.classList.contains("quiet")) show(); });
 
   // --- выход: кнопка, Esc, «назад»; место чтения запоминается ---
@@ -361,15 +415,20 @@ export async function ReadMode(n, startA = 0) {
   };
   // выход из полного экрана (Esc на компьютере, «назад» на телефоне) закрывает и режим чтения
   let wasFull = isFullscreen();
-  const offFs = onFullscreenChange(() => { if (wasFull && !isFullscreen() && !closed) close(); wasFull = isFullscreen(); });
+  const offFs = onFullscreenChange(() => {
+    const on = isFullscreen();
+    syncFs();
+    if (wasFull && !on && !closed) { if (keepOpen) keepOpen = false; else close(); }
+    wasFull = on;
+  });
   const vis = () => { if (running && document.visibilityState === "visible") lockScreen(); }; // блокировка сна снимается, когда приложение свёрнуто
   const cleanup = () => {
     closed = true;
     if (view.el.isConnected) { const a = curAyah(); saveReading(n, a, data.v[a - 1][4]?.[0], "mushaf"); }
-    running = false; cancelAnimationFrame(raf); clearTimeout(hideTm);
+    running = false; cancelAnimationFrame(raf); clearTimeout(hideTm); clearTimeout(jmTm);
     wake?.release?.().catch(() => {});
     removeEventListener("keydown", keys); document.removeEventListener("visibilitychange", vis); offFs();
-    if (!wantFullscreen()) exitFullscreen();
+    if (!wantFullscreen() && !location.hash.startsWith("#/read/")) exitFullscreen(); // при переходе к следующей суре экран остаётся развёрнутым
   };
   addEventListener("keydown", keys);
   document.addEventListener("visibilitychange", vis);
@@ -380,7 +439,7 @@ export async function ReadMode(n, startA = 0) {
     if (startA > 1 && startA <= data.v.length) scroller.scrollTop += view.ayahEls[startA].getBoundingClientRect().top - scroller.getBoundingClientRect().top - scroller.clientHeight * 0.2;
     scroller.focus({ preventScroll: true });
   }));
-  setRunning(false);
+  setRunning(auto);
   return root;
 }
 

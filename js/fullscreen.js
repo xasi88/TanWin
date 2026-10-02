@@ -28,6 +28,11 @@ export function exitFullscreen() {
   if (!isFullscreen()) return;
   try { Promise.resolve(leave.call(document)).catch(() => {}); } catch {}
 }
+/** Включить или выключить полный экран и запомнить выбор (кнопка в меню и в режиме чтения, переключатель в «Ещё»). */
+export function setFullscreen(on) {
+  store.set((s) => { s.settings.fullscreen = on; });
+  if (on) enterFullscreen(); else exitFullscreen();
+}
 export const onFullscreenChange = (f) => {
   document.addEventListener("fullscreenchange", f);
   document.addEventListener("webkitfullscreenchange", f);

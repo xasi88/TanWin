@@ -7,7 +7,7 @@ import { checkBadges, courseProgress, nextTarget, lessonById } from "./path.js";
 import { APP_VERSION } from "./version.js";
 import { canPrompt, install, isInstalled, onInstallChange, manualHint } from "./install.js";
 import { initMetrika, hit, track } from "./metrika.js";
-import { initFullscreen } from "./fullscreen.js";
+import { initFullscreen, canFullscreen, isFullscreen, setFullscreen, onFullscreenChange } from "./fullscreen.js";
 
 const view = $("#view");
 const nav = $("#nav");
@@ -42,6 +42,8 @@ function renderNav(active) {
       const on = t.path === "/" ? active === "/" : active.startsWith(t.path) || (t.path === "/quran" && active.startsWith("/page"));
       return h("a.tab", { href: "#" + t.path, class: on ? "on" : "", "aria-current": on ? "page" : null }, icon(t.ic, { size: 24 }), h("span", null, t.label));
     })),
+    canFullscreen() ? h("button.nav-fs", { type: "button", "data-fs-switch": true, onclick: () => setFullscreen(!isFullscreen()) },
+      icon(isFullscreen() ? "shrink" : "expand", { size: 18 }), h("span", null, isFullscreen() ? "Выйти из полного экрана" : "На весь экран")) : "",
     !isInstalled() ? h("button.nav-install", { type: "button", onclick: installApp }, icon("down", { size: 18 }), h("span", null, "Установить приложение")) : "",
     h("div.nav-foot", null,
       h("div.nf-row", null, icon("flame", { size: 18, fill: true, sw: 1, cls: streakNow() ? "fire" : "" }), h("b", null, streakNow()), h("span", null, "дней подряд")),
@@ -53,6 +55,7 @@ export async function installApp() {
   else toast(manualHint(), 6000);
 }
 onInstallChange(() => renderNav(location.hash.replace(/^#/, "") || "/"));
+onFullscreenChange(() => renderNav(location.hash.replace(/^#/, "") || "/"));
 
 export function logo(size = 34) {
   const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
