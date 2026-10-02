@@ -17,7 +17,7 @@ export function Onboarding() {
       h("p.lead", null, "С нуля — до чтения мусхафа по правилам таджвида. Маленькими шагами, по 10 минут в день."),
       h("div.ob-points", null,
         pt("ear", "Живые чтецы", "каждое слово и аят — голосом чтеца"),
-        pt("book", "Настоящие слова Корана", "с первого урока огласовок"),
+        pt("book", "Настоящие слова Корана", "с первых же слогов"),
         pt("chart", "Виден прогресс", "путь, уровни, серия дней, награды")),
       next("Начать")),
     () => h("div.ob-screen", null,
@@ -39,8 +39,9 @@ export function Onboarding() {
       h("div.start-opts", null,
         startOpt("✦", "Я начинаю с нуля", "Не знаю арабских букв", "/learn/1.1"),
         startOpt("ب", "Я знаю буквы", "Сдам проверку алфавита и пойду дальше", "/learn/2.9"),
-        startOpt("بَ", "Я читаю по слогам", "Проверю огласовки и начну с танвина", "/learn/5.6"),
-        startOpt("ٱ", "Я уже читаю", "Проверю особые написания и перейду к таджвиду", "/learn/10.6"))),
+        startOpt("ـبـ", "Я знаю буквы в словах", "Проверю формы букв и начну с огласовок", "/learn/3.12"),
+        startOpt("بَ", "Я читаю по слогам", "Проверю слоги и перейду к словам", "/learn/5.5"),
+        startOpt("ٱ", "Я уже читаю", "Проверю чтение аятов и перейду к сурам и таджвиду", "/learn/8.7"))),
   ];
   function pt(ic, t, s) { return h("div.ob-pt", null, h("span.ob-pt-ic", null, icon(ic, { size: 22 })), h("div", null, h("b", null, t), h("small", null, s))); }
   function next(label) { return h("button.btn.primary.wide.big", { type: "button", onclick: () => { step++; draw(); } }, label, icon("right", { size: 20 })); }

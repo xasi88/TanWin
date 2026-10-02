@@ -22,7 +22,9 @@ el.addEventListener("ended", () => { const c = current; current = null; emit(); 
 el.addEventListener("error", () => { const c = current; current = null; emit(); c?.onError?.(); });
 el.addEventListener("timeupdate", () => current?.onTime?.(el.currentTime * 1000));
 
+let seq = null; // отмена цепочки записей (playSeq)
 export function stop() {
+  seq?.();
   el.pause();
   if (current) { const c = current; current = null; emit(); c.onStop?.(); }
 }
@@ -42,6 +44,42 @@ export function playAyah(s, a, o = {}) {
   const rec = RECITERS[store.get().settings.reciter] || RECITERS.husary;
   return playUrl(rec.url(s, a), { id: `a:${s}:${a}`, rate: store.get().settings.rate || 1, ...o });
 }
+
+// ---------- Буквы и слоги (свои записи в audio/letters) ----------
+const VOWEL_KEY = { fatha: "a", kasra: "i", damma: "u" };
+/** Адрес записи: название буквы (v не задан) или буква с огласовкой fatha | kasra | damma. У алифа и названия хамзы записи нет. */
+export function letterAudioUrl(id, v = null) {
+  if (v) return id === "alif" || !VOWEL_KEY[v] ? null : `audio/letters/${id}-${VOWEL_KEY[v]}.mp3`;
+  return `audio/letters/${id === "hamza" ? "hamza-a" : id}.mp3`;
+}
+export const hasSyllAudio = (id, v) => !!letterAudioUrl(id, v);
+export const playLetter = (id, o = {}) => playUrl(letterAudioUrl(id), { id: "l:" + id, ...o });
+export const playSyll = (id, v, o = {}) => playUrl(letterAudioUrl(id, v), { id: `s:${id}:${v}`, ...o });
+/**
+ * Проигрывает записи подряд. items: [{ url, id }] ; gap — пауза между ними (мс); onStep(i) — какая запись звучит (−1 — конец).
+ * Любое другое воспроизведение или stop() обрывает цепочку. onEnd(done): done — цепочка доиграна до конца.
+ */
+export function playSeq(items, { gap = 220, onStep, onEnd } = {}) {
+  let i = -1, timer = 0, dead = false;
+  const end = (done = false) => { if (dead) return; dead = true; clearTimeout(timer); if (seq === end) seq = null; onStep?.(-1); onEnd?.(done === true); };
+  const next = () => {
+    if (dead) return;
+    i++;
+    if (i >= items.length) return end(true);
+    let once = false;
+    const after = () => { if (once || dead) return; once = true; timer = setTimeout(next, gap); };
+    seq = null; // playUrl сам вызывает stop() — цепочку он обрывать не должен
+    playUrl(items[i].url, { id: items[i].id || items[i].url, rate: items[i].rate || 1, onEnd: after, onError: after });
+    seq = end;
+    onStep?.(i);
+  };
+  next();
+  return end;
+}
+export const syllItem = (id, v) => ({ url: letterAudioUrl(id, v), id: `s:${id}:${v}` });
+export const wordItem = (key) => ({ url: wordAudioUrl(key), id: "w:" + key });
+export function preloadLetter(id, v = null) { const u = letterAudioUrl(id, v); if (u) { const a = new Audio(); a.preload = "auto"; a.src = u; } }
+
 /** Предзагрузка слова (браузер положит его в кэш). */
 export function preloadWord(key) { const a = new Audio(); a.preload = "auto"; a.src = wordAudioUrl(key); }
 

@@ -6,7 +6,9 @@ import { letterExamples, lessonWords, words, minimalPairs, loadSurah, wordKey, r
 import { RULES, parseMarkup, plain, rulesIn } from "./rules.js";
 import { M, CONS, stripStops } from "./arabic.js";
 import { diagram } from "./diagram.js";
-import { playWord, playAyah, stop, sfx, canRecord, startRecording, stopRecording, envelope, playUrl } from "./audio.js";
+import { playWord, playAyah, stop, sfx, canRecord, startRecording, stopRecording, envelope, playUrl, playLetter, playSyll } from "./audio.js";
+import { letterIntro, letterForms, harakatTiles, syllTile, blendCard, blendsFor, playAllVowels, V3, SYLL_IDS } from "./syllables.js";
+import { knownLetters } from "./course.js";
 import { store, addXp, srsSeen, finishLesson, todayXp, hardSeen } from "./store.js";
 import { track } from "./metrika.js";
 
@@ -48,11 +50,14 @@ export function letterCard(id, { mini = false } = {}) {
           l.nc ? h("span.chip", null, "не соединяется дальше") : null,
           h("span.chip", null, l.dots)))),
     h("p.lc-text", null, rich(l.sound)),
+    h("div.lc-listen", null,
+      id === "hamza" ? null : h("button.btn.secondary.listen-btn", { type: "button", onclick: () => playLetter(id) }, icon("vol", { size: 20 }), `Послушать: «${l.name}»`),
+      id === "alif" ? null : harakatTiles(id, { hints: false })),
     l.tip ? h("p.lc-tip", null, icon("sparkle", { size: 16 }), h("span", null, rich(l.tip))) : null,
     mini ? null : formsRow(id),
     h("div.lc-bottom", null,
       h("div.lc-diagram", null, diagram({ highlight: l.point, small: true }), h("small.muted", null, POINTS[l.point].label)),
-      ex.length ? h("div.lc-ex", null, h("div.label", null, "Послушайте в Коране"), wordsRow(ex)) : null));
+      ex.length ? h("div.lc-ex", null, h("div.label", null, id === "alif" ? "Алиф в словах Корана: долгое «аа»" : "Слова Корана с этой буквы"), wordsRow(ex)) : null));
 }
 
 function zoneCard(id) {
@@ -91,10 +96,7 @@ const MUQ = [["ا[xلٓمٓ]", "002_001_001", "алиф-ляям-миим"], ["�
 const STOP_SIGNS = [["ۘ", "мим", "обязательная остановка"], ["ۙ", "ля", "не останавливаться"], ["ۚ", "джим", "равнозначно"], ["ۖ", "сыля", "лучше продолжить"], ["ۗ", "кыля", "лучше остановиться"], ["ۛ", "муʿанака", "на одном из двух мест"]];
 
 function syllRow(v) {
-  const mark = { fatha: M.FATHA, kasra: M.KASRA, damma: M.DAMMA }[v];
-  const vv = { fatha: "а", kasra: "и", damma: "у" }[v];
-  const ids = ["ba", "ta", "tha", "jim", "hha", "kha", "dal", "ra", "sin", "sad", "qaf", "kaf", "lam", "mim", "nun"];
-  return h("div.syll-grid", null, ...ids.map((id) => h("div.syll", null, ar(byId[id].ch + mark), tr(CONS[byId[id].ch] + vv))));
+  return h("div.syll-grid", null, ...SYLL_IDS.map((id) => syllTile(id, v, { cls: "syll" })));
 }
 function syllTable() {
   const ids = LETTERS.filter((l) => !["alif", "hamza"].includes(l.id)).map((l) => l.id);
@@ -103,12 +105,13 @@ function syllTable() {
     const row = h("div.st-row", null, h("span.st-name", null, byId[id].name));
     for (const [m, v] of [[M.FATHA, "а"], [M.KASRA, "и"], [M.DAMMA, "у"]]) {
       const c = h("button.st-cell", { type: "button" }, ar(byId[id].ch + m), tr(CONS[byId[id].ch] + v, { hidden: true }));
-      c.addEventListener("click", () => c.querySelector(".tr").classList.toggle("hid"));
+      const vk = v === "а" ? "fatha" : v === "и" ? "kasra" : "damma";
+      c.addEventListener("click", () => { c.querySelector(".tr").classList.remove("hid"); playSyll(id, vk); });
       row.append(c);
     }
     t.append(row);
   }
-  return h("div", null, h("p.muted.center", null, "Нажмите на слог, чтобы проверить себя"), t);
+  return h("div", null, h("p.muted.center", null, "Прочитайте слог вслух, потом нажмите — услышите его и увидите чтение"), t);
 }
 
 async function verseBlock(key, { tapWords = false } = {}) {
@@ -139,7 +142,7 @@ function wordsForCard(o) {
   } else if (o.heavyStart) {
     pool = words({ level: o.level, maxLen: 5, filter: (w) => ["kha", "sad", "dad", "ghayn", "tta", "qaf", "zza"].includes(w.firstL) });
   } else {
-    pool = lessonWords({ level: o.level, need: o.need || "", startsWith: o.startsWith || null, maxLen: 5, filter: o.vowelA ? (w) => /َىٰ?$/.test(w.d) : null }, o.n);
+    pool = lessonWords({ level: o.level, need: o.need || "", avoid: o.avoid || "", startsWith: o.startsWith || null, maxLen: o.maxLen || 5, filter: o.vowelA ? (w) => /َىٰ?$/.test(w.d) : null }, o.n);
   }
   return sample(pool.slice(0, 40), o.n);
 }
@@ -154,6 +157,8 @@ async function renderCard(step) {
   if (step.caption) extras.append(h("p.caption", null, step.caption));
   if (step.forms) extras.append(formsRow(step.forms));
   if (step.forms2) extras.append(formsRow(step.forms2));
+  if (step.sounds) { const row = harakatTiles(step.sounds); extras.append(row); el.autoplay = () => playAllVowels(step.sounds, row); }
+  if (step.sounds1) extras.append(h("div.snd-row", { dir: "rtl" }, ...step.sounds1.map((id) => syllTile(id, step.vowel, { cls: "big v-" + step.vowel }))));
   if (step.syll) extras.append(syllRow(step.syll));
   if (step.syllTable) extras.append(syllTable());
   if (step.diagram) extras.append(diagram({ highlight: step.diagram }));
@@ -177,7 +182,7 @@ async function renderCard(step) {
 
 // ---------- Чтение и запись голоса ----------
 function readStep(step, api) {
-  const pool = lessonWords({ level: step.level, need: step.need || "", maxLen: 6 }, step.n);
+  const pool = lessonWords({ level: step.level, need: step.need || "", avoid: step.avoid || "", maxLen: step.maxLen || 6 }, step.n);
   const ws = sample(pool.slice(0, 300), step.n);
   let i = 0, good = 0;
   const box = h("div.read-drill");
@@ -242,6 +247,12 @@ function speakStep(step, api) {
   return box;
 }
 
+/** Из чего складывать слоги на шаге: буквы урока и уже пройденные (этап «Алфавит») или слова с нужными огласовками. */
+export function blendScope(st, lesson) {
+  const own = st.letters || (Array.isArray(lesson?.letters) ? lesson.letters : null);
+  return { letters: own, known: knownLetters(lesson?.id), vowels: st.vowels || V3, need: st.need || null, minLen: st.minLen || 2, maxLen: st.maxLen || 3 };
+}
+
 // ---------- Плеер ----------
 /**
  * Запускает урок в контейнере root. opts: { title, questionsOnly (для повторения), isTest, surah, onExit, id }
@@ -253,9 +264,15 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
   // Разворачиваем шаги в экраны
   const screens = [];
   for (const st of steps) {
-    if (st.t === "ex") (await build(st, { letters: st.letters || lesson?.letters })).forEach((q) => screens.push({ type: "q", q }));
+    if (st.t === "ex") (await build(st, { id: lesson?.id, letters: st.letters || lesson?.letters })).forEach((q) => screens.push({ type: "q", q }));
     else if (st.t === "quiz") screens.push({ type: "q", q: quiz(st) });
     else if (st.t === "q") screens.push({ type: "q", q: st.q });
+    else if (st.t === "letter" && !st.mini) screens.push({ type: "letterIntro", st });
+    else if (st.t === "blend") {
+      // «слог + слог = слово»: из букв урока (алфавит) или из слов нужного уровня (огласовки)
+      const blends = blendsFor({ ...blendScope(st, lesson), n: st.n || 3 });
+      if (blends.length) screens.push({ type: "blend", st, blends });
+    }
     else screens.push({ type: st.t, st });
   }
   if (!screens.length) { root.replaceChildren(h("div.card", null, h("p", null, "Не удалось подготовить упражнения. Проверьте подключение к интернету."))); return; }
@@ -317,6 +334,9 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
     let body;
     if (s.type === "card") body = await renderCard(s.st);
     else if (s.type === "letter") body = letterCard(s.st.id, { mini: s.st.mini });
+    else if (s.type === "letterIntro") body = letterIntro(s.st.id, { more: (id) => { stop(); modal(letterCard(id), { cls: "wide" }); } });
+    else if (s.type === "forms") body = letterForms(s.st.id);
+    else if (s.type === "blend") body = blendCard(s.blends, { title: s.st.title, text: s.st.text });
     else if (s.type === "zone") body = zoneCard(s.st.id);
     else if (s.type === "rule") body = ruleCard(s.st.code);
     else if (s.type === "read") body = readStep(s.st, { addXp: gain, done: () => go() });
@@ -324,7 +344,11 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
     else if (s.type === "custom") body = await s.st.render({ addXp: gain, done: () => go() });
     const needsNext = !["read", "speak"].includes(s.type) && !(s.type === "custom" && s.st.selfNext);
     stage.replaceChildren(h("div.lp-content", null, body, needsNext ? h("div.lp-actions", null, nextBtn(idx === 0 ? "Начнём" : "Далее")) : null));
-    if (s.type === "letter") { const ex = letterExamples(s.st.id, 1)[0]; if (ex) setTimeout(() => stage.isConnected && playWord(ex.a), 900); }
+    // звук сразу: название буквы, три слога или первый пример сложения (а не слово, начинающееся с буквы)
+    const here = idx;
+    const auto = (fn, ms) => setTimeout(() => stage.isConnected && idx === here && fn(), ms);
+    if (s.type === "letterIntro" || s.type === "letter" || s.type === "forms") auto(() => playLetter(s.st.id), 700);
+    else if (body.autoplay) auto(body.autoplay, 700);
   }
 
   function showQ(s) {

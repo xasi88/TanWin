@@ -31,7 +31,7 @@ const tag = `${eng}-${width}-ar${scale}-ui${ui}-${theme}${font ? "-" + font : ""
 // маленький статический сервер для корня проекта
 const root = fileURLToPath(new URL("../..", import.meta.url));
 const OUT = fileURLToPath(new URL(`./out${args.out ? "-" + args.out : ""}`, import.meta.url)); // --out имя — для параллельных запусков
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".woff2": "font/woff2", ".svg": "image/svg+xml", ".png": "image/png", ".webmanifest": "application/manifest+json" };
+const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".woff2": "font/woff2", ".mp3": "audio/mpeg", ".svg": "image/svg+xml", ".png": "image/png", ".webmanifest": "application/manifest+json" };
 const server = createServer(async (req, res) => {
   let path = normalize(decodeURIComponent(new URL(req.url, "http://x").pathname)).replace(/^([/\\])+/, "");
   if (!path || path === "." || path.includes("..")) path = "index.html";
@@ -64,7 +64,7 @@ page.on("pageerror", (e) => errors.push(e.message));
 
 const AUDIT = () => {
   const W = innerWidth, issues = [];
-  const BOX = ".card, .opt, .word-chip, .match-btn, .alpha-cell, .form-cell, .syll, .st-cell, .vt-word, .sn-btn, .rd-word, .hero-card, .unit-head, .node-disc, .modal, .sheet-in, .drill, .more-link, .surah-row, .tile, .stat, .schip, .badge-cell, .m-cell, .rw-cell, .stop-cell, .verse-block, .verses, .seg-btn, .btn, .hs-pill, .hs-goal, .dev-banner, .version, .donor, .res-goal, .ob-pt, .start-opt, .goal-opt, .si-plan div, .map-info, .q-big, .rd-word, .lc-glyph";
+  const BOX = ".card, .opt, .word-chip, .match-btn, .alpha-cell, .form-cell, .syll, .st-cell, .vt-word, .sn-btn, .rd-word, .hero-card, .unit-head, .node-disc, .modal, .sheet-in, .drill, .more-link, .surah-row, .tile, .stat, .schip, .badge-cell, .m-cell, .rw-cell, .stop-cell, .verse-block, .verses, .seg-btn, .btn, .hs-pill, .hs-goal, .dev-banner, .version, .donor, .res-goal, .ob-pt, .start-opt, .goal-opt, .si-plan div, .map-info, .q-big, .rd-word, .lc-glyph, .snd-tile, .li-glyph, .bb-out, .blend";
   const OVERLAY = ".lp-sheet, .lp-actions, #nav, #toast, .lp-top, .reader-tools, .focus-bar, .focus-juz";
   const modalOpen = document.querySelector("#modal-root .modal-wrap:not(.out)");
   const roots = modalOpen ? [modalOpen] : [document.querySelector("#app")];
@@ -180,7 +180,7 @@ if (!pagesOnly) {
     await page.evaluate((h) => { location.hash = h; }, "/learn/" + id);
     await page.waitForTimeout(1200);
     let prev = "", same = 0;
-    for (let step = 0; step < 30; step++) {
+    for (let step = 0; step < 90; step++) {
       const sig = await page.evaluate(() => (document.querySelector(".lp-stage")?.innerText || "") + (document.querySelector(".lp-sheet.show") ? "S" : ""));
       if (!sig && step > 0) break;
       same = sig === prev ? same + 1 : 0; prev = sig;
@@ -198,7 +198,7 @@ if (!pagesOnly) {
         if (next) return click(next) && "next";
         const skip = [...document.querySelectorAll(".lp-stage button")].find((b) => /Пропустить|Дальше|Готово|Далее|Продолжить/.test(b.textContent));
         if (skip) return click(skip) && "skip";
-        const m = document.querySelector(".lp-stage .match-btn:not(.done), .lp-stage .vt-word, .lp-stage .dg-pt");
+        const m = document.querySelector(".lp-stage .match-btn:not(.done), .lp-stage .vt-word, .lp-stage .dg-pt, .lp-stage .bb-tile:not(.used)");
         if (m) { m.dispatchEvent(new MouseEvent("click", { bubbles: true })); return "tap"; }
         return false;
       });

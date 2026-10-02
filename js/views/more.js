@@ -75,7 +75,7 @@ export function MoreView() {
       seg("Цель дня", [[10, "5 мин"], [30, "10 мин"], [50, "15 мин"], [80, "25 мин"]], s.profile.goal, (v) => store.set((st) => { st.profile.goal = v; }))),
     h("section.card.settings", null,
       h("h3", null, "Вид"),
-      seg("Тема", [["auto", "Авто"], ["light", "Светлая"], ["dark", "Тёмная"]], s.settings.theme, set("theme")),
+      seg("Тема", [["auto", "Как на устройстве"], ["light", "Светлая"], ["dark", "Тёмная"]], s.settings.theme, set("theme")),
       fullscreenToggle(),
       seg("Арабский шрифт", Object.entries(AR_FONTS).map(([k, f]) => [k, f.name]), arFont(), set("arFont")),
       h("small.muted.set-note", null, "«Мадина» — шрифт печатного мусхафа Мадины (стоит по умолчанию). «Амири» — прежний шрифт приложения. «Шехерезада» — широкие просветы между знаками. «Ното» — простой и ровный. Менять можно и при чтении — кнопка «Aa»."),
@@ -103,7 +103,7 @@ export function MoreView() {
       metrikaAvailable() ? h("div.set-sep", null, toggle("Анонимная статистика", "analytics", "Показывает автору, сколько людей учится и где бывает трудно. Через Яндекс.Метрику передаются только открытые экраны и пройденные уроки — без имени.")) : null),
     h("section.card.about", null,
       h("h3", null, "Об источниках"),
-      h("p", null, "Текст Корана (мусхаф Мадины, риваят Хафса от Асыма), разметка таджвида, пословное аудио и тайминги слов — ", h("a", { href: "https://quran.com", target: "_blank", rel: "noopener" }, "Quran.com"), ". Аудио аятов: Махмуд Халиль аль-Хусари (обучающее чтение) и Мишари Рашид аль-Афаси — ", h("a", { href: "https://everyayah.com", target: "_blank", rel: "noopener" }, "EveryAyah"), " и Quran.com. Перевод смыслов — Эльмир Кулиев."),
+      h("p", null, "Текст Корана (мусхаф Мадины, риваят Хафса от Асыма), разметка таджвида, пословное аудио и тайминги слов — ", h("a", { href: "https://quran.com", target: "_blank", rel: "noopener" }, "Quran.com"), ". Аудио аятов: Махмуд Халиль аль-Хусари (обучающее чтение) и Мишари Рашид аль-Афаси — ", h("a", { href: "https://everyayah.com", target: "_blank", rel: "noopener" }, "EveryAyah"), " и Quran.com. Озвучка отдельных букв и слогов — записи проекта ", h("a", { href: "https://github.com/bubblesinarabic/alphabets-audio", target: "_blank", rel: "noopener" }, "bubblesinarabic"), ". Перевод смыслов — Эльмир Кулиев."),
       h("p", null, "Шрифты: Amiri Quran (Khaled Hosny), Scheherazade New (SIL Global), Noto Naskh Arabic (Google) и Nunito — лицензия SIL Open Font License; KFGQPC Uthmanic Script Hafs — Комплекс имени короля Фахда по изданию Священного Корана (Медина)."),
       h("p.muted.small", null, "Приложение не заменяет учителя. Чтение Корана традиционно передаётся из уст в уста (талакки): когда пройдёте путь, прочитайте знающему человеку — он поправит тонкости произношения.")));
 }

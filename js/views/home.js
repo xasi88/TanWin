@@ -145,7 +145,7 @@ function surahNode(n, i, target) {
   node.addEventListener("click", () => {
     if (open) go(`/surah/${n}`);
     else modal(h("div.lesson-sheet", { style: { "--hc": "var(--c-gold)" } }, h("h2", null, `Сура ${m.ru}`), h("p.muted", null, m.meaning),
-      h("p", null, surahsOpen() ? "Сначала прочитайте предыдущие суры пути." : "Суры откроются после этапа 10 «Особые написания». А в разделе «Коран» можно читать и слушать любую суру уже сейчас."),
+      h("p", null, surahsOpen() ? "Сначала прочитайте предыдущие суры пути." : "Суры откроются после этапа 8 «Аяты». А в разделе «Коран» можно читать и слушать любую суру уже сейчас."),
       h("a.btn.secondary.wide", { href: `#/quran/${n}` }, "Открыть в мусхафе")));
   });
   return node;

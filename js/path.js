@@ -3,7 +3,7 @@ import { UNITS, ALL_LESSONS, SURAH_PATH, SURAH_UNIT, lessonById } from "./course
 import { store, lessonDone, surahDone, streakNow, award } from "./store.js";
 
 export const ORDER = ALL_LESSONS.map((l) => l.id);
-const SURAH_GATE = "10.6"; // суры открываются после этапа «Особые написания»
+const SURAH_GATE = "8.7"; // суры открываются после этапа «Аяты»
 
 /** Настройка «Открыть все уроки»: например, если прогресс потерялся вместе с данными браузера. */
 export const allOpen = () => !!store.get().settings.unlockAll;
@@ -44,7 +44,7 @@ export function nextTarget() {
   const reached = lessonDone(SURAH_GATE) || SURAH_PATH.some((n) => surahDone(n));
   const surah = !surahsOpen() ? null : allOpen() ? (reached || !lesson ? afterLast(SURAH_PATH, surahDone) : null) : SURAH_PATH.find((n) => !surahDone(n) && surahUnlocked(n));
   if (lesson && surah) {
-    // после этапа 10 предлагаем то, чего меньше сделано сегодня: сначала урок таджвида, потом суру
+    // после этапа «Аяты» предлагаем то, чего меньше сделано сегодня: сначала урок таджвида, потом суру
     const lastL = Math.max(0, ...Object.values(store.get().lessons).map((x) => x.at || 0));
     const lastS = Math.max(0, ...Object.values(store.get().surahs).map((x) => x.at || 0));
     return lastS <= lastL ? { type: "surah", n: surah } : { type: "lesson", id: lesson };
@@ -72,7 +72,8 @@ export function applySkip(testId) {
 }
 /** Что уже пройдено — для подбора упражнений в «Повторении». */
 export function learnedLevel() {
-  const L = [["9.1", "shadda"], ["8.1", "sukun"], ["7.1", "madd"], ["6.1", "tanween"], ["5.3", "damma"], ["5.2", "kasra"], ["5.1", "fatha"]];
+  // слова с сукуном могут содержать мадд и танвин — этот уровень только после уроков слов с маддом
+  const L = [["7.8", "shadda"], ["7.5", "sukun"], ["7.1", "madd"], ["6.4", "tanween"], ["4.3", "damma"], ["4.2", "kasra"], ["4.1", "fatha"]];
   for (const [id, lv] of L) if (lessonDone(id)) return lv;
   return null;
 }
@@ -82,14 +83,16 @@ export const learned = (id) => lessonDone(id);
 export const BADGES = [
   { id: "first", icon: "✦", name: "Первый шаг", text: "Пройден первый урок", test: () => ORDER.some((id) => lessonDone(id)) },
   { id: "alphabet", icon: "ب", name: "Алфавит", text: "Все 28 букв", test: () => lessonDone("2.9") },
-  { id: "makharij", icon: "◉", name: "Знаток махраджей", text: "Места выхода звуков", test: () => lessonDone("3.8") },
-  { id: "harakat", icon: "بَ", name: "Первые слова", text: "Читаю с огласовками", test: () => lessonDone("5.6") },
+  { id: "forms", icon: "ـبـ", name: "Формы букв", text: "Узнаю букву в любом месте слова", test: () => lessonDone("3.12") },
+  { id: "makharij", icon: "◉", name: "Знаток махраджей", text: "Места выхода звуков", test: () => lessonDone("9.8") },
+  { id: "harakat", icon: "بَ", name: "Огласовки", text: "Фатха, касра, дамма, сукун, танвин", test: () => lessonDone("4.7") },
+  { id: "syllables", icon: "بَـ", name: "Читаю по слогам", text: "Слоги складываются в слова", test: () => lessonDone("5.5") },
   { id: "madd", icon: "بَا", name: "Долгие гласные", text: "Танвин и мадд", test: () => lessonDone("7.4") },
-  { id: "reader", icon: "بّ", name: "Читаю слова", text: "Сукун и шадда", test: () => lessonDone("9.4") },
-  { id: "mushaf", icon: "ٱ", name: "Мусхаф Мадины", text: "Особые написания", test: () => lessonDone("10.6") },
-  { id: "nun", icon: "نْ", name: "Нун и мим", text: "Изхар, идгам, икляб, ихфа", test: () => lessonDone("11.6") },
-  { id: "madds", icon: "ـٓ", name: "Мастер маддов", text: "Все виды удлинения", test: () => lessonDone("12.5") },
-  { id: "waqf", icon: "ۘ", name: "Вакф", text: "Правила остановки", test: () => lessonDone("14.3") },
+  { id: "reader", icon: "بّ", name: "Читаю слова", text: "Сукун и шадда", test: () => lessonDone("7.11") },
+  { id: "mushaf", icon: "ٱ", name: "Мусхаф Мадины", text: "Аяты и особые написания", test: () => lessonDone("8.7") },
+  { id: "nun", icon: "نْ", name: "Нун и мим", text: "Изхар, идгам, икляб, ихфа", test: () => lessonDone("10.6") },
+  { id: "madds", icon: "ـٓ", name: "Мастер маддов", text: "Все виды удлинения", test: () => lessonDone("11.5") },
+  { id: "waqf", icon: "ۘ", name: "Вакф", text: "Правила остановки", test: () => lessonDone("13.3") },
   { id: "fatiha", icon: "۞", name: "Аль-Фатиха", text: "Прочитана первая сура", test: () => surahDone(1) },
   { id: "ten", icon: "١٠", name: "Десять сур", text: "Прочитано 10 сур", test: () => SURAH_PATH.filter((n) => surahDone(n)).length >= 10 },
   { id: "juz", icon: "٣٠", name: "Джуз Амма", text: "Все суры пути", test: () => SURAH_PATH.every((n) => surahDone(n)) },
