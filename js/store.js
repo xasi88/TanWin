@@ -8,8 +8,30 @@ const today = (d = new Date()) => {
 };
 const dayDiff = (a, b) => Math.round((new Date(b) - new Date(a)) / 86400000);
 
+// Версия программы курса: 2 — порядок этапов с 1.11.0 (буквы → формы → огласовки → слоги → слова → аяты → махраджи → таджвид).
+const COURSE = 2;
+// В 1.11.0 этапы переставлены и уроки получили новые номера: старый номер → новый (остальные не менялись).
+const LESSON_MOVES = {
+  "3.1": "9.1", "3.2": "9.2", "3.3": "9.3", "3.4": "9.4", "3.5": "9.5", "3.6": "9.6", "3.7": "9.7", "3.8": "9.8",
+  "4.1": "3.1", "4.2": "3.9", "4.3": "3.10", "4.4": "3.11", "4.5": "3.12",
+  "5.1": "4.1", "5.2": "4.2", "5.3": "4.3", "5.4": "4.4", "5.5": "6.3", "5.6": "4.7", "6.1": "4.6", "6.2": "6.4",
+  "8.1": "4.5", "8.2": "7.6", "8.3": "7.7", "9.1": "7.8", "9.2": "7.9", "9.3": "7.10", "9.4": "7.11",
+  "10.1": "8.2", "10.2": "8.3", "10.3": "8.4", "10.4": "8.5", "10.5": "8.6", "10.6": "8.7", "10.7": "8.1",
+  "11.1": "10.1", "11.2": "10.2", "11.3": "10.3", "11.4": "10.4", "11.5": "10.5", "11.6": "10.6",
+  "12.1": "11.1", "12.2": "11.2", "12.3": "11.3", "12.4": "11.4", "12.5": "11.5",
+  "13.1": "12.1", "13.2": "12.2", "13.3": "12.3", "13.4": "12.4", "14.1": "13.1", "14.2": "13.2", "14.3": "13.3",
+};
+/** Прогресс, сохранённый до перестановки этапов (в том числе из файла экспорта): переносим уроки на новые номера. */
+function migrate(s) {
+  if (!s || typeof s !== "object" || s.course >= COURSE) return s;
+  if (s.lessons && typeof s.lessons === "object") s.lessons = Object.fromEntries(Object.entries(s.lessons).map(([id, v]) => [LESSON_MOVES[id] || id, v]));
+  s.course = COURSE;
+  return s;
+}
+
 const DEFAULT = () => ({
   v: 2,
+  course: COURSE,
   profile: { name: "", created: Date.now(), goal: 30, onboarded: false },
   settings: { theme: "auto", arScale: 1, reciter: "husary", translit: "tap", tajweed: true, sfx: true, translation: true, rate: 1, unlockAll: false, uiScale: 1, analytics: true, arFont: "hafs" },
   lessons: {},
@@ -27,7 +49,7 @@ let state = load();
 function load() {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return merge(DEFAULT(), JSON.parse(raw));
+    if (raw) return merge(DEFAULT(), migrate(JSON.parse(raw)));
   } catch {}
   return DEFAULT();
 }
@@ -53,7 +75,7 @@ export const store = {
     const j = JSON.parse(text);
     const s = j.state || j;
     if (!s || typeof s !== "object" || !("lessons" in s)) throw new Error("Это не файл прогресса TanWin");
-    state = merge(DEFAULT(), s); save();
+    state = merge(DEFAULT(), migrate(s)); save();
   },
 };
 

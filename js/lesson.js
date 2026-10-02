@@ -7,7 +7,7 @@ import { RULES, parseMarkup, plain, rulesIn } from "./rules.js";
 import { M, CONS, stripStops } from "./arabic.js";
 import { diagram } from "./diagram.js";
 import { playWord, playAyah, stop, sfx, canRecord, startRecording, stopRecording, envelope, playUrl, playLetter, playSyll } from "./audio.js";
-import { letterIntro, letterSounds, harakatTiles, syllTile, blendCard, blendsFor, playAllVowels, V3 } from "./syllables.js";
+import { letterIntro, letterForms, harakatTiles, syllTile, blendCard, blendsFor, playAllVowels, V3, SYLL_IDS } from "./syllables.js";
 import { knownLetters } from "./course.js";
 import { store, addXp, srsSeen, finishLesson, todayXp, hardSeen } from "./store.js";
 import { track } from "./metrika.js";
@@ -96,8 +96,7 @@ const MUQ = [["ا[xلٓمٓ]", "002_001_001", "алиф-ляям-миим"], ["�
 const STOP_SIGNS = [["ۘ", "мим", "обязательная остановка"], ["ۙ", "ля", "не останавливаться"], ["ۚ", "джим", "равнозначно"], ["ۖ", "сыля", "лучше продолжить"], ["ۗ", "кыля", "лучше остановиться"], ["ۛ", "муʿанака", "на одном из двух мест"]];
 
 function syllRow(v) {
-  const ids = ["ba", "ta", "tha", "jim", "hha", "kha", "dal", "ra", "sin", "sad", "qaf", "kaf", "lam", "mim", "nun"];
-  return h("div.syll-grid", null, ...ids.map((id) => syllTile(id, v, { cls: "syll" })));
+  return h("div.syll-grid", null, ...SYLL_IDS.map((id) => syllTile(id, v, { cls: "syll" })));
 }
 function syllTable() {
   const ids = LETTERS.filter((l) => !["alif", "hamza"].includes(l.id)).map((l) => l.id);
@@ -143,7 +142,7 @@ function wordsForCard(o) {
   } else if (o.heavyStart) {
     pool = words({ level: o.level, maxLen: 5, filter: (w) => ["kha", "sad", "dad", "ghayn", "tta", "qaf", "zza"].includes(w.firstL) });
   } else {
-    pool = lessonWords({ level: o.level, need: o.need || "", startsWith: o.startsWith || null, maxLen: 5, filter: o.vowelA ? (w) => /َىٰ?$/.test(w.d) : null }, o.n);
+    pool = lessonWords({ level: o.level, need: o.need || "", avoid: o.avoid || "", startsWith: o.startsWith || null, maxLen: o.maxLen || 5, filter: o.vowelA ? (w) => /َىٰ?$/.test(w.d) : null }, o.n);
   }
   return sample(pool.slice(0, 40), o.n);
 }
@@ -159,6 +158,7 @@ async function renderCard(step) {
   if (step.forms) extras.append(formsRow(step.forms));
   if (step.forms2) extras.append(formsRow(step.forms2));
   if (step.sounds) { const row = harakatTiles(step.sounds); extras.append(row); el.autoplay = () => playAllVowels(step.sounds, row); }
+  if (step.sounds1) extras.append(h("div.snd-row", { dir: "rtl" }, ...step.sounds1.map((id) => syllTile(id, step.vowel, { cls: "big v-" + step.vowel }))));
   if (step.syll) extras.append(syllRow(step.syll));
   if (step.syllTable) extras.append(syllTable());
   if (step.diagram) extras.append(diagram({ highlight: step.diagram }));
@@ -182,7 +182,7 @@ async function renderCard(step) {
 
 // ---------- Чтение и запись голоса ----------
 function readStep(step, api) {
-  const pool = lessonWords({ level: step.level, need: step.need || "", maxLen: 6 }, step.n);
+  const pool = lessonWords({ level: step.level, need: step.need || "", avoid: step.avoid || "", maxLen: step.maxLen || 6 }, step.n);
   const ws = sample(pool.slice(0, 300), step.n);
   let i = 0, good = 0;
   const box = h("div.read-drill");
@@ -250,7 +250,7 @@ function speakStep(step, api) {
 /** Из чего складывать слоги на шаге: буквы урока и уже пройденные (этап «Алфавит») или слова с нужными огласовками. */
 export function blendScope(st, lesson) {
   const own = st.letters || (Array.isArray(lesson?.letters) ? lesson.letters : null);
-  return { letters: own, known: knownLetters(lesson?.id), vowels: st.vowels || V3, need: st.need || null, maxLen: st.maxLen || 3 };
+  return { letters: own, known: knownLetters(lesson?.id), vowels: st.vowels || V3, need: st.need || null, minLen: st.minLen || 2, maxLen: st.maxLen || 3 };
 }
 
 // ---------- Плеер ----------
@@ -267,7 +267,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
     if (st.t === "ex") (await build(st, { id: lesson?.id, letters: st.letters || lesson?.letters })).forEach((q) => screens.push({ type: "q", q }));
     else if (st.t === "quiz") screens.push({ type: "q", q: quiz(st) });
     else if (st.t === "q") screens.push({ type: "q", q: st.q });
-    else if (st.t === "letter" && !st.mini) { screens.push({ type: "letterIntro", st }); if (st.id !== "alif") screens.push({ type: "letterSounds", st }); }
+    else if (st.t === "letter" && !st.mini) screens.push({ type: "letterIntro", st });
     else if (st.t === "blend") {
       // «слог + слог = слово»: из букв урока (алфавит) или из слов нужного уровня (огласовки)
       const blends = blendsFor({ ...blendScope(st, lesson), n: st.n || 3 });
@@ -335,7 +335,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
     if (s.type === "card") body = await renderCard(s.st);
     else if (s.type === "letter") body = letterCard(s.st.id, { mini: s.st.mini });
     else if (s.type === "letterIntro") body = letterIntro(s.st.id, { more: (id) => { stop(); modal(letterCard(id), { cls: "wide" }); } });
-    else if (s.type === "letterSounds") body = letterSounds(s.st.id);
+    else if (s.type === "forms") body = letterForms(s.st.id);
     else if (s.type === "blend") body = blendCard(s.blends, { title: s.st.title, text: s.st.text });
     else if (s.type === "zone") body = zoneCard(s.st.id);
     else if (s.type === "rule") body = ruleCard(s.st.code);
@@ -347,8 +347,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
     // звук сразу: название буквы, три слога или первый пример сложения (а не слово, начинающееся с буквы)
     const here = idx;
     const auto = (fn, ms) => setTimeout(() => stage.isConnected && idx === here && fn(), ms);
-    if (s.type === "letterIntro" || s.type === "letter") auto(() => playLetter(s.st.id), 700);
-    else if (s.type === "letterSounds") auto(() => playAllVowels(s.st.id, body.querySelector(".snd-row")), 600);
+    if (s.type === "letterIntro" || s.type === "letter" || s.type === "forms") auto(() => playLetter(s.st.id), 700);
     else if (body.autoplay) auto(body.autoplay, 700);
   }
 

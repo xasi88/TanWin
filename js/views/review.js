@@ -52,15 +52,15 @@ const DRILLS = [
     return ws.flatMap((w, i) => [{ t: "ex", k: i % 2 ? "listenWord" : "readWord", n: 1, words: [w] }]);
   } },
   { id: "letters", icon: "sparkle", title: "Буквы", text: "Названия, формы, звуки", need: "2.9", steps: () => [{ t: "ex", k: "letterName", n: 4, from: "all" }, { t: "ex", k: "letterPick", n: 4, from: "all" }, { t: "ex", k: "formPick", n: 3 }, { t: "ex", k: "listenFirst", n: 3, from: "all" }] },
-  { id: "ear", icon: "ear", title: "Тренажёр слуха", text: "Трудные пары: {س} и {ص}, {ت} и {ط}, {ه} и {ح}…", need: "3.4", steps: () => [{ t: "ex", k: "pairListen", n: 10, pairs: "all" }] },
-  { id: "makharij", icon: "target", title: "Махраджи", text: "Откуда выходит звук", need: "3.8", steps: () => [{ t: "ex", k: "pointPick", n: 5, letters: "all" }, { t: "ex", k: "heavy", n: 4 }, { t: "ex", k: "zonePick", n: 3 }] },
-  { id: "fluency", icon: "book", title: "Беглое чтение", text: "Слова Корана вашего уровня", need: "5.1", steps: () => [{ t: "read", level: learnedLevel() || "fatha", n: 12 }] },
-  { id: "listen", icon: "vol", title: "Слова на слух", text: "Узнайте слово по чтецу", need: "5.1", steps: () => [{ t: "ex", k: "listenWord", n: 10, level: learnedLevel() || "fatha" }] },
-  { id: "voice", icon: "mic", title: "Мой голос", text: "Запишите себя и сравните с чтецом", need: "5.1", steps: () => Array.from({ length: 3 }, () => ({ t: "speak", level: learnedLevel() || "fatha" })) },
-  { id: "tajweed", icon: "palette", title: "Найди правило", text: "Правила таджвида в аятах", need: "11.4", steps: () => [
+  { id: "ear", icon: "ear", title: "Тренажёр слуха", text: "Трудные пары: {س} и {ص}, {ت} и {ط}, {ه} и {ح}…", need: "9.4", steps: () => [{ t: "ex", k: "pairListen", n: 10, pairs: "all" }] },
+  { id: "makharij", icon: "target", title: "Махраджи", text: "Откуда выходит звук", need: "9.8", steps: () => [{ t: "ex", k: "pointPick", n: 5, letters: "all" }, { t: "ex", k: "heavy", n: 4 }, { t: "ex", k: "zonePick", n: 3 }] },
+  { id: "fluency", icon: "book", title: "Беглое чтение", text: "Слова Корана вашего уровня", need: "6.1", steps: () => [{ t: "read", level: learnedLevel() || "fatha", n: 12 }] },
+  { id: "listen", icon: "vol", title: "Слова на слух", text: "Узнайте слово по чтецу", need: "6.1", steps: () => [{ t: "ex", k: "listenWord", n: 10, level: learnedLevel() || "fatha" }] },
+  { id: "voice", icon: "mic", title: "Мой голос", text: "Запишите себя и сравните с чтецом", need: "6.1", steps: () => Array.from({ length: 3 }, () => ({ t: "speak", level: learnedLevel() || "fatha" })) },
+  { id: "tajweed", icon: "palette", title: "Найди правило", text: "Правила таджвида в аятах", need: "10.4", steps: () => [
     ...["f", "i", "d", "D", "g", "q", "n", "o", "u"].filter(() => Math.random() < 0.7).slice(0, 6).map((c) => ({ t: "ex", k: "ruleSpot", n: 1, code: c })),
     { t: "ex", k: "nunRule", n: 4 }] },
-  { id: "madd", icon: "slow", title: "Сколько тянуть?", text: "Мадды: 2, 4–5, 6", need: "12.5", steps: () => [{ t: "ex", k: "maddCount", n: 10 }] },
+  { id: "madd", icon: "slow", title: "Сколько тянуть?", text: "Мадды: 2, 4–5, 6", need: "11.5", steps: () => [{ t: "ex", k: "maddCount", n: 10 }] },
 ];
 
 export function ReviewView() {

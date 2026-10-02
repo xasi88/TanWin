@@ -46,7 +46,7 @@ function listenBtn(label, fn, audioId) {
   return b;
 }
 
-// ---------- Экран 1: буква, её название и формы ----------
+// ---------- Знакомство с буквой ----------
 function drawGlyph(ch) {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("viewBox", "0 0 200 200");
@@ -56,10 +56,9 @@ function drawGlyph(ch) {
 }
 const FORM_NAMES = [["fin", "в конце"], ["med", "в середине"], ["ini", "в начале"], ["iso", "отдельно"]];
 
-/** Знакомство с буквой: как выглядит, как называется, как меняется в слове. more(id) — полная карточка (махрадж, советы). */
+/** Знакомство с буквой: как выглядит отдельно и как называется. more(id) — полная карточка (махрадж, советы). */
 export function letterIntro(id, { more } = {}) {
   const l = byId[id];
-  const f = forms(l);
   const hasName = id !== "hamza";
   const glyph = h("button.li-glyph", { type: "button", "aria-label": `Послушать букву ${l.name}`, onclick: () => playLetter(id) }, drawGlyph(l.ch), h("span.snd-ico", null, icon("vol", { size: 18 })));
   const sync = () => { if (gone(glyph, off)) return; glyph.classList.toggle("playing", playingId() === "l:" + id); };
@@ -76,13 +75,30 @@ export function letterIntro(id, { more } = {}) {
         h("div.chips", null, h("span.chip", null, l.dots), l.nc ? h("span.chip", null, "не соединяется дальше") : null))),
     listenBtn(hasName ? `Послушать: «${l.name}»` : "Послушать хамзу: «а»", () => playLetter(id), "l:" + id),
     h("p.lc-text", null, rich(note)),
-    id === "hamza" ? null : h("div", null,
-      h("div.label", null, "Четыре формы буквы — в слове она соединяется с соседями"),
-      h("div.forms-row", null, ...FORM_NAMES.map(([k, n]) => h("div.form-cell", null, ar(f[k]), h("small", null, n))))),
     more ? h("button.link", { type: "button", onclick: () => more(id) }, icon("info", { size: 16 }), "Подробнее: откуда выходит звук, советы, слова из Корана") : null);
 }
 
-// ---------- Экран 2: буква с тремя огласовками ----------
+// ---------- Формы буквы в слове ----------
+/** Та же буква в начале, середине и конце слова (второй проход по алфавиту). Плитки звучат названием буквы. */
+export function letterForms(id) {
+  const l = byId[id];
+  const f = forms(l);
+  const tile = (k, n) => soundTile(f[k], null, { play: () => playLetter(id), cls: "form-tile" + (k === "iso" ? " iso" : ""), hint: n, label: `${l.name} ${n}` });
+  // буквы в одном слове: соединяющаяся — три подряд (начало, середина, конец); «гордая» — между двумя «ба», после неё разрыв
+  const demo = l.nc ? "ب" + l.ch + "ب" : l.ch + l.ch + l.ch;
+  return h("div.card.letter-forms", null,
+    h("div.li-kicker", null, "Формы буквы"),
+    h("h2", null, `${l.name} в слове`),
+    h("p", null, rich(l.nc
+      ? `${l.name} соединяется только с **предыдущей** буквой. Поэтому вида у неё два: как отдельная — в начале слова, и с «хвостиком» справа — в середине и в конце.`
+      : `В слове ${l.name} соединяется с соседями с обеих сторон и меняет вид. Главная часть и точки остаются — по ним букву и узнаём.`)),
+    h("div.snd-row.forms4", { dir: "rtl" }, ...[...FORM_NAMES].reverse().map(([k, n]) => tile(k, n))),
+    h("div", null,
+      h("div.label", null, l.nc ? "В слове: после неё — разрыв" : "Три подряд: начало, середина, конец"),
+      h("div.forms-demo", null, ar(demo))));
+}
+
+// ---------- Буква с тремя огласовками ----------
 /** Три плитки: буква + фатха / касра / дамма, со звуком и подписью, какой значок что значит. */
 export function harakatTiles(id, { hints = true } = {}) {
   return h("div.snd-row", { dir: "rtl" }, ...V3.map((v) => syllTile(id, v, { cls: "big v-" + v, hint: hints ? `${VOWELS[v].name} — «${VOWELS[v].ru}»` : null })));
@@ -129,12 +145,12 @@ export function wordSyllables(d) {
  * need — огласовка, которая обязательно есть в слове.
  * Сначала настоящие слова Корана (самые частые и короткие), а если букв ещё мало — цепочки слогов, как в классических букварях.
  */
-export function blendsFor({ letters = null, known = null, vowels = V3, need = null, n = 3, maxLen = 3 } = {}) {
+export function blendsFor({ letters = null, known = null, vowels = V3, need = null, n = 3, minLen = 2, maxLen = 3 } = {}) {
   const want = letters ? new Set(letters) : null, ok = known ? new Set(known) : null;
   const level = vowels.includes("damma") ? "damma" : vowels.includes("kasra") ? "kasra" : "fatha";
   const pool = [];
   const seen = new Set();
-  for (const w of words({ level, maxLen, minLen: 2 })) {
+  for (const w of words({ level, maxLen, minLen })) {
     const s = wordSyllables(w.d);
     if (!s || seen.has(w.tr)) continue;
     if (!s.every((x) => vowels.includes(x.v) && (!ok || ok.has(x.id)))) continue;
@@ -144,7 +160,7 @@ export function blendsFor({ letters = null, known = null, vowels = V3, need = nu
     pool.push({ sylls: s, text: w.d, tr: w.tr, word: w });
   }
   pool.sort((a, b) => b.word.n - a.word.n);
-  const out = shuffle(pool.slice(0, Math.max(n * 4, 12))).slice(0, n).sort((a, b) => a.sylls.length - b.sylls.length);
+  const out = shuffle(pool.slice(0, Math.max(n * 5, 16))).slice(0, n).sort((a, b) => a.sylls.length - b.sylls.length);
   // букв ещё мало для настоящих слов: складываем слоги из букв урока (как в классических букварях)
   const ids = (letters || known || []).filter((id) => id !== "alif");
   const mk = (pairs) => { const sylls = pairs.map(([id, v]) => ({ id, v, text: syllText(id, v) })); return { sylls, text: sylls.map((x) => x.text).join(""), tr: sylls.map((x) => syllTr(x.id, x.v)).join(""), word: null }; };

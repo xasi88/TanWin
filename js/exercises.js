@@ -104,7 +104,7 @@ G.sylListen = (o, lesson) => {
 // Собрать слово из слогов: плитки соединяются в слово по мере сборки
 G.blend = (o, lesson) => {
   const own = o.letters || (Array.isArray(lesson?.letters) ? lesson.letters : null);
-  const scope = { letters: own, known: knownLetters(lesson?.id), vowels: o.vowels || V3, need: o.need || null, maxLen: o.maxLen || 3 };
+  const scope = { letters: own, known: knownLetters(lesson?.id), vowels: o.vowels || V3, need: o.need || null, minLen: o.minLen || 2, maxLen: o.maxLen || 3 };
   return blendsFor({ ...scope, n: o.n }).map((b) => {
     // лишние плитки: те же буквы с другой огласовкой
     const have = new Set(b.sylls.map((x) => x.text));
@@ -188,13 +188,28 @@ G.heavy = (o) => cycle(L_ALL.filter((x) => !["alif", "ra", "lam", "hamza"].inclu
 });
 
 // ================= Формы =================
-const FORM_NAMES = { iso: "отдельная", ini: "начальная", med: "серединная", fin: "конечная" };
-G.formPick = (o) => cycle(L_ALL.filter((x) => x !== "hamza" && x !== "alif"), o.n).map((id) => {
+const FORM_PLACE = { ini: "в начале слова", med: "в середине слова", fin: "в конце слова" };
+// В какой форме стоит буква: начало, середина или конец слова (только буквы, которые соединяются с обеих сторон)
+G.formWhere = (o, lesson) => {
+  const own = Array.isArray(lesson?.letters) ? lesson.letters : L_ALL;
+  const ids = own.filter((x) => x !== "hamza" && !byId[x].nc);
+  if (!ids.length) return [];
+  return cycle(ids, o.n).map((id) => {
+    const l = byId[id];
+    const which = pick(["ini", "med", "fin"]);
+    const NAMES = { ini: "В начале слова", med: "В середине", fin: "В конце слова" };
+    return withOpts({ kind: "formWhere", key: "F:" + id, layout: "list",
+      prompt: () => h("div.q-center", null, promptText(`Где в слове стоит ${l.name} в таком виде?`, "Смотрите, с какой стороны есть соединение."), ar(forms(l)[which], { cls: "q-big form-box" })),
+      explain: "Соединение слева — после буквы есть следующая (начало или середина). Соединение справа — перед ней есть буква (середина или конец).",
+    }, Object.entries(NAMES).map(([k, t]) => textOpt(t, k === which)));
+  });
+};
+G.formPick = (o, lesson) => cycle((o.own && Array.isArray(lesson?.letters) ? lesson.letters : L_ALL).filter((x) => x !== "hamza" && x !== "alif"), o.n).map((id) => {
   const l = byId[id];
   const f = forms(l);
   const which = pick(l.nc ? ["fin"] : ["ini", "med", "fin"]);
   return withOpts({ kind: "formPick", key: "F:" + id, layout: "grid4",
-    prompt: () => h("div.q-center", null, promptText(`Какая буква в ${FORM_NAMES[which]} форме?`), ar(f[which], { cls: "q-big form-box" })),
+    prompt: () => h("div.q-center", null, promptText(`Какая буква стоит ${FORM_PLACE[which]}?`), ar(f[which], { cls: "q-big form-box" })),
     explain: `Это ${l.name}. Отдельно: ${l.ch}.`,
   }, [letterOpt(id, true), ...similarLetters(id, 3).map((x) => letterOpt(x, false))]);
 });
@@ -241,9 +256,11 @@ G.syllable = (o, lesson) => {
   });
 };
 G.syllableRev = (o) => Array.from({ length: o.n }, () => {
-  const id = pick(SYL_LETTERS), v = pick(["fatha", "kasra", "damma"]);
-  const others = ["fatha", "kasra", "damma"].filter((x) => x !== v).map((x) => sylText(id, x));
-  const sim = similarLetters(id, 1, SYL_LETTERS).map((x) => sylText(x, v));
+  const vs = o.vowels || ["fatha", "kasra", "damma"];
+  const id = pick(SYL_LETTERS), v = pick(vs);
+  // неверные варианты — только с уже пройденными огласовками; не хватает — похожие буквы
+  const others = vs.filter((x) => x !== v).map((x) => sylText(id, x));
+  const sim = similarLetters(id, 3 - others.length, SYL_LETTERS).map((x) => sylText(x, v));
   return withOpts({ kind: "syllableRev", key: "V:" + v, layout: "grid4",
     prompt: () => h("div.q-center", null, promptText("Найдите слог"), h("div.q-tr", null, tr(sylTr(id, v)))),
   }, [arOpt(sylText(id, v), true, "opt-letter"), ...[...others, ...sim].map((t) => arOpt(t, false, "opt-letter"))]);
@@ -273,7 +290,7 @@ function readOptions(w, n = 3) {
   return m.slice(0, n);
 }
 G.readWord = (o) => {
-  const pool = o.words || lessonWords({ level: o.level, need: o.need || "", maxLen: 6 }, o.n);
+  const pool = o.words || lessonWords({ level: o.level, need: o.need || "", avoid: o.avoid || "", maxLen: o.maxLen || 6 }, o.n);
   return (o.words || sample(pool.slice(0, 250), o.n)).map((w) => {
     const wrong = readOptions(w, 3);
     return withOpts({ kind: "readWord", key: "W:" + (o.level || w.L), word: w, layout: "grid2",
@@ -303,7 +320,7 @@ function mutateAr(d) {
   return null;
 }
 G.listenWord = (o) => {
-  const pool = lessonWords({ level: o.level || "full", need: o.need || "", maxLen: 6 }, o.n);
+  const pool = lessonWords({ level: o.level || "full", need: o.need || "", avoid: o.avoid || "", maxLen: o.maxLen || 6 }, o.n);
   return (o.words || sample(pool.slice(0, 250), o.n)).map((w) => {
     preloadWord(w.a);
     const sim = similarWords(w, o.words ? words({ level: w.L, maxLen: 7 }) : pool, 3);

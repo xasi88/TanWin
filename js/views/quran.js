@@ -294,13 +294,40 @@ export function juzMap(page) {
 
 let resumeScroll = false; // автопрокрутка дошла до конца суры — следующая сура продолжает идти сама
 
+/** Раздел «Чтение» в меню: полноэкранный Коран с того места, где читатель остановился. */
+export function ReadStart() {
+  const r = store.get().reading;
+  return ReadMode(r?.s || 1, r?.a || 0);
+}
+const readTr = () => { try { return localStorage.getItem("tanwin.readTr") === "1"; } catch { return false; } };
+
+/** Выбор суры (для режима чтения). */
+function surahPicker(list, cur, open) {
+  modal((close) => {
+    const box = h("div.sp-list");
+    const draw = (q) => {
+      const ql = q.trim().toLowerCase();
+      box.replaceChildren(...list.filter((s) => !ql || String(s.id) === ql || s.ru.toLowerCase().includes(ql) || s.meaning.toLowerCase().includes(ql)).map((s) =>
+        h("button.surah-row", { type: "button", class: s.id === cur ? "on" : "", onclick: () => { close(); open(s.id); } },
+          h("span.sr-num", null, h("span", null, s.id)), h("div.sr-main", null, h("b", null, s.ru), h("small.muted", null, `${s.meaning} · с. ${s.page}`)), h("span.sr-ar", null, ar(s.ar)))));
+    };
+    const inp = h("input.search", { type: "search", placeholder: "Название или номер суры", "aria-label": "Поиск суры" });
+    inp.addEventListener("input", () => draw(inp.value));
+    draw("");
+    requestAnimationFrame(() => box.querySelector(".on")?.scrollIntoView({ block: "center" }));
+    return h("div.surah-picker", null, h("h2", null, "Выберите суру"), inp, box);
+  }, { cls: "sheet" });
+}
+
 export async function ReadMode(n, startA = 0) {
   const auto = resumeScroll;
   resumeScroll = false;
   const [list, data] = await Promise.all([loadSurahs(), loadSurah(n)]);
   const meta = list[n - 1];
   const colors = true; // цвет снимается стилем (класс tj-off), если таджвид выключен
-  const view = renderVerses(n, data, meta, { mode: "mushaf", bare: true, colors, pages: true });
+  // текст можно перерисовать на ходу (перевод, заучивание) — поэтому view меняется, а всё остальное обращается к текущему
+  const build = () => renderVerses(n, data, meta, { mode: readTr() ? "ayat" : "mushaf", bare: true, colors, pages: true, hifz: hifzLevel(), translation: true });
+  let view = build();
   const nextSurah = (keepGoing) => { resumeScroll = keepGoing; location.replace(`#/read/${n + 1}`); };
   const endEl = h("div.focus-end", null, n < 114
     ? h("button.btn.secondary.focus-next", { type: "button", onclick: () => nextSurah(running) }, `Дальше: сура ${list[n].ru}`, icon("right", { size: 18 }))
@@ -316,7 +343,7 @@ export async function ReadMode(n, startA = 0) {
   const words = data.v.reduce((k, v) => k + v[0].length, 0);
 
   // --- автопрокрутка ---
-  let speed = readSpeed(), running = false, raf = 0, last = 0, pos = 0, touching = false, holdUntil = 0, wake = null, ran = 0;
+  let speed = readSpeed(), running = false, listening = false, raf = 0, last = 0, pos = 0, touching = false, holdUntil = 0, wake = null, ran = 0;
   const maxTop = () => scroller.scrollHeight - scroller.clientHeight;
   const pxPerSec = () => speed * SPEED.px * (store.get().settings.arScale || 1); // крупнее текст — выше строка: темп в строках тот же
   const tick = (t) => {
@@ -338,6 +365,7 @@ export async function ReadMode(n, startA = 0) {
   const lockScreen = async () => { try { wake = await navigator.wakeLock?.request("screen"); } catch {} }; // экран не гаснет, пока текст идёт
   const setRunning = (on) => {
     if (on && scroller.scrollTop >= maxTop() - 1) scroller.scrollTop = 0; // дочитали до конца — начинаем сначала
+    if (on && listening) stop(); // чтец сам ведёт по тексту — вместе с автопрокруткой они мешают друг другу
     running = on;
     cancelAnimationFrame(raf);
     if (on) { pos = scroller.scrollTop; last = performance.now(); raf = requestAnimationFrame(tick); lockScreen(); }
@@ -360,9 +388,21 @@ export async function ReadMode(n, startA = 0) {
   const val = h("b.focus-speed", { title: "Скорость прокрутки" }, speed);
   const slower = h("button.sp-btn", { type: "button", "aria-label": "Медленнее", title: "Медленнее", disabled: speed <= SPEED.min, onclick: () => setSpeed(-1) }, "−");
   const faster = h("button.sp-btn", { type: "button", "aria-label": "Быстрее", title: "Быстрее", disabled: speed >= SPEED.max, onclick: () => setSpeed(1) }, "+");
-  const bar = h("div.focus-bar", { role: "toolbar", "aria-label": "Автопрокрутка" },
+  // чтец: читает с текущего аята, слова подсвечиваются, текст сам следует за чтением
+  const player = surahPlayer(n, data, { scrollTo: (a) => view.scrollTo(a), highlight: (a, ms) => view.highlight(a, ms) }, { onFinish: () => toast("Сура прослушана. Прочитайте её сами — вслух!") });
+  const listenB = h("button.icon-btn.focus-listen", { type: "button", onclick: () => { if (listening) stop(); else { setRunning(false); player.playFrom(curAyah()); } } });
+  const syncListen = () => {
+    listening = (playingId() || "").startsWith(`a:${n}:`);
+    const label = listening ? "Остановить чтеца" : "Слушать чтеца с этого места";
+    listenB.replaceChildren(icon(listening ? "stop" : "vol", listening ? { fill: true, sw: 1 } : {}));
+    listenB.title = label; listenB.setAttribute("aria-label", label); listenB.classList.toggle("on", listening);
+    show();
+  };
+  const offPlay = onPlay(() => syncListen());
+  const menuB = h("button.icon-btn", { type: "button", "aria-label": "Меню чтения", title: "Меню: сура, страница, чтец, перевод, заучивание", onclick: () => openMenu() }, icon("list"));
+  const bar = h("div.focus-bar", { role: "toolbar", "aria-label": "Управление чтением" },
     h("button.icon-btn", { type: "button", "aria-label": "Выйти из режима чтения", title: "Выйти", onclick: () => close() }, icon("close")),
-    playB, slower, val, faster, sizeButton());
+    playB, slower, val, faster, listenB, sizeButton(), menuB);
   // отдельная кнопка полного экрана: выйти из него можно, не закрывая режим чтения
   let keepOpen = false;
   const fsB = canFullscreen() ? h("button.icon-btn", { type: "button", "data-fs-switch": true, onclick: () => { if (isFullscreen()) { keepOpen = true; setFullscreen(false); } else enterFullscreen(); } }) : null;
@@ -373,16 +413,71 @@ export async function ReadMode(n, startA = 0) {
     fsB.title = label; fsB.setAttribute("aria-label", label);
   };
   syncFs();
-  if (fsB) bar.append(fsB);
   const root = h("div.focus", null, prog, jm.el, scroller, bar);
   let hideTm = 0;
+  // панель и дорожная карта видны несколько секунд после нажатия, потом гаснут — на экране остаётся только текст
   const show = () => {
     root.classList.remove("quiet");
     clearTimeout(hideTm);
-    hideTm = setTimeout(() => { if (!running) return; if (document.querySelector(".size-pop")) show(); else root.classList.add("quiet"); }, 2600);
+    hideTm = setTimeout(() => { if (document.querySelector(".size-pop, #modal-root .modal-wrap:not(.out)")) show(); else root.classList.add("quiet"); }, running || listening ? 2600 : 4500);
   };
+
+  // --- меню: всё, что есть в разделе «Коран», не выходя из чтения ---
+  const jump = (a) => { scroller.scrollTop += view.ayahEls[a].getBoundingClientRect().top - scroller.getBoundingClientRect().top - scroller.clientHeight * 0.2; };
+  const redraw = () => {
+    const a = curAyah();
+    stop();
+    const nv = build();
+    view.el.replaceWith(nv.el);
+    view = nv;
+    trackReading(n, data, view, "mushaf");
+    requestAnimationFrame(() => jump(a));
+  };
+  const openMenu = () => modal((closeMenu) => {
+    const box = h("div.read-menu");
+    const item = (ic, label, fn, { on = false, keep = true } = {}) => h("button.tool", { type: "button", class: on ? "on" : "", onclick: () => { fn(); if (keep) fill(); else closeMenu(); } }, icon(ic, { size: 18 }), h("span", null, label));
+    const fill = () => {
+      const st = store.get().settings, a = curAyah(), v = data.v[a - 1], lv = hifzLevel();
+      box.replaceChildren(
+        h("h2", null, `Сура ${meta.ru}`),
+        h("p.muted", null, `Аят ${a} из ${data.v.length} · страница ${v[4][0]}${v[5] ? ` · джуз ${v[5]}` : ""}`),
+        h("div.label", null, "Перейти"),
+        h("div.rm-row", null,
+          item("list", "Выбрать суру", () => surahPicker(list, n, (id) => go(`/read/${id}`)), { keep: false }),
+          item("page", "Страница или джуз", () => pagePicker(v[4][0], async (p) => { const parts = await pageContent(p); if (parts[0]) go(`/read/${parts[0].s}/${parts[0].from}`); }), { keep: false }),
+          n > 1 ? item("right", "Предыдущая сура", () => go(`/read/${n - 1}`), { keep: false }) : null,
+          n < 114 ? item("left", "Следующая сура", () => go(`/read/${n + 1}`), { keep: false }) : null),
+        h("div.label", null, "Слушать чтеца"),
+        h("div.rm-row", null,
+          item(listening ? "stop" : "play", listening ? "Остановить" : "Слушать с этого места", () => listenB.click(), { on: listening, keep: false }),
+          item("ear", `Чтец: ${st.reciter === "husary" ? "аль-Хусари" : "аль-Афаси"}`, () => { stop(); store.set((s) => { s.settings.reciter = s.settings.reciter === "husary" ? "afasy" : "husary"; }); }),
+          item("slow", `Скорость чтеца: ${st.rate || 1}×`, () => { stop(); store.set((s) => { const r = s.settings.rate || 1; s.settings.rate = r === 1 ? 0.8 : r === 0.8 ? 1.2 : 1; }); }),
+          player.repBtn),
+        h("div.label", null, "Вид"),
+        h("div.rm-row", null,
+          item("book", readTr() ? "Перевод: показан" : "Перевод: скрыт", () => { try { localStorage.setItem("tanwin.readTr", readTr() ? "0" : "1"); } catch {} redraw(); }, { on: readTr() }),
+          item("eye", lv ? `Заучивание: ${HIFZ[lv].toLowerCase()}` : "Заучивание: выкл.", () => { try { localStorage.setItem("tanwin.hifz", (hifzLevel() + 1) % HIFZ.length); } catch {} redraw(); }, { on: !!lv }),
+          item("palette", st.tajweed ? "Цвета таджвида: вкл." : "Цвета таджвида: выкл.", () => setTajweed(!store.get().settings.tajweed), { on: st.tajweed }),
+          item("info", "Что означают цвета", () => setTimeout(legendModal, 250), { keep: false }),
+          canFullscreen() ? item(isFullscreen() ? "shrink" : "expand", isFullscreen() ? "Выйти из полного экрана" : "На весь экран", () => { if (isFullscreen()) { keepOpen = true; setFullscreen(false); } else setFullscreen(true); }, { keep: false }) : null),
+        h("p.muted.small", null, "Размер текста и шрифт — кнопка «Aa» на панели. Скорость прокрутки — «−» и «+». В режиме заучивания нажмите на скрытое слово, чтобы подсмотреть."),
+        h("div.label", null, "Сура"),
+        h("div.rm-row", null,
+          item("check", "Я прочитал(а) эту суру", () => { store.set((s) => { s.reads = s.reads || {}; s.reads[n] = (s.reads[n] || 0) + 1; }); toast("Отмечено: сура прочитана ✓"); }, { keep: false }),
+          item("down", "Скачать аудио для офлайна", () => cacheSurah(n, data), { keep: false }),
+          item("book", "Открыть в разделе «Коран»", () => close(), { keep: false })));
+    };
+    fill();
+    return box;
+  }, { cls: "sheet", onClose: () => show() });
   // нажатие на текст не открывает карточку слова, а показывает или прячет панель
-  scroller.addEventListener("click", (e) => { if (e.target.closest(".focus-next")) return; e.preventDefault(); e.stopPropagation(); if (root.classList.contains("quiet") || !running) show(); else root.classList.add("quiet"); }, true);
+  scroller.addEventListener("click", (e) => {
+    if (e.target.closest(".focus-next")) return;
+    e.preventDefault(); e.stopPropagation();
+    const hid = e.target.closest(".qw.hid:not(.shown)"); // заучивание: скрытое слово открывается нажатием
+    if (hid) { hid.classList.add("shown"); return; }
+    if (root.classList.contains("quiet")) show(); else root.classList.add("quiet");
+  }, true);
   scroller.addEventListener("touchstart", () => { touching = true; }, { passive: true });
   const touchEnd = () => { touching = false; hold(900); }; // даём докатиться прокрутке по инерции
   scroller.addEventListener("touchend", touchEnd, { passive: true });
@@ -427,7 +522,7 @@ export async function ReadMode(n, startA = 0) {
     if (view.el.isConnected) { const a = curAyah(); saveReading(n, a, data.v[a - 1][4]?.[0], "mushaf"); }
     running = false; cancelAnimationFrame(raf); clearTimeout(hideTm); clearTimeout(jmTm);
     wake?.release?.().catch(() => {});
-    removeEventListener("keydown", keys); document.removeEventListener("visibilitychange", vis); offFs();
+    removeEventListener("keydown", keys); document.removeEventListener("visibilitychange", vis); offFs(); offPlay();
     if (!wantFullscreen() && !location.hash.startsWith("#/read/")) exitFullscreen(); // при переходе к следующей суре экран остаётся развёрнутым
   };
   addEventListener("keydown", keys);
@@ -436,9 +531,10 @@ export async function ReadMode(n, startA = 0) {
 
   trackReading(n, data, view, "mushaf");
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    if (startA > 1 && startA <= data.v.length) scroller.scrollTop += view.ayahEls[startA].getBoundingClientRect().top - scroller.getBoundingClientRect().top - scroller.clientHeight * 0.2;
+    if (startA > 1 && startA <= data.v.length) jump(startA);
     scroller.focus({ preventScroll: true });
   }));
+  syncListen();
   setRunning(auto);
   return root;
 }
@@ -460,17 +556,17 @@ async function pageContent(p) {
   return parts;
 }
 
-/** Переход к странице / джузу. */
-function pagePicker(cur) {
+/** Переход к странице / джузу. open(p) — что открыть (по умолчанию — страницу мусхафа). */
+function pagePicker(cur, open = (p) => go(`/page/${p}`)) {
   modal((close) => {
     const inp = h("input.text-in.big", { type: "number", min: 1, max: PAGES, value: cur, inputmode: "numeric", "aria-label": "Номер страницы" });
-    const goTo = () => { const v = Math.round(+inp.value); if (v >= 1 && v <= PAGES) { close(); go(`/page/${v}`); } else toast(`Номер страницы — от 1 до ${PAGES}`); };
+    const goTo = () => { const v = Math.round(+inp.value); if (v >= 1 && v <= PAGES) { close(); open(v); } else toast(`Номер страницы — от 1 до ${PAGES}`); };
     inp.addEventListener("keydown", (e) => e.key === "Enter" && goTo());
     return h("div.page-picker", null,
       h("h2", null, "Перейти"),
       h("div.row.gap", null, inp, h("button.btn.primary", { type: "button", onclick: goTo }, "Открыть")),
       h("div.label", null, "Начало джуза"),
-      h("div.juz-grid", null, ...JUZ_PAGE.map((jp, i) => h("button.juz-btn", { type: "button", class: jp <= cur && (JUZ_PAGE[i + 1] || 605) > cur ? "on" : "", onclick: () => { close(); go(`/page/${jp}`); } }, h("b", null, i + 1), h("small", null, `с. ${jp}`)))));
+      h("div.juz-grid", null, ...JUZ_PAGE.map((jp, i) => h("button.juz-btn", { type: "button", class: jp <= cur && (JUZ_PAGE[i + 1] || 605) > cur ? "on" : "", onclick: () => { close(); open(jp); } }, h("b", null, i + 1), h("small", null, `с. ${jp}`)))));
   });
 }
 
