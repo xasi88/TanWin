@@ -214,6 +214,7 @@ const P = {
   chat: "M21 11.5a8.4 8.4 0 0 1-12.2 7.5L3 21l2-5.5A8.4 8.4 0 1 1 21 11.5ZM8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01",
   expand: "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5",
   shrink: "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5",
+  grip: "M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01",
   heart: "M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z",
 };
 export function icon(name, { size = 22, sw = 2, fill = false, cls = "" } = {}) {

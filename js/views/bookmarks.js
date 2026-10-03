@@ -28,6 +28,8 @@ export function addMark(s, a, p) {
   toast(`Закладка поставлена: ${placeText(s, a, p)} ✓`, 3200);
   return true;
 }
+/** Новый порядок закладок: ids — их номера сверху вниз. */
+const orderMarks = (ids) => store.set((st) => { const by = new Map((st.marks || []).map((m) => [m.id, m])); st.marks = ids.map((id) => by.get(id)).filter(Boolean); });
 const removeMark = (id) => store.set((st) => { st.marks = (st.marks || []).filter((m) => m.id !== id); });
 
 /** Кнопка «Закладка» для панелей читалки. place() → { s, a, p } — где сейчас читатель. */
@@ -36,19 +38,65 @@ export function markBtn(place) {
     icon("bookmark", { size: 18 }), h("span", null, "Закладка"));
 }
 
+const scrollBox = (el) => { for (let p = el.parentElement; p; p = p.parentElement) if (/auto|scroll/.test(getComputedStyle(p).overflowY) && p.scrollHeight > p.clientHeight) return p; return document.scrollingElement; };
+/**
+ * Ручка «переместить»: закладку тянут вверх или вниз (или двигают стрелками на клавиатуре).
+ * Сдвигаются соседние строки, а не сама закладка: иначе браузер отпустил бы её из-под пальца.
+ */
+function gripBtn(box, row) {
+  const save = () => orderMarks([...box.children].map((x) => x.dataset.id).filter(Boolean));
+  const mid = (x) => { const r = x.getBoundingClientRect(); return r.top + r.height / 2; };
+  const up = () => { const x = row.previousElementSibling; if (x?.dataset.id) { row.after(x); return true; } };
+  const down = () => { const x = row.nextElementSibling; if (x?.dataset.id) { row.before(x); return true; } };
+  const btn = h("button.icon-btn.mark-grip", { type: "button", title: "Переместить: потяните вверх или вниз", "aria-label": "Переместить закладку: потяните или нажимайте стрелки вверх и вниз" }, icon("grip", { sw: 3 }));
+  btn.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+    e.preventDefault();
+    if (e.key === "ArrowUp" ? up() : down()) { save(); row.scrollIntoView({ block: "nearest" }); }
+  });
+  btn.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    try { btn.setPointerCapture(e.pointerId); } catch {}
+    row.classList.add("drag");
+    const sc = scrollBox(box);
+    let y = e.clientY, raf = 0;
+    const place = () => { if (row.previousElementSibling?.dataset.id && y < mid(row.previousElementSibling)) up(); else if (row.nextElementSibling?.dataset.id && y > mid(row.nextElementSibling)) down(); };
+    const edge = () => { // у края экрана список подкручивается сам
+      const r = sc === document.scrollingElement ? { top: 0, bottom: innerHeight } : sc.getBoundingClientRect();
+      const d = y < r.top + 56 ? -9 : y > r.bottom - 56 ? 9 : 0;
+      if (d) { sc.scrollTop += d; place(); }
+      raf = requestAnimationFrame(edge);
+    };
+    const move = (ev) => { y = ev.clientY; place(); };
+    const drop = () => {
+      cancelAnimationFrame(raf);
+      row.classList.remove("drag");
+      btn.removeEventListener("pointermove", move); btn.removeEventListener("pointerup", drop); btn.removeEventListener("pointercancel", drop);
+      save();
+    };
+    btn.addEventListener("pointermove", move); btn.addEventListener("pointerup", drop); btn.addEventListener("pointercancel", drop);
+    raf = requestAnimationFrame(edge);
+  });
+  return btn;
+}
+
 /** Список закладок. onOpen — что сделать перед переходом (закрыть окно), onChange — после удаления или новой цели. */
 function marksList({ onOpen, onChange } = {}) {
   const box = h("div.mark-list");
   const draw = () => {
     const list = marks();
-    box.replaceChildren(...list.map((m) => h("div.mark-row", null,
+    box.replaceChildren(...list.map((m) => { const row = h("div.mark-row", { "data-id": m.id },
       h("button.mark-open", { type: "button", onclick: () => { onOpen?.(); openRead(m.s, m.a); } },
         h("span.rc-ic", null, icon("bookmark", { size: 22, fill: true, sw: 1 })),
         h("div", null, h("b", null, `${surahMeta(m.s)?.ru || `Сура ${m.s}`}, аят ${m.a}`), h("small.muted", null, `${m.p ? `стр. ${m.p} · джуз ${juzOf(m.p)} · ` : ""}${dateRu(m.at)}`))),
       m.p ? h("button.icon-btn", { type: "button", title: "Цель чтения с этого места", "aria-label": "Поставить цель чтения с этой закладки", onclick: () => goalModal({ s: m.s, a: m.a, p: m.p }, () => { onOpen?.(); openRead(m.s, m.a); }) }, icon("target")) : null,
       h("button.icon-btn", { type: "button", title: "Удалить закладку", "aria-label": "Удалить закладку", onclick: async () => {
         if (await confirmBox("Удалить закладку?", placeText(m.s, m.a, m.p), "Удалить")) { removeMark(m.id); draw(); onChange?.(); }
-      } }, icon("trash")))));
+      } }, icon("trash")));
+      if (list.length > 1) row.prepend(gripBtn(box, row));
+      return row; }));
+    if (list.length > 1) box.append(h("p.muted.small", null, "Чтобы поменять порядок, потяните закладку за точки слева вверх или вниз."));
     if (!list.length) box.append(h("p.muted", null, "Закладок пока нет. Откройте «Чтение», нажмите на экран, затем меню ☰ → «Закладка здесь». Закладок может быть сколько угодно."));
   };
   draw();
