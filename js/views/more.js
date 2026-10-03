@@ -3,7 +3,7 @@ import { h, ar, icon, toast, confirmBox, SIZES, AR_FONTS, arFont, keep } from ".
 import { store, backupDone } from "../store.js";
 import { RECITERS } from "../data.js";
 import { go, installApp } from "../app.js";
-import { isInstalled } from "../install.js";
+import { isInstalled, onInstallChange } from "../install.js";
 import { canFullscreen, wantFullscreen, setFullscreen } from "../fullscreen.js";
 import { APP_VERSION, CHANGELOG, CONTACT } from "../version.js";
 import { devBanner, feedbackButton, openFeedback } from "../feedback.js";
@@ -38,6 +38,14 @@ function fullscreenToggle() {
   return h("div.set-row", null, h("div", null, h("span.set-label", null, label), h("small.muted", null, "Без адресной строки и панелей браузера: приложение разворачивается при первом нажатии. Выйти — «назад» на телефоне или Esc на компьютере.")), t);
 }
 
+/** «Установить приложение»: кнопка есть, пока приложение не установлено, и исчезает сразу после установки. */
+function installLink() {
+  if (isInstalled()) return null;
+  const b = h("button.more-link.install", { type: "button", onclick: installApp }, h("span.ml-ic", null, icon("down", { size: 22 })), h("div", null, h("b", null, "Установить приложение"), h("small.muted", null, "Отдельное окно на рабочем столе или телефоне, работает без интернета")), icon("right", { size: 18 }));
+  const off = onInstallChange(() => { if (!b.isConnected) off(); else if (isInstalled()) { b.remove(); off(); } });
+  return b;
+}
+
 export function MoreView() {
   const s = store.get();
   const preview = ar("بِسۡمِ [wٱ]للَّهِ", { cls: "size-preview" });
@@ -60,7 +68,7 @@ export function MoreView() {
   return h("div.page.more", null,
     h("header.page-head", null, h("h1", null, "Ещё")),
     h("a.more-link.author-link", { href: "#/author" }, h("span.ml-ic", null, icon("chat", { size: 22 })), h("div", null, h("b", null, "Послание от разработчика"), h("small.muted", null, "Как и зачем появился TanWin — слово автора")), icon("right", { size: 18 })),
-    !isInstalled() ? h("button.more-link.install", { type: "button", onclick: installApp }, h("span.ml-ic", null, icon("down", { size: 22 })), h("div", null, h("b", null, "Установить приложение"), h("small.muted", null, "Отдельное окно на рабочем столе или телефоне, работает без интернета")), icon("right", { size: 18 })) : null,
+    installLink(),
     h("a.more-link.thanks-link", { href: "#/thanks" }, h("span.ml-ic", null, icon("heart", { size: 22, fill: true, sw: 1 })), h("div", null, h("b", null, "Благодарности"), h("small.muted", null, "Люди, благодаря пожертвованиям которых состоялся проект")), icon("right", { size: 18 })),
     CONTACT.whatsapp ? h("button.more-link.contact-link", { type: "button", onclick: openFeedback }, h("span.ml-ic", null, icon("chat", { size: 22 })), h("div", null, h("b", null, "Написать автору в WhatsApp"), h("small.muted", null, "Нашли ошибку или неточность? Есть идея? Напишите — версия и экран подставятся сами")), icon("right", { size: 18 })) : null,
     h("div.more-links", null,
