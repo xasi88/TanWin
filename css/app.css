@@ -892,6 +892,12 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .donor > div { display: grid; }
 .donor b { font-size: 1.05rem; }
 .d-ic { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; background: var(--gold-soft); color: var(--gold); flex: none; }
+.th-special { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: linear-gradient(160deg, var(--accent-soft), var(--card) 55%); overflow-wrap: anywhere; }
+.th-special h3 { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; }
+.th-special .rc-ic { width: 44px; height: 44px; border-radius: 14px; background: var(--accent); color: var(--accent-ink); }
+.th-special p { margin: 0 0 .9em; line-height: 1.65; }
+.th-special b { color: var(--ink); }
+.th-special .th-sp-dua { margin: 0; padding-top: .9em; border-top: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line)); color: var(--ink-2); font-style: italic; }
 .th-dua { display: flex; gap: 12px; align-items: flex-start; color: var(--ink-2); font-style: italic; }
 .th-dua .ic { color: var(--gold); margin-top: 3px; }
 .th-dua p { margin: 0; }
