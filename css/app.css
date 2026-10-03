@@ -1215,3 +1215,27 @@ body:has(.focus) .fb-tab { right: auto; left: 0; padding: 0 2px 0 0; border-radi
 .mark-grip { flex: none; width: 30px; color: var(--ink-3); cursor: grab; touch-action: none; }
 .mark-row.drag { position: relative; z-index: 1; border-color: var(--accent); box-shadow: var(--shadow-lg); }
 .mark-row.drag .mark-grip { cursor: grabbing; color: var(--accent-2); }
+
+/* Группы закладок, настройки закладки (views/bookmarks.js) */
+.mark-groups { display: grid; gap: 12px; }
+.mark-groups > .label { margin: 4px 0 -4px; }
+.mark-groups > .btn { justify-self: start; }
+.mark-group { border-radius: 22px; border: 1px solid color-mix(in srgb, var(--gold) 40%, var(--line)); background: linear-gradient(180deg, var(--gold-soft), transparent 90px); padding: 4px 8px 8px; }
+.mark-group summary { display: flex; align-items: center; gap: 8px; padding: 4px 0 4px 8px; cursor: pointer; list-style: none; -webkit-user-select: none; user-select: none; }
+.mark-group summary::-webkit-details-marker { display: none; }
+.mark-group summary b { flex: 1; min-width: 0; font-size: 1.08rem; overflow-wrap: anywhere; }
+.mark-group summary > .ic { flex: none; color: var(--gold-text); transition: transform .2s var(--ease); transform: rotate(-90deg); }
+.mark-group[open] summary > .ic { transform: none; }
+.mark-group summary .muted { font-weight: 800; }
+.mark-group > p { margin: 4px 8px 6px; }
+.mark-open b { overflow-wrap: anywhere; }
+.mark-edit { display: grid; gap: 8px; }
+.mark-edit h2, .mark-edit p { margin: 0; }
+.mark-edit h2 { margin-right: 40px; }
+.mark-edit .label { margin: 8px 0 0; }
+.mark-edit .text-in { flex: none; width: 100%; }
+.mark-edit [hidden] { display: none; }
+.mark-edit .row { margin-top: 8px; }
+.word-pop > .btn.ghost { justify-self: center; }
+.qread { margin-bottom: 16px; }
+.qread .tile:nth-child(5) { grid-column: 1 / -1; }

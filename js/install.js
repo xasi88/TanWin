@@ -6,11 +6,20 @@ let evt = null;
 const listeners = new Set();
 const emit = () => listeners.forEach((f) => f());
 
-window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); evt = e; emit(); });
-window.addEventListener("appinstalled", () => { evt = null; emit(); track("app_installed"); });
+// Вкладка браузера сама не знает, что приложение уже установлено, — запоминаем это при установке.
+// Если браузер снова предлагает установку, значит, приложения на устройстве нет (его удалили) — отметку снимаем.
+const FLAG = "tanwin.installed";
+const setFlag = (on) => { try { if (on) localStorage.setItem(FLAG, "1"); else localStorage.removeItem(FLAG); } catch {} };
+const flag = () => { try { return !!localStorage.getItem(FLAG); } catch { return false; } };
+
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); evt = e; setFlag(false); emit(); });
+window.addEventListener("appinstalled", () => { evt = null; setFlag(true); emit(); track("app_installed"); });
 
 export const onInstallChange = (f) => { listeners.add(f); return () => listeners.delete(f); };
-export const isInstalled = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+/** Открыто как приложение (отдельное окно, без адресной строки). */
+export const isStandalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+/** Приложение установлено: открыто как приложение или его установили из этого браузера. */
+export const isInstalled = () => isStandalone() || flag();
 export const canPrompt = () => !!evt;
 const ua = navigator.userAgent;
 export const isIOS = () => /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -22,6 +31,7 @@ export async function install() {
   evt = null;
   e.prompt();
   const { outcome } = await e.userChoice;
+  if (outcome === "accepted") setFlag(true);
   emit();
   return outcome === "accepted";
 }

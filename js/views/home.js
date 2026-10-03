@@ -66,19 +66,23 @@ function backupCard() {
   return card;
 }
 
-/** На телефоне и планшете в браузере: предложение установить приложение — оно открывается на весь экран, без адресной строки. */
+/**
+ * На телефоне и планшете в браузере: предложение установить приложение — оно открывается на весь экран, без адресной строки.
+ * Показывается один раз: после «Установить» или «Не сейчас» больше не появляется (кнопка остаётся в разделе «Ещё»).
+ */
 function installCard() {
   let hidden = false;
   try { hidden = !!localStorage.getItem("tanwin.installHint"); } catch {}
   if (hidden || isInstalled() || !matchMedia("(pointer: coarse)").matches) return null;
+  const hide = () => { try { localStorage.setItem("tanwin.installHint", "1"); } catch {} card.remove(); };
   const card = h("div.card.backup-card.install-card", null,
     h("span.rc-ic", null, icon("down", { size: 24 })),
     h("div", null,
       h("b", null, "Установите TanWin как приложение"),
       h("div.muted", null, "Значок на главном экране, запуск на весь экран — без адресной строки браузера — и работа без интернета."),
       h("div.row.gap.wrap", null,
-        h("button.btn.primary.small-btn", { type: "button", onclick: installApp }, icon("down", { size: 16 }), "Установить"),
-        h("button.btn.ghost.small-btn", { type: "button", onclick: () => { try { localStorage.setItem("tanwin.installHint", "1"); } catch {} card.remove(); } }, "Не сейчас"))));
+        h("button.btn.primary.small-btn", { type: "button", onclick: () => { hide(); installApp(); } }, icon("down", { size: 16 }), "Установить"),
+        h("button.btn.ghost.small-btn", { type: "button", onclick: hide }, "Не сейчас"))));
   return card;
 }
 

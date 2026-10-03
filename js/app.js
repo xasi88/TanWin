@@ -5,7 +5,7 @@ import { loadBank, loadSurahs } from "./data.js";
 import { stop } from "./audio.js";
 import { checkBadges, courseProgress, nextTarget, lessonById } from "./path.js";
 import { APP_VERSION } from "./version.js";
-import { canPrompt, install, isInstalled, onInstallChange, manualHint } from "./install.js";
+import { canPrompt, install, isInstalled, isStandalone, manualHint } from "./install.js";
 import { initMetrika, hit, track } from "./metrika.js";
 import { initFeedback, setScreen } from "./feedback.js";
 import { fill } from "./tutor.js";
@@ -56,7 +56,6 @@ function renderNav(active) {
     })),
     canFullscreen() ? h("button.nav-fs", { type: "button", "data-fs-switch": true, onclick: () => setFullscreen(!isFullscreen()) },
       icon(isFullscreen() ? "shrink" : "expand", { size: 18 }), h("span", null, isFullscreen() ? "Выйти из полного экрана" : "На весь экран")) : "",
-    !isInstalled() ? h("button.nav-install", { type: "button", onclick: installApp }, icon("down", { size: 18 }), h("span", null, "Установить приложение")) : "",
     h("div.nav-foot", null,
       h("div.nf-row", null, icon("flame", { size: 18, fill: true, sw: 1, cls: streakNow() ? "fire" : "" }), h("b", null, streakNow()), h("span", null, "дней подряд")),
       h("div.nf-row", null, icon("nur", { size: 18, fill: true, sw: 1, cls: "nur" }), h("b", null, s.xp), h("span", null, `нура · уровень ${lv.n}`)),
@@ -66,7 +65,6 @@ export async function installApp() {
   if (canPrompt()) { if (await install()) toast("TanWin установлен — ищите его на рабочем столе ✓"); }
   else toast(manualHint(), 6000);
 }
-onInstallChange(() => renderNav(location.hash.replace(/^#/, "") || "/"));
 onFullscreenChange(() => renderNav(location.hash.replace(/^#/, "") || "/"));
 
 export function logo(size = 34) {
@@ -175,7 +173,7 @@ function startMetrika() {
   const count = (map) => Object.values(map).filter((x) => x.done && !x.skipped).length;
   const nt = nextTarget();
   initMetrika({
-    params: { Режим: isInstalled() ? "приложение" : "браузер" },
+    params: { Режим: isStandalone() ? "приложение" : "браузер" },
     user: {
       "Пройдено уроков": count(s.lessons),
       "Выучено сур": count(s.surahs),

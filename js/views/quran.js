@@ -5,7 +5,7 @@ import { loadSurahs, loadSurah, surahMeta, wordKey, RECITERS, pad } from "../dat
 import { RULES, LEGEND, parseMarkup, plain, rulesIn } from "../rules.js";
 import { translit, stripStops } from "../arabic.js";
 import { playWord, playAyah, stop, onPlay, playingId } from "../audio.js";
-import { store, surahDone } from "../store.js";
+import { store, surahDone, readTick } from "../store.js";
 import { SURAH_PATH } from "../course.js";
 import { go } from "../app.js";
 import { markBtn, marks, addMark, marksSheet, goalStrip, goalModal, readGoal, goalLeft } from "./bookmarks.js";
@@ -56,7 +56,7 @@ export async function QuranList() {
       icon("right")),
     h("a.card.pages-card.marks-card", { href: "#/bookmarks" },
       h("span.rc-ic", null, icon("bookmark", { size: 24 })),
-      h("div", null, h("b", null, "Закладки и цель чтения"), h("div.muted", null, readGoal() && goalLeft() ? `Цель: ${plural(goalLeft(), "осталась", "остались", "осталось")} ${goalLeft()} стр. из ${readGoal().pages}` : marks().length ? `Сохранено мест: ${marks().length}` : "Сохраняйте места и ставьте цель: сколько страниц прочесть")),
+      h("div", null, h("b", null, "Закладки и цель чтения"), h("div.muted", null, readGoal() && goalLeft() ? `Цель: ${plural(goalLeft(), "осталась", "остались", "осталось")} ${goalLeft()} стр. из ${readGoal().pages}` : marks().length ? `Сохранено мест: ${marks().length}` : "Сохраняйте места, собирайте их в группы и ставьте цель: сколько страниц прочесть")),
       icon("right")),
     h("div.list-tools", null, search, chips),
     h("button.link", { type: "button", onclick: legendModal }, icon("palette", { size: 16 }), " Что означают цвета?"),
@@ -64,7 +64,7 @@ export async function QuranList() {
 }
 
 // ---------- Всплывающее окно слова ----------
-function wordPop(s, a, wi, w, meta) {
+function wordPop(s, a, wi, w, meta, page) {
   const codes = rulesIn(w);
   const p = plain(w);
   const t = translit(p);
@@ -76,6 +76,7 @@ function wordPop(s, a, wi, w, meta) {
     h("div.row.center.gap", null,
       h("button.btn.secondary", { type: "button", onclick: () => playWord(wordKey(s, a, wi + 1)) }, icon("vol", { size: 18 }), "Ещё раз"),
       h("button.btn.secondary", { type: "button", onclick: () => playAyah(s, a) }, icon("play", { size: 18 }), "Весь аят")),
+    page ? h("button.btn.ghost", { type: "button", onclick: () => addMark(s, a, page) }, icon("bookmark", { size: 18 }), `Закладка на аят ${a}`) : null,
     codes.length ? h("div.wp-rules", null, h("div.label", null, "Правила в этом слове"),
       ...codes.map((c) => h("div.lg-row", null, h("span.lg-sw", { style: { background: `var(--r-${c})` } }), h("div", null, h("b", null, RULES[c].name), h("small.muted", null, rich(RULES[c].text)))))) : h("p.muted.small", null, "Особых правил таджвида в слове нет — читается по огласовкам."),
     h("p.muted.small", null, "Транскрипция — для отдельно прочитанного слова. В слитном чтении начало и конец слова могут звучать иначе (см. правила).")), { cls: "sheet" });
@@ -100,7 +101,7 @@ export function renderVerses(s, data, meta, { mode = "mushaf", colors = true, tr
       const hide = hifz && (hifz >= 3 || (a * 5 + wi * 2) % 3 < hifz);
       const b = h("span.qw", { role: "button", tabindex: "0", "data-wi": wi, class: hide ? "hid" : "" }, ar(w, { colors, tag: "span" }));
       // скрытое слово: первое нажатие открывает его, следующее — карточку слова
-      const open = () => { if (b.classList.contains("hid") && !b.classList.contains("shown")) { b.classList.add("shown"); return; } wordPop(s, a, wi, w, meta); };
+      const open = () => { if (b.classList.contains("hid") && !b.classList.contains("shown")) { b.classList.add("shown"); return; } wordPop(s, a, wi, w, meta, page); };
       b.addEventListener("click", open);
       b.addEventListener("keydown", (e) => e.key === "Enter" && open());
       return b;
@@ -136,7 +137,7 @@ export function renderVerses(s, data, meta, { mode = "mushaf", colors = true, tr
 
 // Отметка начала страницы мусхафа Мадины (604 страницы). Нажатие — открыть эту страницу целиком.
 function pageMark(p, juz, s, a) {
-  return h("a.page-mark", { href: `#/page/${p}`, dir: "ltr", title: "Открыть страницу мусхафа" },
+  return h("a.page-mark", { href: `#/page/${p}`, "data-p": p, dir: "ltr", title: "Открыть страницу мусхафа" },
     h("span", null, `страница ${p}`), juz ? h("span", null, `джуз ${juz}`) : null);
 }
 
@@ -347,7 +348,9 @@ function pageWheel(list, pick, onUse) {
   return { el, set };
 }
 
-let resumeScroll = false; // автопрокрутка дошла до конца суры — следующая сура продолжает идти сама
+let resumeScroll = false;
+let lastPage = 0; // страница, которую читатель видел последней: следующая за ней засчитывается как прочитанная
+const pagesRead = new Set(); // что уже засчитано (день:страница), чтобы не считать одно и то же дважды // автопрокрутка дошла до конца суры — следующая сура продолжает идти сама
 
 /** Раздел «Чтение» в меню: полноэкранный Коран с того места, где читатель остановился. */
 export function ReadStart() {
@@ -400,6 +403,7 @@ export async function ReadMode(n, startA = 0) {
   const words = data.v.reduce((k, v) => k + v[0].length, 0);
 
   // --- автопрокрутка ---
+  let pin = null; // после перехода к аяту страницей считается его страница, пока читатель не начал листать
   let speed = readSpeed(), running = false, listening = false, raf = 0, last = 0, pos = 0, touching = false, holdUntil = 0, wake = null, ran = 0;
   const maxTop = () => scroller.scrollHeight - scroller.clientHeight;
   const pxPerSec = () => speed * SPEED.px * (store.get().settings.arScale || 1); // крупнее текст — выше строка: темп в строках тот же
@@ -477,7 +481,7 @@ export async function ReadMode(n, startA = 0) {
     if (!part) { wheel.set(pageNow()); return toast("Не удалось открыть страницу. Проверьте интернет."); }
     if (part.s !== n) { resumeScroll = running; return location.replace(`#/read/${part.s}/${part.from}`); }
     if (listening) stop();
-    if (part.from === 1) scroller.scrollTop = 0; else jump(part.from);
+    if (part.from === 1) { scroller.scrollTop = 0; pin = { p, top: 0 }; } else jump(part.from);
     show();
   };
   const wheel = pageWheel(list, openPage, () => show());
@@ -491,7 +495,10 @@ export async function ReadMode(n, startA = 0) {
   };
 
   // --- меню: всё, что есть в разделе «Коран», не выходя из чтения ---
-  const jump = (a) => { scroller.scrollTop += view.ayahEls[a].getBoundingClientRect().top - scroller.getBoundingClientRect().top - scroller.clientHeight * 0.2; };
+  const jump = (a) => {
+    scroller.scrollTop += view.ayahEls[a].getBoundingClientRect().top - scroller.getBoundingClientRect().top - scroller.clientHeight * 0.2;
+    pin = { p: data.v[a - 1][4][0], top: scroller.scrollTop };
+  };
   const redraw = () => {
     const a = curAyah();
     stop();
@@ -533,7 +540,7 @@ export async function ReadMode(n, startA = 0) {
           item("palette", st.tajweed ? "Цвета таджвида: вкл." : "Цвета таджвида: выкл.", () => setTajweed(!store.get().settings.tajweed), { on: st.tajweed }),
           item("info", "Что означают цвета", () => setTimeout(legendModal, 250), { keep: false }),
           canFullscreen() ? item(isFullscreen() ? "shrink" : "expand", isFullscreen() ? "Выйти из полного экрана" : "На весь экран", () => { if (isFullscreen()) { keepOpen = true; setFullscreen(false); } else setFullscreen(true); }, { keep: false }) : null),
-        h("p.muted.small", null, "Полоска справа — страницы мусхафа: крутите её вверх и вниз, чтобы перейти к любой странице. Размер текста и шрифт — кнопка «Aa» на панели. Скорость прокрутки — «−» и «+». Нажмите на слово и удерживайте — его прочитает чтец. В режиме заучивания нажмите на скрытое слово, чтобы подсмотреть."),
+        h("p.muted.small", null, "Полоска справа — страницы мусхафа: крутите её вверх и вниз, чтобы перейти к любой странице. Размер текста и шрифт — кнопка «Aa» на панели. Скорость прокрутки — «−» и «+». Нажмите на слово и удерживайте — его прочитает чтец, там же можно поставить закладку точно на этот аят. В режиме заучивания нажмите на скрытое слово, чтобы подсмотреть."),
         h("div.label", null, "Сура"),
         h("div.rm-row", null,
           item("check", `Я ${g("прочитал", "прочитала", "прочитал(а)")} эту суру`, () => { store.set((s) => { s.reads = s.reads || {}; s.reads[n] = (s.reads[n] || 0) + 1; }); toast("Отмечено: сура прочитана ✓"); }, { keep: false }),
@@ -560,7 +567,7 @@ export async function ReadMode(n, startA = 0) {
       if (running) setRunning(false);
       if (listening) stop();
       navigator.vibrate?.(12);
-      wordPop(n, a, wi, data.v[a - 1][0][wi], meta);
+      wordPop(n, a, wi, data.v[a - 1][0][wi], meta, data.v[a - 1][4][0]);
     }, 480);
   });
   scroller.addEventListener("pointermove", (e) => { if (pressAt && Math.hypot(e.clientX - pressAt[0], e.clientY - pressAt[1]) > 9) pressOff(); });
@@ -580,10 +587,38 @@ export async function ReadMode(n, startA = 0) {
   scroller.addEventListener("touchend", touchEnd, { passive: true });
   scroller.addEventListener("touchcancel", touchEnd, { passive: true });
   scroller.addEventListener("wheel", () => hold(500), { passive: true });
+  // учёт чтения: время идёт, пока текст движется сам, звучит чтец или читатель недавно листал
+  let actAt = performance.now(), spent = 0;
+  const active = () => { actAt = performance.now(); };
+  scroller.addEventListener("scroll", active, { passive: true });
+  scroller.addEventListener("pointerdown", active, { passive: true });
+  const clock = setInterval(() => {
+    if (document.visibilityState !== "visible") return;
+    if (running || listening || performance.now() - actAt < 90000) spent += 5000;
+    if (spent >= 30000) { readTick(spent); spent = 0; }
+  }, 5000);
   let jmTm = 0;
   // страница под глазами читателя; 605 — последняя сура дочитана до конца (для цели «до конца Корана»)
-  const pageNow = () => (n === 114 && scroller.scrollTop >= maxTop() - 2 ? PAGES + 1 : data.v[curAyah() - 1][4][0]);
-  const updJuz = () => { jmTm = 0; if (!view.el.isConnected) return; const a = curAyah(); jm.set(data.v[a - 1][4][0]); wheel.set(data.v[a - 1][4][0]); gs.set(pageNow(), n, a); };
+  // новая страница начинается, как только её строка «страница N · джуз M» показалась на экране
+  const shownPage = () => {
+    if (pin) { if (Math.abs(scroller.scrollTop - pin.top) < 48) return pin.p; pin = null; }
+    const bottom = scroller.getBoundingClientRect().bottom - 4;
+    let p = data.v[0][4][0];
+    for (const m of view.el.querySelectorAll(".page-mark")) { if (m.getBoundingClientRect().top > bottom) break; p = +m.dataset.p; }
+    return p;
+  };
+  const pageNow = () => (n === 114 && scroller.scrollTop >= maxTop() - 2 ? PAGES + 1 : shownPage());
+  const updJuz = () => {
+    jmTm = 0;
+    if (!view.el.isConnected) return;
+    const p = shownPage(), now = pageNow();
+    jm.set(p); wheel.set(p); gs.set(now, n, curAyah());
+    if (now !== lastPage) { // перешли ровно на следующую страницу — предыдущая прочитана
+      const key = `${new Date().toDateString()}:${lastPage}`;
+      if (now === lastPage + 1 && !pagesRead.has(key)) { pagesRead.add(key); readTick(0, 1); }
+      lastPage = now;
+    }
+  };
   scroller.addEventListener("scroll", () => {
     const end = endEl.offsetTop - scroller.clientHeight * 0.35; // полоса сверху — доля прочитанного в суре
     prog.style.width = (end > 0 ? Math.min(1, scroller.scrollTop / end) * 100 : 100) + "%";
@@ -620,6 +655,7 @@ export async function ReadMode(n, startA = 0) {
     closed = true;
     if (view.el.isConnected) { const a = curAyah(); saveReading(n, a, data.v[a - 1][4]?.[0], "mushaf"); }
     running = false; cancelAnimationFrame(raf); clearTimeout(hideTm); clearTimeout(jmTm);
+    clearInterval(clock); readTick(spent); spent = 0;
     wake?.release?.().catch(() => {});
     removeEventListener("keydown", keys); document.removeEventListener("visibilitychange", vis); offFs(); offPlay();
     if (!wantFullscreen() && !location.hash.startsWith("#/read/")) exitFullscreen(); // при переходе к следующей суре экран остаётся развёрнутым
@@ -631,6 +667,7 @@ export async function ReadMode(n, startA = 0) {
   trackReading(n, data, view, "mushaf");
   requestAnimationFrame(() => requestAnimationFrame(() => {
     if (startA > 1 && startA <= data.v.length) jump(startA);
+    else pin = { p: data.v[0][4][0], top: scroller.scrollTop };
     scroller.focus({ preventScroll: true });
     updJuz();
   }));
@@ -644,7 +681,7 @@ export const PAGES = 604;
 export const JUZ_PAGE = [1, 22, 42, 62, 82, 102, 121, 142, 162, 182, 201, 222, 242, 262, 282, 302, 322, 342, 362, 382, 402, 422, 442, 462, 482, 502, 522, 542, 562, 582];
 
 /** Аяты страницы p: [{ s, meta, data, from, to }] — на одной странице может быть конец одной суры и начало другой. */
-async function pageContent(p) {
+export async function pageContent(p) {
   const list = await loadSurahs();
   const cand = list.filter((m, i) => m.page <= p && (i === list.length - 1 || list[i + 1].page >= p));
   const parts = [];

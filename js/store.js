@@ -43,7 +43,9 @@ const DEFAULT = () => ({
   stats: { answers: 0, correct: 0, ms: 0, lessons: 0 },
   badges: {},
   hard: {},
-  marks: [], // закладки в Коране: [{ id, s, a, p, at }]
+  marks: [], // закладки в Коране: [{ id, s, a, p, at, name, g, goal }]
+  markGroups: [], // группы закладок: [{ id, name, closed }]
+  qread: { days: {}, goals: 0 }, // чтение Корана: по дням { ms, pages } и число выполненных целей
   readGoal: null, // цель чтения: { from, pages, read, s, a, at, done }
 });
 
@@ -145,6 +147,28 @@ export function lastDays(n = 14) {
     out.push({ d: k, xp: state.days[k] || 0, wd: d.getDay() });
   }
   return out;
+}
+
+// ---------- Чтение Корана: дни, время, страницы, цели ----------
+/** Засчитывает за сегодня время чтения (мс) и прочитанные страницы. */
+export function readTick(ms, pages = 0) {
+  if (!ms && !pages) return;
+  const d = today(), x = state.qread.days[d] || (state.qread.days[d] = { ms: 0, pages: 0 });
+  x.ms += ms; x.pages += pages;
+  save();
+}
+export function readGoalDone() { state.qread.goals++; save(); }
+/** Сводка чтения. День засчитан, если читали хотя бы минуту или прочли страницу. */
+export function readStats() {
+  const all = Object.entries(state.qread.days);
+  const days = all.filter(([, x]) => x.ms >= 60000 || x.pages > 0).map(([d]) => d).sort();
+  let best = 0, run = 0, prev = "";
+  for (const d of days) { run = prev && dayDiff(prev, d) === 1 ? run + 1 : 1; best = Math.max(best, run); prev = d; }
+  return {
+    days: days.length, best, cur: prev && dayDiff(prev, today()) <= 1 ? run : 0,
+    ms: all.reduce((k, [, x]) => k + x.ms, 0), pages: all.reduce((k, [, x]) => k + x.pages, 0),
+    goals: state.qread.goals, today: state.qread.days[today()] || { ms: 0, pages: 0 },
+  };
 }
 
 // ---------- Интервальные повторения (система Лейтнера) ----------
