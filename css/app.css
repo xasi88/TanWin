@@ -1239,3 +1239,10 @@ body:has(.focus) .fb-tab { right: auto; left: 0; padding: 0 2px 0 0; border-radi
 .word-pop > .btn.ghost { justify-self: center; }
 .qread { margin-bottom: 16px; }
 .qread .tile:nth-child(5) { grid-column: 1 / -1; }
+
+/* Знакомство: «Пропустить»; первый урок после знакомства: выход на главную */
+.ob-top { display: grid; grid-template-columns: 1fr auto 1fr; }
+.ob-top > :first-child { justify-self: start; }
+.ob-top > :last-child { justify-self: end; width: auto; }
+.ob-skip { min-height: 44px; padding: 0 4px; color: var(--ink-3); }
+.lp-home { display: flex; align-items: center; justify-content: center; gap: 4px; margin: 0 auto; min-height: 40px; padding: 0 12px; color: var(--ink-3); }

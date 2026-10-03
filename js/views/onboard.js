@@ -66,13 +66,16 @@ export function Onboarding() {
     b.addEventListener("click", () => {
       saveProfile();
       store.set((st) => { st.profile.onboarded = true; });
+      try { sessionStorage.setItem("tanwin.fromWelcome", "1"); } catch {} // в первом уроке будет кнопка «на главную»
       track("onboarded", { Старт: t });
       go(path === "/learn/1.1" ? "/" : path);
       if (path === "/learn/1.1") setTimeout(() => go(path), 50);
     });
     return b;
   }
-  const draw = () => { root.replaceChildren(h("div.ob-top", null, step ? h("button.icon-btn", { type: "button", "aria-label": "Назад", onclick: () => { step--; draw(); } }, icon("left")) : h("span"), dots(), h("span")), screens[step]()); };
+  const draw = () => { root.replaceChildren(h("div.ob-top", null, step ? h("button.icon-btn", { type: "button", "aria-label": "Назад", onclick: () => { step--; draw(); } }, icon("left")) : h("span"), dots(),
+    // «Пропустить» — для тех, кто уже знаком с приложением: без вопросов сразу к выбору, с чего начать
+    step < screens.length - 1 ? h("button.link.ob-skip", { type: "button", onclick: () => { saveProfile(); step = screens.length - 1; draw(); } }, "Пропустить") : h("span")), screens[step]()); };
   draw();
   return root;
 }

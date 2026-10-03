@@ -320,9 +320,13 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
   });
   const stage = h("div.lp-stage");
   const sheet = h("div.lp-sheet");
+  // первый урок сразу после знакомства можно не проходить: выход на главную (уроки при этом не открываются)
+  let fromWelcome = false;
+  try { fromWelcome = !!sessionStorage.getItem("tanwin.fromWelcome"); sessionStorage.removeItem("tanwin.fromWelcome"); } catch {}
+  const homeBtn = fromWelcome ? h("button.link.lp-home", { type: "button", onclick: () => { stop(); onExit?.(null); } }, "Пропустить урок и перейти на главную", icon("right", { size: 16 })) : null;
   const shell = h("div.lesson", { class: isTest ? "test" : "" },
     h("header.lp-top", null, exitBtn, h("div.lp-bar", null, bar), comboEl, xpEl, sizeButton()),
-    stage, sheet);
+    homeBtn, stage, sheet);
   root.replaceChildren(shell);
 
   const gain = (n) => { xp += n; xpEl.querySelector("b").textContent = xp; xpEl.classList.remove("pop"); void xpEl.offsetWidth; xpEl.classList.add("pop"); };
