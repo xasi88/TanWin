@@ -1,41 +1,128 @@
-// Закладки и цель чтения: несколько сохранённых мест в Коране и обратный отсчёт страниц («прочесть сегодня N страниц»).
-import { h, icon, modal, toast, plural, confirmBox, confetti } from "../ui.js";
+// Закладки и цель чтения: сохранённые места в Коране (с названиями, группами и своей целью) и обратный отсчёт страниц.
+import { h, icon, modal, toast, plural, confirmBox, confetti, keep } from "../ui.js";
 import { loadSurahs, surahMeta } from "../data.js";
-import { store } from "../store.js";
+import { store, readGoalDone } from "../store.js";
 import { go } from "../app.js";
 import { enterFullscreen } from "../fullscreen.js";
-import { continueReading, PAGES, JUZ_PAGE } from "./quran.js";
+import { continueReading, pageContent, PAGES, JUZ_PAGE } from "./quran.js";
 
 const MAX_MARKS = 100;
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 const pagesWord = (n) => plural(n, "страница", "страницы", "страниц");
 const juzOf = (p) => { let j = 0; while (j < 29 && JUZ_PAGE[j + 1] <= p) j++; return j + 1; };
 const dateRu = (t) => new Date(t).toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
-const placeText = (s, a, p) => `${surahMeta(s)?.ru || `Сура ${s}`}, аят ${a}${p ? ` · стр. ${p}` : ""}`;
+const ayahText = (s, a) => `${surahMeta(s)?.ru || `Сура ${s}`}, аят ${a}`;
+const placeText = (s, a, p) => `${ayahText(s, a)}${p ? ` · стр. ${p}` : ""}`;
 
-/** Открыть режим чтения на месте закладки (и когда этот же адрес уже открыт). */
+/** Открыть режим чтения на нужном аяте (и когда этот же адрес уже открыт). */
 function openRead(s, a) {
   enterFullscreen();
   const hash = `#/read/${s}/${a}`;
   if (location.hash === hash) window.dispatchEvent(new HashChangeEvent("hashchange")); else go(hash.slice(1));
 }
+/** Открыть закладку. Если у неё есть своя цель — отсчёт страниц начинается сам. */
+function openMark(m) {
+  if (m.goal && m.p) {
+    const gl = readGoal();
+    if (gl && gl.mark === m.id && !gl.done) return openRead(gl.s, gl.a); // цель этой закладки ещё идёт — продолжаем с места, где остановились
+    store.set((st) => { st.readGoal = { from: m.p, pages: Math.min(m.goal, PAGES + 1 - m.p), read: 0, s: m.s, a: m.a, at: Date.now(), done: 0, mark: m.id }; });
+  }
+  openRead(m.s, m.a);
+}
 
-// ---------- Закладки ----------
+// ---------- Закладки и группы ----------
+// Закладка: { id, s, a, p, at, name, g, goal } — name, g (группа) и goal (страниц за раз) необязательны. Группа: { id, name, closed }.
 export const marks = () => store.get().marks || [];
-/** Ставит закладку на аят; возвращает false, если такая уже есть. */
+export const groups = () => store.get().markGroups || [];
+/** Ставит закладку на аят и открывает её настройки (название, группа, цель); возвращает false, если такая уже есть. */
 export function addMark(s, a, p) {
-  if (marks().some((m) => m.s === s && m.a === a)) { toast("Закладка на этом месте уже стоит."); return false; }
-  store.set((st) => { st.marks = [{ id: Date.now().toString(36), s, a, p: p || null, at: Date.now() }, ...(st.marks || [])].slice(0, MAX_MARKS); });
-  toast(`Закладка поставлена: ${placeText(s, a, p)} ✓`, 3200);
+  if (marks().some((m) => m.s === s && m.a === a)) { toast("Закладка на этом аяте уже стоит."); return false; }
+  const id = newId();
+  store.set((st) => { st.marks = [{ id, s, a, p: p || null, at: Date.now() }, ...(st.marks || [])].slice(0, MAX_MARKS); });
+  markEditor(id, { fresh: true });
   return true;
 }
-/** Новый порядок закладок: ids — их номера сверху вниз. */
-const orderMarks = (ids) => store.set((st) => { const by = new Map((st.marks || []).map((m) => [m.id, m])); st.marks = ids.map((id) => by.get(id)).filter(Boolean); });
+/** Новый порядок закладок: ids — закладки одного списка сверху вниз; остальные остаются на своих местах. */
+const orderMarks = (ids) => store.set((st) => {
+  const by = new Map((st.marks || []).map((m) => [m.id, m])), set = new Set(ids);
+  let i = 0;
+  st.marks = (st.marks || []).map((m) => (set.has(m.id) ? by.get(ids[i++]) : m));
+});
 const removeMark = (id) => store.set((st) => { st.marks = (st.marks || []).filter((m) => m.id !== id); });
+const addGroup = (name) => { const id = "g" + newId(); store.set((st) => { st.markGroups = [...(st.markGroups || []), { id, name }]; }); return id; };
 
 /** Кнопка «Закладка» для панелей читалки. place() → { s, a, p } — где сейчас читатель. */
 export function markBtn(place) {
   return h("button.tool", { type: "button", title: "Поставить закладку на этом месте", onclick: () => { const x = place(); addMark(x.s, x.a, x.p); } },
     icon("bookmark", { size: 18 }), h("span", null, "Закладка"));
+}
+
+/** Настройки закладки: название, группа, своя цель, удаление. fresh — закладку только что поставили. */
+export function markEditor(id, { fresh = false, onChange } = {}) {
+  const m = marks().find((x) => x.id === id);
+  if (!m) return;
+  modal((close) => {
+    let g = groups().some((x) => x.id === m.g) ? m.g : "";
+    const name = h("input.text-in", { type: "text", maxlength: 60, value: m.name || "", placeholder: "Например: «Каждый день» или «В пятницу»", "aria-label": "Название закладки" });
+    const ng = h("input.text-in", { type: "text", maxlength: 40, hidden: true, placeholder: "Название новой группы", "aria-label": "Название новой группы" });
+    const goal = h("input.text-in", { type: "number", min: 0, max: PAGES, inputmode: "numeric", value: m.goal || "", placeholder: "Без цели", "aria-label": "Сколько страниц читать за раз" });
+    const chips = h("div.rm-row");
+    const drawChips = () => chips.replaceChildren(...[{ id: "", name: "Без группы" }, ...groups(), { id: "+", name: "+ Новая группа" }].map((x) =>
+      h("button.seg-btn", { type: "button", class: x.id === g ? "on" : "", onclick: () => { g = x.id; ng.hidden = g !== "+"; drawChips(); if (g === "+") ng.focus(); } }, keep(x.name))));
+    drawChips();
+    const save = () => {
+      const gid = g === "+" ? (ng.value.trim() ? addGroup(ng.value.trim()) : "") : g;
+      const n = Math.max(0, Math.min(PAGES, Math.round(+goal.value) || 0));
+      store.set((st) => { const x = st.marks.find((y) => y.id === id); if (x) Object.assign(x, { name: name.value.trim(), g: gid, goal: n }); });
+      close(); onChange?.();
+    };
+    for (const inp of [name, ng, goal]) inp.addEventListener("keydown", (e) => e.key === "Enter" && save());
+    return h("div.mark-edit", null,
+      h("h2", null, fresh ? "Закладка поставлена ✓" : "Закладка"),
+      h("p.muted", null, placeText(m.s, m.a, m.p)),
+      h("div.label", null, "Название — если нужно"), name,
+      h("div.label", null, "Группа"), chips, ng,
+      h("div.label", null, "Цель: сколько страниц читать за раз"), goal,
+      h("p.muted.small", null, "С целью отсчёт страниц начинается сам, как только вы откроете закладку. Цель выполнена — закладка переезжает вперёд, и в следующий раз чтение продолжится с нового места."),
+      h("div.row.gap.wrap", null,
+        h("button.btn.primary", { type: "button", onclick: save }, fresh ? "Готово" : "Сохранить"),
+        fresh ? null : h("button.btn.ghost", { type: "button", onclick: async () => {
+          if (await confirmBox("Удалить закладку?", m.name || placeText(m.s, m.a, m.p), "Удалить")) { removeMark(id); close(); onChange?.(); }
+        } }, icon("trash", { size: 18 }), "Удалить")));
+  });
+}
+
+/** Группа закладок: название, место в списке, удаление. id = null — новая группа. */
+function groupEditor(id, onChange) {
+  const g = groups().find((x) => x.id === id);
+  modal((close) => {
+    const name = h("input.text-in", { type: "text", maxlength: 40, value: g?.name || "", placeholder: "Например: «Сегодня» или «Пятница»", "aria-label": "Название группы" });
+    const save = () => {
+      const t = name.value.trim();
+      if (!t) return toast("Напишите название группы.");
+      if (g) store.set((st) => { st.markGroups.find((x) => x.id === id).name = t; }); else addGroup(t);
+      close(); onChange?.();
+    };
+    name.addEventListener("keydown", (e) => e.key === "Enter" && save());
+    const move = (d) => {
+      store.set((st) => { const l = st.markGroups, i = l.findIndex((x) => x.id === id), j = i + d; if (i >= 0 && j >= 0 && j < l.length) [l[i], l[j]] = [l[j], l[i]]; });
+      onChange?.();
+    };
+    requestAnimationFrame(() => !g && name.focus());
+    return h("div.mark-edit", null,
+      h("h2", null, g ? "Группа закладок" : "Новая группа"),
+      g ? null : h("p.muted", null, "Соберите в группу то, что читаете вместе: например, суры на сегодня или на пятницу."),
+      h("div.label", null, "Название"), name,
+      h("div.row.gap.wrap", null,
+        h("button.btn.primary", { type: "button", onclick: save }, g ? "Сохранить" : "Создать"),
+        g && groups().length > 1 ? h("button.btn.ghost", { type: "button", onclick: () => move(-1) }, "Выше") : null,
+        g && groups().length > 1 ? h("button.btn.ghost", { type: "button", onclick: () => move(1) }, "Ниже") : null,
+        g ? h("button.btn.ghost", { type: "button", onclick: async () => {
+          if (!(await confirmBox("Удалить группу?", `«${g.name}». Закладки из неё останутся — без группы.`, "Удалить"))) return;
+          store.set((st) => { st.markGroups = st.markGroups.filter((x) => x.id !== id); });
+          close(); onChange?.();
+        } }, icon("trash", { size: 18 }), "Удалить") : null));
+  });
 }
 
 const scrollBox = (el) => { for (let p = el.parentElement; p; p = p.parentElement) if (/auto|scroll/.test(getComputedStyle(p).overflowY) && p.scrollHeight > p.clientHeight) return p; return document.scrollingElement; };
@@ -81,26 +168,41 @@ function gripBtn(box, row) {
   return btn;
 }
 
-/** Список закладок. onOpen — что сделать перед переходом (закрыть окно), onChange — после удаления или новой цели. */
+/** Список закладок по группам. onOpen — что сделать перед переходом (закрыть окно), onChange — после любого изменения. */
 function marksList({ onOpen, onChange } = {}) {
-  const box = h("div.mark-list");
+  const wrap = h("div.mark-groups");
+  const redraw = () => (onChange ? onChange() : draw());
+  const row = (m, box, many) => {
+    const sub = [m.name ? ayahText(m.s, m.a) : null, m.p ? `стр. ${m.p}` : null, !m.name && m.p ? `джуз ${juzOf(m.p)}` : null, m.goal ? `цель: ${m.goal} стр.` : dateRu(m.at)].filter(Boolean).join(" · ");
+    const r = h("div.mark-row", { "data-id": m.id },
+      h("button.mark-open", { type: "button", onclick: () => { onOpen?.(); openMark(m); } },
+        h("span.rc-ic", null, icon(m.goal ? "target" : "bookmark", m.goal ? { size: 22 } : { size: 22, fill: true, sw: 1 })),
+        h("div", null, h("b", null, keep(m.name || ayahText(m.s, m.a))), h("small.muted", null, sub))),
+      h("button.icon-btn", { type: "button", title: "Название, группа, цель, удаление", "aria-label": "Настроить закладку", onclick: () => markEditor(m.id, { onChange: redraw }) }, icon("more", { sw: 3 })));
+    if (many) r.prepend(gripBtn(box, r));
+    return r;
+  };
+  const rows = (list) => { const box = h("div.mark-list"); box.append(...list.map((m) => row(m, box, list.length > 1))); return box; };
   const draw = () => {
-    const list = marks();
-    box.replaceChildren(...list.map((m) => { const row = h("div.mark-row", { "data-id": m.id },
-      h("button.mark-open", { type: "button", onclick: () => { onOpen?.(); openRead(m.s, m.a); } },
-        h("span.rc-ic", null, icon("bookmark", { size: 22, fill: true, sw: 1 })),
-        h("div", null, h("b", null, `${surahMeta(m.s)?.ru || `Сура ${m.s}`}, аят ${m.a}`), h("small.muted", null, `${m.p ? `стр. ${m.p} · джуз ${juzOf(m.p)} · ` : ""}${dateRu(m.at)}`))),
-      m.p ? h("button.icon-btn", { type: "button", title: "Цель чтения с этого места", "aria-label": "Поставить цель чтения с этой закладки", onclick: () => goalModal({ s: m.s, a: m.a, p: m.p }, () => { onOpen?.(); openRead(m.s, m.a); }) }, icon("target")) : null,
-      h("button.icon-btn", { type: "button", title: "Удалить закладку", "aria-label": "Удалить закладку", onclick: async () => {
-        if (await confirmBox("Удалить закладку?", placeText(m.s, m.a, m.p), "Удалить")) { removeMark(m.id); draw(); onChange?.(); }
-      } }, icon("trash")));
-      if (list.length > 1) row.prepend(gripBtn(box, row));
-      return row; }));
-    if (list.length > 1) box.append(h("p.muted.small", null, "Чтобы поменять порядок, потяните закладку за точки слева вверх или вниз."));
-    if (!list.length) box.append(h("p.muted", null, "Закладок пока нет. Откройте «Чтение», нажмите на экран, затем меню ☰ → «Закладка здесь». Закладок может быть сколько угодно."));
+    const all = marks(), gs = groups(), known = new Set(gs.map((g) => g.id));
+    const loose = all.filter((m) => !known.has(m.g));
+    wrap.replaceChildren(...[
+      ...gs.map((g) => {
+        const list = all.filter((m) => m.g === g.id);
+        return h("details.mark-group", { open: !g.closed, ontoggle: (e) => { const closed = !e.currentTarget.open; if (closed !== !!g.closed) store.set((st) => { const x = st.markGroups.find((y) => y.id === g.id); if (x) x.closed = closed; }); } },
+          h("summary", null, icon("down2", { size: 18, sw: 3 }), h("b", null, keep(g.name)), h("span.muted", null, list.length),
+            h("button.icon-btn", { type: "button", title: "Переименовать, переместить или удалить группу", "aria-label": "Настроить группу", onclick: (e) => { e.preventDefault(); groupEditor(g.id, redraw); } }, icon("more", { sw: 3 }))),
+          list.length ? rows(list) : h("p.muted.small", null, "В группе пока пусто. Нажмите «⋯» у закладки и выберите эту группу."));
+      }),
+      gs.length && loose.length ? h("div.label", null, "Без группы") : null,
+      loose.length ? rows(loose) : null,
+      all.length ? null : h("p.muted", null, "Закладок пока нет. Откройте «Чтение», нажмите на экран, затем меню ☰ → «Закладка здесь». Или нажмите на слово и удерживайте — закладка встанет точно на этот аят."),
+      all.length > 1 ? h("p.muted.small", null, "Чтобы поменять порядок, потяните закладку за точки слева вверх или вниз.") : null,
+      h("button.btn.secondary", { type: "button", onclick: () => groupEditor(null, redraw) }, "Новая группа"),
+    ].filter(Boolean));
   };
   draw();
-  return box;
+  return wrap;
 }
 
 /** Окно со списком закладок — для режима чтения, чтобы не выходить из него. */
@@ -112,6 +214,15 @@ export function marksSheet() {
 export const readGoal = () => store.get().readGoal || null;
 const goalRead = (gl, page) => Math.max(0, Math.min(gl.pages, page - gl.from));
 export const goalLeft = () => { const gl = readGoal(); return gl ? gl.pages - (gl.read || 0) : 0; };
+
+/** Цель закладки выполнена: закладка переезжает на начало страницы p (после конца Корана — в его начало). Возвращает новую страницу. */
+async function advanceMark(id, p) {
+  const part = p > PAGES ? null : (await pageContent(p).catch(() => []))[0];
+  const to = part ? { s: part.s, a: part.from, p } : p > PAGES ? { s: 1, a: 1, p: 1 } : null;
+  if (!to || !marks().some((m) => m.id === id)) return 0;
+  store.set((st) => { Object.assign(st.marks.find((m) => m.id === id), to, { at: Date.now() }); });
+  return to.p;
+}
 
 /**
  * Полоска цели: «осталось N страниц из M». set(page, s, a) вызывается при движении по тексту
@@ -137,7 +248,14 @@ export function goalStrip(onDone) {
     if (read !== gl.read || (s && (gl.s !== s || gl.a !== a))) {
       const done = read >= gl.pages;
       store.set((st) => { Object.assign(st.readGoal, { read, done: done ? Date.now() : 0 }, s && !done ? { s, a } : {}); });
-      if (done) { confetti(); toast(`Цель выполнена: прочитано ${gl.pages} ${pagesWord(gl.pages)}. Да примет Аллах ваше чтение!`, 5200); onDone?.(); }
+      if (done) {
+        confetti();
+        readGoalDone();
+        const msg = `Цель выполнена: прочитано ${gl.pages} ${pagesWord(gl.pages)}. Да примет Аллах ваше чтение!`;
+        if (gl.mark) advanceMark(gl.mark, gl.from + gl.pages).then((p) => toast(msg + (p ? ` Закладка переехала на страницу ${p}.` : ""), 6500));
+        else toast(msg, 5200);
+        onDone?.();
+      }
     }
     paint();
   };
@@ -172,6 +290,7 @@ export function goalModal(start, after) {
       h("div.row.gap", null, inp, h("button.btn.primary", { type: "button", onclick: apply }, "Начать отсчёт")),
       h("div.rm-row", null, ...[[5, "5"], [10, "10"], [20, "20 — один джуз"]].filter(([n]) => n <= max).map(([n, t]) => h("button.seg-btn", { type: "button", onclick: () => { inp.value = n; sync(); } }, t))),
       till,
+      h("p.muted.small", null, "Чтобы цель включалась сама каждый раз, задайте её у закладки: кнопка «⋯» в списке закладок."),
       gl ? h("button.btn.ghost", { type: "button", onclick: () => { store.set((st) => { st.readGoal = null; }); close(); toast("Цель снята."); after?.(); } }, icon("trash", { size: 18 }), "Снять цель") : null);
   });
 }
@@ -206,6 +325,6 @@ export async function BookmarksView() {
     marksList({ onChange: draw }));
   draw();
   return h("div.page.bookmarks", null,
-    h("header.page-head", null, h("h1", null, "Закладки"), h("p.muted", null, "Сохранённые места в Коране и цель чтения с обратным отсчётом страниц. Место, где вы остановились, запоминается само.")),
+    h("header.page-head", null, h("h1", null, "Закладки"), h("p.muted", null, "Сохранённые места в Коране — с названиями, группами и своей целью — и обратный отсчёт страниц. Место, где вы остановились, запоминается само.")),
     body);
 }

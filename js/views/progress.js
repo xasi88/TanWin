@@ -1,6 +1,6 @@
 // Прогресс: уровень, серия, активность, освоение букв и правил, этапы, награды.
 import { h, ar, icon, ring, plural } from "../ui.js";
-import { store, levelInfo, streakNow, lastDays, mastery, surahDone } from "../store.js";
+import { store, levelInfo, streakNow, lastDays, mastery, surahDone, readStats } from "../store.js";
 import { UNITS, SURAH_UNIT, SURAH_PATH } from "../course.js";
 import { LETTERS } from "../letters.js";
 import { RULES } from "../rules.js";
@@ -20,6 +20,21 @@ function activityChart() {
       ...days.map((d, i) => h("div.bar-col", { title: `${d.d}: ${d.xp} нура` },
         h("div.bar", { class: d.xp >= goal ? "met" : d.xp ? "some" : "", style: { height: Math.max(2, (d.xp / max) * 100) + "%" } }, d.xp ? h("span.bar-v", null, d.xp) : null),
         h("small", { class: i === days.length - 1 ? "today" : "" }, WD[d.wd])))));
+}
+
+/** Чтение Корана: дни, серия, время, страницы, выполненные цели (считается в режиме «Чтение»). */
+function quranReading() {
+  const r = readStats();
+  const head = h("div.card-title", null, h("h3", null, "Чтение Корана"), h("a", { href: "#/bookmarks" }, "Закладки и цель"));
+  if (!r.ms && !r.pages && !r.goals) return h("div.card", null, head,
+    h("p.muted", null, "Здесь появится статистика чтения: сколько дней вы читали Коран, сколько дней подряд, сколько времени и страниц, сколько целей выполнено. Счёт идёт в разделе «Чтение»."));
+  return h("section.qread", null, head,
+    h("div.ph-stats", null,
+      tile("flame", r.cur, plural(r.cur, "день подряд", "дня подряд", "дней подряд"), `рекорд: ${r.best}`),
+      tile("book", r.days, plural(r.days, "день с чтением", "дня с чтением", "дней с чтением"), "всего"),
+      tile("bolt", fmtTime(r.ms), "за чтением", `сегодня: ${fmtTime(r.today.ms)}`),
+      tile("page", r.pages, plural(r.pages, "страница", "страницы", "страниц"), `сегодня: ${r.today.pages}`),
+      tile("target", r.goals, plural(r.goals, "цель выполнена", "цели выполнены", "целей выполнено"), "цели чтения")));
 }
 
 function lettersGrid() {
@@ -59,6 +74,7 @@ export function ProgressView() {
         tile("target", acc + "%", "точность", `${s.stats.answers} ${plural(s.stats.answers, "ответ", "ответа", "ответов")}`),
         tile("bolt", fmtTime(s.stats.ms), "в занятиях", `${s.stats.lessons} ${plural(s.stats.lessons, "занятие", "занятия", "занятий")}`))),
     activityChart(),
+    quranReading(),
     h("div.card", null,
       h("div.card-title", null, h("h3", null, "Этапы")),
       h("div.unit-bars", null, ...[...UNITS, SURAH_UNIT].map((u) => {
