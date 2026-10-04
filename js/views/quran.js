@@ -596,9 +596,9 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
   const endEl = h("div.focus-end", null, ...(kind === "mark" ? markEnd() : [
     kind === "juz" ? h("p.focus-done", null, icon("check", { size: 20, sw: 3 }), `Джуз ${juz} прочитан`) : null,
     !hasNext ? h("p.muted", null, "Конец Корана")
-      : kind === "page" ? h("button.btn.secondary", { type: "button", onclick: () => advance(running) }, icon("left", { size: 18 }), "Следующая страница")
+      : kind === "page" ? h("button.btn.secondary", { type: "button", onclick: () => advance(running) }, "Следующая страница")
       : h("button.btn.secondary", { type: "button", onclick: () => advance(kind === "surah" && running) }, kind === "juz" ? `Дальше: джуз ${juz + 1}` : `Дальше: сура ${list[last.s].ru}`, icon("right", { size: 18 })),
-    kind === "page" && page > 1 ? h("button.btn.ghost", { type: "button", onclick: () => location.replace(`#/page/${page - 1}`) }, "Предыдущая страница", icon("right", { size: 18 })) : null]));
+    kind === "page" && page > 1 ? h("button.btn.ghost", { type: "button", onclick: () => location.replace(`#/page/${page - 1}`) }, "Предыдущая страница") : null]));
 
   const jm = juzMap(pageOf((start && find(start.s, start.a)) || flat[0]));
   jm.el.classList.add("focus-juz");
