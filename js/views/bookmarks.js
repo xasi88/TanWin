@@ -196,7 +196,7 @@ function marksList({ onOpen, onChange } = {}) {
       }),
       gs.length && loose.length ? h("div.label", null, "Без группы") : null,
       loose.length ? rows(loose) : null,
-      all.length ? null : h("p.muted", null, "Закладок пока нет. Откройте «Чтение», нажмите на экран, затем меню ☰ → «Закладка здесь». Или нажмите на слово и удерживайте — закладка встанет точно на этот аят."),
+      all.length ? null : h("p.muted", null, "Закладок пока нет. Откройте суру в разделе «Мой Коран», нажмите на экран и выберите вверху «Закладка здесь». Или нажмите на слово и удерживайте — закладка встанет точно на этот аят."),
       all.length > 1 ? h("p.muted.small", null, "Чтобы поменять порядок, потяните закладку за точки слева вверх или вниз.") : null,
       h("button.btn.secondary", { type: "button", onclick: () => groupEditor(null, redraw) }, "Новая группа"),
     ].filter(Boolean));

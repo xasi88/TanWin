@@ -84,7 +84,7 @@ export function ProgressView() {
     lettersGrid(),
     rulesGrid(),
     surahsRead.length ? h("div.card", null, h("div.card-title", null, h("h3", null, "Прочитанные суры"), h("span.muted", null, `${surahsRead.length} из ${SURAH_PATH.length}`)),
-      h("div.surah-chips", null, ...surahsRead.map((n) => h("a.schip", { href: `#/quran/${n}` }, ar(surahMeta(n).ar), h("small", null, surahMeta(n).ru))))) : null,
+      h("div.surah-chips", null, ...surahsRead.map((n) => h("a.schip", { href: `#/read/${n}` }, ar(surahMeta(n).ar), h("small", null, surahMeta(n).ru))))) : null,
     h("div.card", null,
       h("div.card-title", null, h("h3", null, "Награды"), h("span.muted", null, `${Object.keys(s.badges).length} из ${BADGES.length}`)),
       h("div.badges", null, ...BADGES.map((b) => h("div.badge-cell", { class: s.badges[b.id] ? "on" : "" }, h("span.b-ic", null, b.icon), h("b", null, b.name), h("small", null, b.text))))));

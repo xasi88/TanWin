@@ -68,7 +68,7 @@ page.on("pageerror", (e) => errors.push(e.message));
 const AUDIT = () => {
   const W = innerWidth, issues = [];
   const BOX = ".card, .opt, .word-chip, .match-btn, .alpha-cell, .form-cell, .syll, .st-cell, .vt-word, .sn-btn, .rd-word, .hero-card, .unit-head, .node-disc, .modal, .sheet-in, .drill, .more-link, .surah-row, .tile, .stat, .schip, .badge-cell, .m-cell, .rw-cell, .stop-cell, .verse-block, .verses, .seg-btn, .btn, .hs-pill, .hs-goal, .dev-banner, .version, .donor, .res-goal, .ob-pt, .start-opt, .goal-opt, .si-plan div, .map-info, .q-big, .rd-word, .lc-glyph, .snd-tile, .li-glyph, .bb-out, .blend";
-  const OVERLAY = ".fb-tab, .lp-sheet, .lp-actions, #nav, #toast, .lp-top, .reader-tools, .focus-bar, .focus-juz";
+  const OVERLAY = ".fb-tab, .lp-sheet, .lp-actions, #nav, #toast, .lp-top, .reader-tools, .focus-bar, .focus-juz, .focus-menu, .page-wheel";
   const modalOpen = document.querySelector("#modal-root .modal-wrap:not(.out)");
   const roots = modalOpen ? [modalOpen] : [document.querySelector("#app")];
   const texts = [];
@@ -154,7 +154,7 @@ async function check(label) {
   return issues;
 }
 
-const PAGES = ["/surah/1", "/surah/112", "/page/1", "/page/582", "/read/1", "/read/2", "/read/112", "/", "/review", "/quran", "/quran/1", "/quran/2", "/quran/112", "/progress", "/bookmarks", "/more", "/letters", "/rules", "/method", "/thanks", "/changelog"];
+const PAGES = ["/surah/1", "/surah/112", "/page/1", "/page/582", "/read/1", "/read/2", "/read/112", "/juz/1", "/juz/30", "/", "/review", "/quran", "/progress", "/bookmarks", "/more", "/letters", "/rules", "/method", "/thanks", "/changelog"];
 await page.goto(`${BASE}/#/`);
 await page.waitForTimeout(1500);
 for (const p of args.nopages ? [] : PAGES) {
@@ -162,13 +162,17 @@ for (const p of args.nopages ? [] : PAGES) {
   await page.waitForTimeout(900);
   if (p === "/") await page.evaluate(() => document.querySelectorAll(".unit:not(.open) .uh-toggle").forEach((b) => b.click()));
   await check("page " + p);
-  if (/^\/quran\/\d/.test(p)) { // режим «по аятам»
-    await page.evaluate(() => [...document.querySelectorAll(".reader-tools .tool")].find((b) => /аятам|Мусхаф/.test(b.textContent))?.click());
+  if (p === "/quran") { // «Мой Коран»: раскрытый джуз
+    await page.evaluate(() => { document.querySelector(".juz-all > summary")?.click(); document.querySelector(".juz-item > summary")?.click(); });
+    await check("page " + p + " juz");
+  }
+  if (/^\/read\/\d/.test(p)) { // чтение: верхнее меню и вид «по аятам»
+    const tile = (re) => page.evaluate((src) => [...document.querySelectorAll(".fm-tile")].find((b) => new RegExp(src).test(b.textContent))?.click(), re);
+    await page.evaluate(() => document.querySelector(".focus-scroll")?.click());
+    await check("page " + p + " menu");
+    await tile("По аятам");
     await check("page " + p + " ayat");
-    await page.evaluate(() => [...document.querySelectorAll(".reader-tools .tool")].find((b) => /аятам|Мусхаф/.test(b.textContent))?.click());
-    await page.evaluate(() => document.querySelector(".qw")?.click());
-    await check("page " + p + " word-pop");
-    await page.keyboard.press("Escape");
+    await tile("Сплошной");
   }
   if (p === "/letters") {
     await page.evaluate(() => document.querySelector(".alpha-cell")?.click());
@@ -264,7 +268,7 @@ if (args.extra) {
   await page.evaluate(() => document.querySelector(".fb-tab")?.click()); await check("modal feedback"); await page.keyboard.press("Escape");
   await reload("/progress");
   await check("page /progress full");
-  await reload("/quran/1");
+  await reload("/read/1");
   await page.evaluate(() => [...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Aa")?.click()); await check("modal Aa"); await page.keyboard.press("Escape");
   // знакомство — как новый ученик
   await seed((st) => { st.profile.onboarded = false; st.profile.name = "Абдуррахман"; });
