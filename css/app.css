@@ -1285,3 +1285,4 @@ body:has(.focus) .fb-tab { right: auto; left: 0; padding: 0 2px 0 0; border-radi
 .part-cap { margin: 0 0 8px; text-align: center; font-size: .85rem; font-weight: 800; color: var(--ink-3); }
 .focus-end { gap: 10px; }
 .focus-done { display: flex; align-items: center; gap: 6px; margin: 0; font-weight: 900; color: var(--good); }
+.my-quran .sr-main small { white-space: normal; } /* номер страницы и число аятов не обрезаются на узком экране */
