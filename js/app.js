@@ -155,8 +155,28 @@ async function start() {
   initFeedback();
   startMetrika();
   view.replaceChildren(h("div.boot", null, logo(72), h("div.spinner")));
-  try { await Promise.all([loadBank(), loadSurahs(), document.fonts?.load?.('40px "Amiri Quran"', "بسم"), document.fonts?.load?.(`40px ${AR_FONTS[arFont()].css}`, "بسم")]); }
-  catch (e) { console.error(e); }
+  // связь медленная — говорим об этом, а не держим человека перед пустым экраном
+  const slow = setTimeout(() => view.querySelector(".boot")?.append(
+    h("p.muted.center", null, "Загрузка идёт дольше обычного. Проверьте интернет."),
+    h("button.btn.secondary", { type: "button", onclick: () => location.reload() }, "Обновить")), 8000);
+  // шрифты ждём не дольше четырёх секунд: без них приложение откроется, а текст перерисуется, когда они придут
+  const fonts = Promise.race([
+    Promise.all([document.fonts?.load?.('40px "Amiri Quran"', "بسم"), document.fonts?.load?.(`40px ${AR_FONTS[arFont()].css}`, "بسم")]).catch(() => {}),
+    new Promise((ok) => setTimeout(ok, 4000))]);
+  let loaded = false;
+  for (let i = 0; i < 3 && !loaded; i++) { // данные: три попытки
+    try { await Promise.all([loadBank(), loadSurahs()]); loaded = true; }
+    catch (e) { console.error(e); await new Promise((ok) => setTimeout(ok, 1200)); }
+  }
+  await fonts;
+  clearTimeout(slow);
+  if (!loaded) {
+    view.replaceChildren(h("div.page", null, h("div.card", null, h("h2", null, "Не удалось загрузить приложение"),
+      h("p", null, "Похоже, связь прервалась. Проверьте интернет и попробуйте ещё раз. После первой удачной загрузки приложение открывается и без интернета."),
+      h("button.btn.primary", { type: "button", onclick: () => location.reload() }, "Повторить"))));
+    registerSW();
+    return;
+  }
   checkShaping();
   // крупный арабский текст подгоняется под ширину экрана: после каждой отрисовки, поворота экрана, смены масштаба
   new MutationObserver(queueFit).observe(document.body, { childList: true, subtree: true });

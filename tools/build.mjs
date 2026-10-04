@@ -21,6 +21,19 @@ const CURR = [1, ...Array.from({ length: 37 }, (_, i) => 78 + i)];
 for (const n of CURR) files.push(`data/q/${String(n).padStart(3, "0")}.json`);
 files.sort();
 
+// Предзагрузка: все модули, которые нужны для запуска (js/app.js и всё, что он импортирует), браузер качает сразу и параллельно,
+// а не цепочкой «скачал файл — узнал, что нужен следующий». Список вписывается в index.html между <!--PRELOAD--> и <!--/PRELOAD-->.
+const boot = [];
+const deps = (function deps(f) {
+  if (boot.includes(f)) return;
+  boot.push(f);
+  for (const m of readFileSync(join(root, f), "utf8").matchAll(/^(?:import|export)\s[^"'\n]*?["'](\.{1,2}\/[^"']+)["']/gm)) deps(join(f, "..", m[1]).split(sep).join("/"));
+});
+for (const f of ["js/app.js", "js/views/home.js"]) deps(f); // запуск и первый экран — «Путь»
+const links = boot.slice(1).sort().map((f) => `<link rel="modulepreload" href="${f}">`);
+const htmlPath = join(root, "index.html");
+writeFileSync(htmlPath, readFileSync(htmlPath, "utf8").replace(/<!--PRELOAD-->[\s\S]*?<!--\/PRELOAD-->/, `<!--PRELOAD-->\n  ${links.join("\n  ")}\n  <!--/PRELOAD-->`));
+
 const hash = createHash("sha1");
 for (const f of files) { hash.update(f); hash.update(readFileSync(join(root, f))); }
 const version = hash.digest("hex").slice(0, 10);

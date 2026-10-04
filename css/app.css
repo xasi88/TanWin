@@ -996,7 +996,6 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .focus .qw { cursor: inherit; }
 .focus .qw:hover { background: none; }
 .focus .ayah-mark { cursor: pointer; }
-.focus.quiet { cursor: none; }
 .focus .page-mark { pointer-events: none; }
 .focus-end { display: grid; justify-items: center; margin-top: 28px; }
 /* дорожная карта: 30 джузов точками (пятёрками), пройденные закрашены, текущий заполняется */
@@ -1277,7 +1276,7 @@ body:has(.sura-scrub) .fb-tab { right: auto; left: 0; padding: 0 2px 0 0; border
   border-radius: 20px; border: 1px solid var(--line); background: color-mix(in srgb, var(--card) 94%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: var(--shadow-lg);
   transition: opacity .35s var(--ease), transform .35s var(--ease); }
 .focus-menu::-webkit-scrollbar { display: none; }
-.focus.quiet .focus-menu, .focus.intro .focus-menu { opacity: 0; transform: translateY(-20px); pointer-events: none; }
+.focus.quiet .focus-menu { opacity: 0; transform: translateY(-20px); pointer-events: none; }
 .fm-info { text-align: center; font-size: .8rem; font-weight: 800; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .fm-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 5px; }
 .fm-tile { display: grid; justify-items: center; align-content: start; gap: 3px; min-width: 0; min-height: 54px; padding: 6px 2px 5px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--ink-2); font: inherit; font-size: .64rem; font-weight: 800; line-height: 1.15; text-align: center; cursor: pointer; }

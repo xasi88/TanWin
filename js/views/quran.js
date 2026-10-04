@@ -559,14 +559,12 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null }) {
     playB.replaceChildren(icon(on ? "pause" : "play", { size: 22, fill: !on, sw: on ? 3 : 1.5 }));
     playB.setAttribute("aria-label", on ? "Остановить прокрутку" : "Включить автопрокрутку");
     playB.classList.toggle("playing", on);
-    show();
   };
   const hold = (ms) => { holdUntil = performance.now() + ms; };
   const setSpeed = (d) => {
     speed = Math.min(SPEED.max, Math.max(SPEED.min, speed + d));
     try { localStorage.setItem("tanwin.readSpeed", speed); } catch {}
     val.textContent = speed; slower.disabled = speed <= SPEED.min; faster.disabled = speed >= SPEED.max;
-    show();
   };
 
   // --- чтец: читает с выбранного аята до конца текста, слова подсвечиваются, текст сам следует за чтением ---
@@ -581,7 +579,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null }) {
         if (++reps < repeatN) return play();
         reps = 0;
         if (pi < flat.length - 1) { pi++; play(); }
-        else { pi = -1; toast("Прослушано. Прочитайте это сами — вслух!"); }
+        else { pi = -1; toast("Прослушано. Теперь прочитайте сами — вслух!"); }
       },
       onError: () => toast("Не удалось загрузить аудио. Проверьте интернет."),
       onStop: () => x.p.view.highlight(x.a, -1),
@@ -590,17 +588,16 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null }) {
   const listenFrom = (x) => { setRunning(false); pi = flat.indexOf(x); reps = 0; play(); };
 
   // --- нижняя панель: автопрокрутка, её скорость, чтец, размер текста ---
-  const playB = h("button.play-btn", { type: "button", onclick: () => setRunning(!running) });
+  const playB = h("button.play-btn", { type: "button", onclick: () => { setRunning(!running); if (running) hide(); } }); // пошла автопрокрутка — панели уходят: читатель хочет читать
   const val = h("b.focus-speed", { title: "Скорость прокрутки" }, speed);
   const slower = h("button.sp-btn", { type: "button", "aria-label": "Медленнее", title: "Медленнее", disabled: speed <= SPEED.min, onclick: () => setSpeed(-1) }, "−");
   const faster = h("button.sp-btn", { type: "button", "aria-label": "Быстрее", title: "Быстрее", disabled: speed >= SPEED.max, onclick: () => setSpeed(1) }, "+");
-  const listenB = h("button.icon-btn.focus-listen", { type: "button", onclick: () => { if (listening) stop(); else listenFrom(here()); } });
+  const listenB = h("button.icon-btn.focus-listen", { type: "button", onclick: () => { if (listening) stop(); else { listenFrom(here()); hide(); } } });
   const syncListen = () => {
     listening = (playingId() || "").startsWith("a:");
     const label = listening ? "Остановить чтеца" : "Слушать чтеца с этого места";
     listenB.replaceChildren(icon(listening ? "stop" : "vol", listening ? { fill: true, sw: 1 } : {}));
     listenB.title = label; listenB.setAttribute("aria-label", label); listenB.classList.toggle("on", listening);
-    show();
   };
   const offPlay = onPlay(() => syncListen());
   const bar = h("div.focus-bar", { role: "toolbar", "aria-label": "Управление чтением" },
@@ -619,9 +616,8 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null }) {
     }
     if (listening) stop();
     if (!i) { scroller.scrollTop = 0; pin = { p, top: 0 }; } else jump(flat[i]);
-    show();
   };
-  const wheel = pageWheel(list, openPage, () => show());
+  const wheel = pageWheel(list, openPage, () => {});
 
   // --- верхняя панель: полное меню, всё на виду ---
   const redraw = () => {
@@ -638,7 +634,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null }) {
   const info = h("div.fm-info");
   const tiles = h("div.fm-tiles");
   const menu = h("div.focus-menu", { role: "toolbar", "aria-label": "Меню чтения" }, info, tiles);
-  const tile = (ic, label, fn, on = false, io = {}) => h("button.fm-tile", { type: "button", class: on ? "on" : "", onclick: () => { fn(); fillMenu(); show(); } }, icon(ic, { size: 20, ...io }), h("span", null, label));
+  const tile = (ic, label, fn, on = false, io = {}) => h("button.fm-tile", { type: "button", class: on ? "on" : "", onclick: () => { fn(); fillMenu(); } }, icon(ic, { size: 20, ...io }), h("span", null, label));
   const fillInfo = () => {
     const x = here(), v = x.p.data.v[x.a - 1];
     info.textContent = `Сура ${x.p.meta.ru} · аят ${x.a} из ${x.p.data.v.length} · стр. ${v[4][0]} · джуз ${v[5]}`;
@@ -654,7 +650,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null }) {
       parts[0].s < 114 ? tile("right", "След. сура", () => { const s = here().p.s; if (s < 114) go(`/read/${s + 1}`); }) : null,
       tile("bookmark", "Закладка здесь", () => { const x = place(); addMark(x.s, x.a, x.p); }),
       tile("bookmark", `Закладки${marks().length ? `: ${marks().length}` : ""}`, () => marksSheet(), false, { fill: true, sw: 1 }),
-      tile("target", goal ? `Цель: ещё ${goalLeft()} стр.` : "Цель чтения", () => goalModal(place(), () => { const x = place(); gs.set(pageNow(), x.s, x.a); fillMenu(); show(); }), goal),
+      tile("target", goal ? `Цель: ещё ${goalLeft()} стр.` : "Цель чтения", () => goalModal(place(), () => { const x = place(); gs.set(pageNow(), x.s, x.a); fillMenu(); }), goal),
       tile("ear", st.reciter === "husary" ? "Чтец: Хусари" : "Чтец: Афаси", () => { stop(); store.set((s) => { s.settings.reciter = s.settings.reciter === "husary" ? "afasy" : "husary"; }); const r = RECITERS[store.get().settings.reciter]; toast(`Чтец: ${r.name} — ${r.note}`); }),
       tile("slow", `Темп чтеца: ${st.rate || 1}×`, () => { stop(); store.set((s) => { const r = s.settings.rate || 1; s.settings.rate = r === 1 ? 0.8 : r === 0.8 ? 0.6 : r === 0.6 ? 1.2 : 1; }); }, (st.rate || 1) !== 1),
       tile("loop", `Повтор аята: ×${repeatN}`, () => { repeatN = repeatN === 1 ? 3 : repeatN === 3 ? 5 : 1; }, repeatN > 1),
@@ -673,17 +669,13 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null }) {
     ].filter(Boolean));
   };
   const head = h("div.focus-head", null, jm.el, menu);
-  // intro: при открытии видна только нижняя панель — меню не закрывает начало текста, пока читатель не нажал на экран
-  const root = h("div.focus", { class: `kind-${kind} intro` }, prog, head, scroller, wheel.el, bar);
+  // при открытии — только текст (quiet); панели появляются по нажатию на экран
+  const root = h("div.focus", { class: `kind-${kind} quiet` }, prog, head, scroller, wheel.el, bar);
   new ResizeObserver(() => root.style.setProperty("--head-h", head.offsetHeight + "px")).observe(head); // колесо страниц начинается под меню
-  let hideTm = 0;
-  // панели видны несколько секунд после нажатия, потом гаснут — на экране остаётся только текст
-  const show = () => {
-    if (root.classList.contains("quiet") && root.isConnected) fillMenu();
-    root.classList.remove("quiet");
-    clearTimeout(hideTm);
-    hideTm = setTimeout(() => { if (document.querySelector(".size-pop, #modal-root .modal-wrap:not(.out), .page-wheel.busy")) show(); else root.classList.add("quiet"); }, running || listening ? 2600 : 6000);
-  };
+  // панели показывает и прячет только нажатие на экран: открылись — остаются, пока не нажмёшь ещё раз.
+  // Карточка слова, чтец по номеру аята, колесо страниц и автопрокрутка сами панели не открывают.
+  const reveal = () => { if (root.isConnected) fillMenu(); root.classList.remove("quiet"); };
+  const hide = () => root.classList.add("quiet");
 
   // нажатие на текст показывает или прячет панели; на номер аята — чтец читает с него
   // долгое нажатие на слово — карточка слова: его читает чтец, видны транскрипция и правила таджвида
@@ -719,9 +711,8 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null }) {
     const am = e.target.closest(".ayah-mark");
     const x = am && ayahAt(am);
     if (x) { if (listening && flat[pi] === x) stop(); else listenFrom(x); return; }
-    if (root.classList.contains("quiet") || root.classList.contains("intro")) { root.classList.remove("intro"); show(); } else root.classList.add("quiet");
+    if (root.classList.contains("quiet")) reveal(); else hide();
   }, true);
-  menu.addEventListener("pointerdown", () => show());
   // по страницам: следующая страница — слева, как в мусхафе (листаем вправо или стрелка ←)
   const turn = (d) => { const p = page + d; if (p >= 1 && p <= PAGES) { resumeScroll = running; location.replace(`#/page/${p}`); } };
   let x0 = null, y0 = 0;
@@ -779,7 +770,6 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null }) {
     prog.style.width = (end > 0 ? Math.min(1, scroller.scrollTop / end) * 100 : 100) + "%";
     if (!jmTm) jmTm = setTimeout(updJuz, 250);
   }, { passive: true });
-  root.addEventListener("pointermove", (e) => { if (e.pointerType === "mouse" && root.classList.contains("quiet")) { root.classList.remove("intro"); show(); } });
 
   // --- выход: кнопка, Esc, «назад»; место чтения запоминается ---
   let closed = false;
@@ -805,7 +795,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null }) {
   const cleanup = () => {
     closed = true;
     if (root.isConnected) save();
-    running = false; cancelAnimationFrame(raf); clearTimeout(hideTm); clearTimeout(jmTm);
+    running = false; cancelAnimationFrame(raf); clearTimeout(jmTm);
     clearInterval(clock); readTick(spent); spent = 0;
     wakeWhile(null);
     removeEventListener("keydown", keys); offFs(); offPlay();
@@ -822,6 +812,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null }) {
     scroller.focus({ preventScroll: true });
     fillMenu();
     updJuz();
+    try { if (!localStorage.getItem("tanwin.readHint")) { localStorage.setItem("tanwin.readHint", "1"); toast("Нажмите на экран — появится меню. Ещё раз — исчезнет.", 5000); } } catch {}
   }));
   syncListen();
   setRunning(auto);

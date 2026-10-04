@@ -7,7 +7,7 @@ import { join } from "node:path";
 const root = fileURLToPath(new URL("..", import.meta.url));
 const { KNOWN } = await import("../js/speech.js");
 // Не обращения: существительные в предложном падеже и т. п.
-const SKIP = new Set(["месте", "вместе", "защите", "алфавите", "шрифте", "интернете", "ракаате", "чистоте", "те", "планшете"]);
+const SKIP = new Set(["месте", "вместе", "защите", "алфавите", "шрифте", "интернете", "ракаате", "чистоте", "те", "планшете", "аяте"]);
 const files = [...readdirSync(join(root, "js")).filter((f) => f.endsWith(".js")).map((f) => "js/" + f), ...readdirSync(join(root, "js/views")).map((f) => "js/views/" + f)];
 let found = 0;
 for (const f of files) {
