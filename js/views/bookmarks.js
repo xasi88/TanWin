@@ -4,7 +4,7 @@ import { loadSurahs, surahMeta } from "../data.js";
 import { store, readGoalDone } from "../store.js";
 import { go } from "../app.js";
 import { enterFullscreen } from "../fullscreen.js";
-import { continueReading, pageContent, PAGES, JUZ_PAGE } from "./quran.js";
+import { pageContent, PAGES, JUZ_PAGE } from "./quran.js";
 
 const MAX_MARKS = 100;
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
@@ -319,12 +319,11 @@ export async function BookmarksView() {
   await loadSurahs();
   const body = h("div.bm-body");
   const draw = () => body.replaceChildren(
-    continueReading() || "",
     goalCard(draw),
     h("h3.bm-h", null, "Мои закладки"),
     marksList({ onChange: draw }));
   draw();
   return h("div.page.bookmarks", null,
-    h("header.page-head", null, h("h1", null, "Закладки"), h("p.muted", null, "Сохранённые места в Коране — с названиями, группами и своей целью — и обратный отсчёт страниц. Место, где вы остановились, запоминается само.")),
+    h("header.page-head", null, h("h1", null, "Закладки"), h("p.muted", null, "Сохранённые места в Коране — с названиями, группами и своей целью — и обратный отсчёт страниц. Место, где вы остановились, запоминается само — оно в разделе «Мой Коран».")),
     body);
 }

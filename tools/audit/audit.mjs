@@ -68,7 +68,7 @@ page.on("pageerror", (e) => errors.push(e.message));
 const AUDIT = () => {
   const W = innerWidth, issues = [];
   const BOX = ".card, .opt, .word-chip, .match-btn, .alpha-cell, .form-cell, .syll, .st-cell, .vt-word, .sn-btn, .rd-word, .hero-card, .unit-head, .node-disc, .modal, .sheet-in, .drill, .more-link, .surah-row, .tile, .stat, .schip, .badge-cell, .m-cell, .rw-cell, .stop-cell, .verse-block, .verses, .seg-btn, .btn, .hs-pill, .hs-goal, .dev-banner, .version, .donor, .res-goal, .ob-pt, .start-opt, .goal-opt, .si-plan div, .map-info, .q-big, .rd-word, .lc-glyph, .snd-tile, .li-glyph, .bb-out, .blend";
-  const OVERLAY = ".fb-tab, .lp-sheet, .lp-actions, #nav, #toast, .lp-top, .reader-tools, .focus-bar, .focus-juz, .focus-menu, .page-wheel";
+  const OVERLAY = ".fb-tab, .lp-sheet, .lp-actions, #nav, #toast, .lp-top, .reader-tools, .focus-bar, .focus-juz, .focus-menu, .page-wheel, .sura-scrub";
   const modalOpen = document.querySelector("#modal-root .modal-wrap:not(.out)");
   const roots = modalOpen ? [modalOpen] : [document.querySelector("#app")];
   const texts = [];
@@ -163,8 +163,11 @@ for (const p of args.nopages ? [] : PAGES) {
   if (p === "/") await page.evaluate(() => document.querySelectorAll(".unit:not(.open) .uh-toggle").forEach((b) => b.click()));
   await check("page " + p);
   if (p === "/quran") { // «Мой Коран»: раскрытый джуз
-    await page.evaluate(() => { document.querySelector(".juz-all > summary")?.click(); document.querySelector(".juz-item > summary")?.click(); });
+    await page.evaluate(() => { document.querySelector(".mq-juz")?.click(); });
+    await check("page " + p + " juz-list");
+    await page.evaluate(() => document.querySelector(".juz-row")?.click());
     await check("page " + p + " juz");
+    await page.evaluate(() => { document.querySelector(".mq-back")?.click(); document.querySelector(".mq-back")?.click(); });
   }
   if (/^\/read\/\d/.test(p)) { // чтение: верхнее меню и вид «по аятам»
     const tile = (re) => page.evaluate((src) => [...document.querySelectorAll(".fm-tile")].find((b) => new RegExp(src).test(b.textContent))?.click(), re);

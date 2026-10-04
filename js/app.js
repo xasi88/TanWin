@@ -9,6 +9,7 @@ import { canPrompt, install, isInstalled, isStandalone, manualHint } from "./ins
 import { initMetrika, hit, track } from "./metrika.js";
 import { initFeedback, setScreen } from "./feedback.js";
 import { fill } from "./tutor.js";
+import { initWake } from "./wake.js";
 import { initFullscreen, canFullscreen, isFullscreen, setFullscreen, onFullscreenChange } from "./fullscreen.js";
 
 const view = $("#view");
@@ -150,6 +151,7 @@ async function start() {
   store.on(() => applySettings());
   window.addEventListener("hashchange", route);
   initFullscreen();
+  initWake();
   initFeedback();
   startMetrika();
   view.replaceChildren(h("div.boot", null, logo(72), h("div.spinner")));

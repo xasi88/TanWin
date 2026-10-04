@@ -9,7 +9,6 @@ import { playLesson } from "../lesson.js";
 import { go, celebrate, installApp } from "../app.js";
 import { isInstalled } from "../install.js";
 import { devBanner } from "../feedback.js";
-import { continueReading } from "./quran.js";
 import { homeLine, studentName } from "../tutor.js";
 
 const hue = (u) => `var(--c-${u.hue})`;
@@ -195,7 +194,6 @@ export function HomeView() {
           statsBar()),
         continueCard(),
         reviewCard(),
-        continueReading(),
         installCard(),
         backupCard(),
         h("footer.home-foot", null, h("a", { href: "#/method" }, "Методика"), " · ", h("a", { href: "#/letters" }, "Алфавит"), " · ", h("a", { href: "#/rules" }, "Таджвид"), " · ", h("a", { href: "#/thanks" }, "Благодарности"))),
