@@ -5,10 +5,10 @@ import { loadSurahs, loadSurah, surahMeta, wordKey, RECITERS } from "../data.js"
 import { RULES, LEGEND, plain, rulesIn } from "../rules.js";
 import { translit, stripStops } from "../arabic.js";
 import { playWord, playAyah, stop, onPlay, playingId } from "../audio.js";
-import { store, surahDone, readTick } from "../store.js";
+import { store, surahDone, readTick, readPage } from "../store.js";
 import { go } from "../app.js";
 import { wakeWhile } from "../wake.js";
-import { marks, addMark, marksSheet, goalStrip, goalModal, readGoal, goalLeft } from "./bookmarks.js";
+import { marks, addMark, marksSheet, goalStrip, goalModal, readGoal, goalLeft, rollGoal } from "./bookmarks.js";
 import { enterFullscreen, exitFullscreen, isFullscreen, wantFullscreen, onFullscreenChange } from "../fullscreen.js";
 
 export const arNum = (n) => String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[d]);
@@ -428,8 +428,8 @@ const readView = () => { try { const v = localStorage.getItem("tanwin.readView")
 const READING = /^#\/(read|juz|page)\b/;
 
 let resumeScroll = false; // автопрокрутка дошла до конца — следующая сура или страница продолжает идти сама
-let lastPage = 0; // страница, которую читатель видел последней: следующая за ней засчитывается как прочитанная
-const pagesRead = new Set(); // что уже засчитано (день:страница), чтобы не считать одно и то же дважды
+let lastPage = 0; // страница, которую читатель видел последней: перешли на следующую за ней — она прочитана
+const PAGE_DWELL = 40000; // …или читатель провёл на странице столько времени (мс) — так считаются и разрозненные страницы
 
 /** Продолжить с того места и в том виде, где читатель остановился. */
 export function ReadStart() {
@@ -441,20 +441,20 @@ export function ReadStart() {
 /** Сура n целиком, с аята startA. */
 export async function ReadMode(n, startA = 0) {
   n = Math.min(114, Math.max(1, n));
-  const [list, data] = await Promise.all([loadSurahs(), loadSurah(n)]);
+  const [list, data] = await Promise.all([loadSurahs(), loadSurah(n), rollGoal()]);
   return readSession(list, { kind: "surah", parts: [{ s: n, meta: list[n - 1], data, from: 1, to: data.v.length }], start: startA > 1 ? { s: n, a: startA } : null });
 }
 /** Джуз j целиком — от его первого аята до последнего, через границы сур. s, a — место, с которого продолжить. */
 export async function ReadJuz(j, s = 0, a = 0) {
   j = Math.min(30, Math.max(1, j));
-  const list = await loadSurahs();
+  const [list] = await Promise.all([loadSurahs(), rollGoal()]);
   const parts = await Promise.all(juzParts(j).map(async (p) => { const data = await loadSurah(p.s); return { s: p.s, meta: list[p.s - 1], data, from: p.from, to: p.to || data.v.length }; }));
   return readSession(list, { kind: "juz", juz: j, parts, start: s ? { s, a: a || 1 } : null });
 }
 /** Страница p мусхафа Мадины: те же аяты, что на бумажной странице. */
 export async function ReadPage(p) {
   p = Math.min(PAGES, Math.max(1, p));
-  const [list, parts] = await Promise.all([loadSurahs(), pageContent(p)]);
+  const [list, parts] = await Promise.all([loadSurahs(), pageContent(p), rollGoal()]);
   return readSession(list, { kind: "page", page: p, parts });
 }
 
@@ -483,7 +483,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null }) {
       for (let a = p.from; a <= p.to; a++) flat.push({ p, a, el: p.view.ayahEls[a] });
       return h("div.focus-part", { "data-s": p.s },
         p.from === 1 ? h("div.surah-banner", null, ar(p.meta.ar), h("small", null, `Сура ${p.meta.ru}`)) : i ? null : h("div.part-cap", null, `Сура ${p.meta.ru} · с аята ${p.from}`),
-        p.from === 1 && p.s !== 1 && p.s !== 9 ? h("div.bismillah", null, ar(BISMILLAH, { colors: true })) : null,
+        p.from === 1 && p.s !== 1 && p.s !== 9 ? h("div.bismillah", { role: "button", title: "Слушать суру с начала" }, ar(BISMILLAH, { colors: true })) : null,
         p.view.el);
     }));
   };
@@ -585,14 +585,23 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null }) {
       onStop: () => x.p.view.highlight(x.a, -1),
     });
   };
-  const listenFrom = (x) => { setRunning(false); pi = flat.indexOf(x); reps = 0; play(); };
+  // bism — начать с «Бисмилляхи-р-рахмани-р-рахим» (запись первого аята Аль-Фатихи), если x — первый аят суры
+  const listenFrom = (x, bism = false) => {
+    setRunning(false);
+    pi = flat.indexOf(x); reps = 0;
+    if (!bism || x.a !== 1 || x.p.s === 1 || x.p.s === 9) return play();
+    if (x === flat[0]) scroller.scrollTo({ top: 0, behavior: "smooth" });
+    playAyah(1, 1, { onEnd: play, onError: () => toast("Не удалось загрузить аудио. Проверьте интернет.") });
+  };
+  /** Откуда читать по кнопке «слушать»: текст ещё не листали — с самого начала, иначе — с аята, на котором читатель. */
+  const listenStart = () => (scroller.scrollTop < 40 ? flat[0] : here());
 
   // --- нижняя панель: автопрокрутка, её скорость, чтец, размер текста ---
   const playB = h("button.play-btn", { type: "button", onclick: () => { setRunning(!running); if (running) hide(); } }); // пошла автопрокрутка — панели уходят: читатель хочет читать
   const val = h("b.focus-speed", { title: "Скорость прокрутки" }, speed);
   const slower = h("button.sp-btn", { type: "button", "aria-label": "Медленнее", title: "Медленнее", disabled: speed <= SPEED.min, onclick: () => setSpeed(-1) }, "−");
   const faster = h("button.sp-btn", { type: "button", "aria-label": "Быстрее", title: "Быстрее", disabled: speed >= SPEED.max, onclick: () => setSpeed(1) }, "+");
-  const listenB = h("button.icon-btn.focus-listen", { type: "button", onclick: () => { if (listening) stop(); else { listenFrom(here()); hide(); } } });
+  const listenB = h("button.icon-btn.focus-listen", { type: "button", onclick: () => { if (listening) stop(); else { listenFrom(listenStart(), true); hide(); } } });
   const syncListen = () => {
     listening = (playingId() || "").startsWith("a:");
     const label = listening ? "Остановить чтеца" : "Слушать чтеца с этого места";
@@ -711,6 +720,9 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null }) {
     const am = e.target.closest(".ayah-mark");
     const x = am && ayahAt(am);
     if (x) { if (listening && flat[pi] === x) stop(); else listenFrom(x); return; }
+    const bs = e.target.closest(".bismillah"); // «Бисмиллях» — чтец читает суру с самого начала
+    const x1 = bs && find(+bs.closest("[data-s]").dataset.s, 1);
+    if (x1) { if (listening && flat[pi] === x1) stop(); else listenFrom(x1, true); return; }
     if (root.classList.contains("quiet")) reveal(); else hide();
   }, true);
   // по страницам: следующая страница — слева, как в мусхафе (листаем вправо или стрелка ←)
@@ -730,13 +742,14 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null }) {
   scroller.addEventListener("touchcancel", touchEnd, { passive: true });
   scroller.addEventListener("wheel", () => hold(500), { passive: true });
   // учёт чтения: время идёт, пока текст движется сам, звучит чтец или читатель недавно листал
-  let actAt = performance.now(), spent = 0;
+  let actAt = performance.now(), spent = 0, dwell = 0;
   const active = () => { actAt = performance.now(); };
   scroller.addEventListener("scroll", active, { passive: true });
   scroller.addEventListener("pointerdown", active, { passive: true });
   const clock = setInterval(() => {
     if (document.visibilityState !== "visible") return;
-    if (running || listening || performance.now() - actAt < 90000) spent += 5000;
+    if (running || listening || performance.now() - actAt < 90000) { spent += 5000; dwell += 5000; }
+    if (dwell >= PAGE_DWELL && lastPage >= 1 && lastPage <= PAGES) readPage(lastPage);
     if (spent >= 30000) { readTick(spent); spent = 0; }
   }, 5000);
   let jmTm = 0;
@@ -760,9 +773,9 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null }) {
     if (modeCap) { const left = Math.max(1, (JUZ_PAGE[juz] || PAGES + 1) - p); modeCap.textContent = `Читаем джуз ${juz} целиком · до конца ${left} ${plural(left, "страница", "страницы", "страниц")}`; }
     if (!root.classList.contains("quiet")) fillInfo();
     if (now !== lastPage) { // перешли ровно на следующую страницу — предыдущая прочитана
-      const key = `${new Date().toDateString()}:${lastPage}`;
-      if (now === lastPage + 1 && !pagesRead.has(key)) { pagesRead.add(key); readTick(0, 1); }
+      if (now === lastPage + 1 && lastPage >= 1) readPage(lastPage);
       lastPage = now;
+      dwell = 0;
     }
   };
   scroller.addEventListener("scroll", () => {

@@ -45,7 +45,7 @@ const DEFAULT = () => ({
   hard: {},
   marks: [], // закладки в Коране: [{ id, s, a, p, at, name, g, goal }]
   markGroups: [], // группы закладок: [{ id, name, closed }]
-  qread: { days: {}, goals: 0 }, // чтение Корана: по дням { ms, pages } и число выполненных целей
+  qread: { days: {}, goals: 0 }, // чтение Корана: по дням { ms, pages, pp — страницы, прочитанные сегодня } и число выполненных целей
   readGoal: null, // цель чтения: { from, pages, read, s, a, at, done }
 });
 
@@ -155,6 +155,15 @@ export function readTick(ms, pages = 0) {
   if (!ms && !pages) return;
   const d = today(), x = state.qread.days[d] || (state.qread.days[d] = { ms: 0, pages: 0 });
   x.ms += ms; x.pages += pages;
+  save();
+}
+/** Страница p мусхафа прочитана сегодня. Каждая страница за день считается один раз — и после перезапуска приложения тоже. */
+export function readPage(p) {
+  const d = today(), x = state.qread.days[d] || (state.qread.days[d] = { ms: 0, pages: 0 });
+  if (x.pp?.includes(p)) return;
+  for (const k of Object.keys(state.qread.days)) if (k !== d) delete state.qread.days[k].pp; // список страниц нужен только за сегодня
+  (x.pp || (x.pp = [])).push(p);
+  x.pages++;
   save();
 }
 export function readGoalDone() { state.qread.goals++; save(); }

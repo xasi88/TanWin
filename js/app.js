@@ -226,8 +226,11 @@ function registerSW() {
       });
     });
   }).catch(() => {});
+  // перезагрузка нужна только при обновлении. При самом первом заходе service worker тоже «берёт управление»,
+  // но версия та же — перезагружать страницу посреди знакомства или урока незачем
+  const updating = !!navigator.serviceWorker.controller;
   let reloaded = false;
-  navigator.serviceWorker.addEventListener("controllerchange", () => { if (!reloaded) { reloaded = true; location.reload(); } });
+  navigator.serviceWorker.addEventListener("controllerchange", () => { if (updating && !reloaded) { reloaded = true; location.reload(); } });
 }
 
 start();

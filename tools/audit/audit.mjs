@@ -103,7 +103,7 @@ const AUDIT = () => {
   }
   for (const x of texts) {
     const { rc, el } = x;
-    if (el.closest(".lp-sheet:not(.show)")) continue;
+    if (el.closest(".lp-sheet:not(.show), .focus.quiet .page-wheel, .focus.quiet .focus-bar, .focus.quiet .focus-menu")) continue; // спрятанные панели сдвинуты за край нарочно
     if (rc.left < -1 || rc.right > W + 1) issues.push({ k: "offscreen", t: x.t, at: desc(el), l: Math.round(rc.left), r: Math.round(rc.right) });
     const box = el.closest(BOX);
     if (box && !box.contains(el) === false) {
@@ -172,6 +172,7 @@ for (const p of args.nopages ? [] : PAGES) {
   if (/^\/read\/\d/.test(p)) { // чтение: верхнее меню и вид «по аятам»
     const tile = (re) => page.evaluate((src) => [...document.querySelectorAll(".fm-tile")].find((b) => new RegExp(src).test(b.textContent))?.click(), re);
     await page.evaluate(() => document.querySelector(".focus-scroll")?.click());
+    await page.waitForTimeout(500); // панели выезжают с анимацией
     await check("page " + p + " menu");
     await tile("По аятам");
     await check("page " + p + " ayat");
