@@ -1,5 +1,5 @@
 // Главный экран: «Путь» — этапы и уроки, карточка продолжения, цель дня.
-import { h, ar, icon, ring, modal, plural, mixed } from "../ui.js";
+import { h, ar, icon, ring, modal, plural, mixed, keep } from "../ui.js";
 import { UNITS, SURAH_PATH, SURAH_UNIT, lessonById } from "../course.js";
 import { store, streakNow, levelInfo, todayXp, srsDue, lessonDone, surahDone, backupDue, backupLater } from "../store.js";
 import { saveProgressFile } from "./more.js";
@@ -10,6 +10,7 @@ import { go, celebrate, installApp } from "../app.js";
 import { isInstalled } from "../install.js";
 import { devBanner } from "../feedback.js";
 import { homeLine, studentName } from "../tutor.js";
+import { NEWS } from "../version.js";
 
 const hue = (u) => `var(--c-${u.hue})`;
 const unitOfLesson = (id) => UNITS.find((u) => u.lessons.some((l) => l.id === id));
@@ -82,6 +83,27 @@ function installCard() {
       h("div.row.gap.wrap", null,
         h("button.btn.primary.small-btn", { type: "button", onclick: () => { hide(); installApp(); } }, icon("down", { size: 16 }), "Установить"),
         h("button.btn.ghost.small-btn", { type: "button", onclick: hide }, "Не сейчас"))));
+  return card;
+}
+
+/**
+ * Письмо разработчика «Что нового»: один раз после обновления — тем, кто начал заниматься до него.
+ * Закрыли или перешли к списку изменений — больше не показывается.
+ */
+function newsCard() {
+  let seen = false;
+  try { seen = localStorage.getItem("tanwin.news") === NEWS.id; } catch {}
+  if (seen || !(store.get().profile.created < NEWS.since)) return null;
+  const hide = () => { try { localStorage.setItem("tanwin.news", NEWS.id); } catch {} card.remove(); };
+  const card = h("div.card.news-card", null,
+    h("b.news-h", null, icon("sparkle", { size: 20 }), "TanWin обновился"),
+    h("p", null, "Ассаляму алейкум! За первые дни к нам присоединились больше 200 человек из 18 стран. Спасибо, что учитесь читать Коран вместе с нами."),
+    h("p", null, "Что изменилось: разделы «Чтение» и «Коран» объединились в «Мой Коран» — там 30 джузов и все суры. У закладок появились цели: страницы на каждый день, любимая сура или отдельные аяты. А каждая прочитанная страница попадает в «Прогресс»."),
+    h("p", null, "Если что-то неудобно или не работает — напишите мне: кнопка «Написать разработчику» есть на каждом экране."),
+    h("p.news-sign", null, keep("Хаси Абдуллах, сын Алама")),
+    h("div.row.gap.wrap", null,
+      h("a.btn.primary.small-btn", { href: "#/changelog", onclick: hide }, "Все изменения"),
+      h("button.btn.ghost.small-btn", { type: "button", onclick: hide }, "Понятно")));
   return card;
 }
 
@@ -188,6 +210,7 @@ export function HomeView() {
   const page = h("div.page.home", null,
     h("div.home-grid", null,
       h("aside.home-side", null,
+        newsCard(),
         devBanner(),
         h("header.home-head", null,
           h("div", null, h("h1", null, greeting()), h("p.muted", null, homeLine())),

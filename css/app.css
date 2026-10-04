@@ -1246,6 +1246,13 @@ body:has(.focus) .fb-tab { right: auto; left: 0; padding: 0 2px 0 0; border-radi
 .ob-skip { min-height: 44px; padding: 0 4px; color: var(--ink-3); }
 .lp-home { display: flex; align-items: center; justify-content: center; gap: 4px; margin: 0 auto; min-height: 40px; padding: 0 12px; color: var(--ink-3); }
 
+/* письмо «Что нового» на главной (newsCard в views/home.js) */
+.news-card { display: grid; gap: 8px; border-color: color-mix(in srgb, var(--gold) 50%, var(--line)); background: linear-gradient(135deg, var(--gold-soft), var(--card)); }
+.news-card p { margin: 0; }
+.news-h { display: flex; align-items: center; gap: 8px; font-size: 1.1rem; }
+.news-h .ic { color: var(--gold-text); }
+.news-sign { text-align: right; font-weight: 800; color: var(--ink-2); }
+
 /* ---------- Мой Коран (views/quran.js): последнее место, 30 джузов, все суры ---------- */
 .mq-h { margin: 22px 0 0; font-size: 1.15rem; }
 .mq-sub { margin: 2px 0 12px; }
@@ -1270,8 +1277,7 @@ body:has(.sura-scrub) .fb-tab { right: auto; left: 0; padding: 0 2px 0 0; border
 .focus-head { position: absolute; z-index: 3; top: 0; left: 0; right: 0; display: grid; justify-items: center; pointer-events: none; }
 .focus-head .focus-juz { position: static; width: 100%; }
 .focus-mode { font-size: .78rem; color: var(--gold-text); text-align: center; }
-.focus.kind-juz .focus-scroll { padding-top: calc(86px + env(safe-area-inset-top)); }
-.focus.kind-juz:has(.goal-strip:not([hidden])) .focus-scroll { padding-top: calc(114px + env(safe-area-inset-top)); }
+.focus:has(.focus-mode) .focus-scroll { padding-top: calc(86px + env(safe-area-inset-top)); }
 .focus-menu { pointer-events: auto; display: grid; gap: 6px; width: min(calc(100% - 12px), 980px); margin-top: -6px; padding: 8px; max-height: calc(100dvh - 200px); overflow: hidden auto; scrollbar-width: none;
   border-radius: 20px; border: 1px solid var(--line); background: color-mix(in srgb, var(--card) 94%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: var(--shadow-lg);
   transition: opacity .35s var(--ease), transform .35s var(--ease); }
@@ -1286,6 +1292,27 @@ body:has(.sura-scrub) .fb-tab { right: auto; left: 0; padding: 0 2px 0 0; border
 @media (min-width: 700px) { .fm-tiles { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); } .fm-tile { font-size: .74rem; } }
 .focus-part + .focus-part { margin-top: 22px; }
 .focus .bismillah { cursor: pointer; }
+/* аят, отмеченный нажатием на его номер: с него чтец продолжит по плитке «Слушать» */
+.focus .sel .ayah-mark { border-radius: 50%; background: var(--gold-soft); box-shadow: 0 0 0 2px var(--gold); }
+.fm-tile.fm-go { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.fm-tile.fm-go.on { background: var(--gold); color: #fff; }
+.focus-done.todo { color: var(--gold-text); }
+.focus-end .muted { max-width: 30rem; margin: 0; }
+/* «Aa» на нижней панели: крупная и в стороне от кнопок скорости — чтобы попадать пальцем */
+.focus-bar .size-btn.icon-btn { width: 58px; height: 52px; margin-left: 14px; border-radius: 16px; border: 2px solid var(--line-2); background: var(--card-2); color: var(--ink); }
+.focus-bar .size-btn .aa { font-size: 1.3rem; }
+@media (max-width: 480px) { .focus-bar .size-btn.icon-btn { width: 52px; height: 44px; margin-left: 10px; } }
+/* цель закладки в её настройках (markEditor) */
+.plan-box { display: grid; gap: 8px; }
+.plan-box:empty { display: none; }
+.plan-seq { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.mark-edit .num-in { width: 84px; min-height: 44px; padding: 6px 10px; text-align: center; }
+.plan-item { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px; border-radius: 16px; border: 1px solid var(--line); background: var(--card-2); }
+.plan-item select { flex: 1 0 100%; min-height: 44px; }
+.plan-item label, .plan-pages { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-weight: 800; color: var(--ink-2); font-size: .9rem; }
+.plan-item .icon-btn { margin-left: auto; }
+.mark-edit .plan-item .num-in { width: 72px; }
+.mark-open .rc-ic.done { background: var(--good); }
 .part-cap { margin: 0 0 8px; text-align: center; font-size: .85rem; font-weight: 800; color: var(--ink-3); }
 .focus-end { gap: 10px; }
 .focus-done { display: flex; align-items: center; gap: 6px; margin: 0; font-weight: 900; color: var(--good); }

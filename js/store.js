@@ -43,19 +43,45 @@ const DEFAULT = () => ({
   stats: { answers: 0, correct: 0, ms: 0, lessons: 0 },
   badges: {},
   hard: {},
-  marks: [], // закладки в Коране: [{ id, s, a, p, at, name, g, goal }]
+  marks: [], // закладки в Коране: [{ id, s, a, p, at, name, g, plan, done, cur }] — план и его выполнение описаны в views/bookmarks.js
   markGroups: [], // группы закладок: [{ id, name, closed }]
   qread: { days: {}, goals: 0 }, // чтение Корана: по дням { ms, pages, pp — страницы, прочитанные сегодня } и число выполненных целей
-  readGoal: null, // цель чтения: { from, pages, read, s, a, at, done }
+  readGoal: null, // до 1.18 — общая цель чтения; теперь цели живут в закладках (upgradeGoals)
 });
 
 let state = load();
 function load() {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return merge(DEFAULT(), migrate(JSON.parse(raw)));
+    if (raw) return upgradeGoals(merge(DEFAULT(), migrate(JSON.parse(raw))));
   } catch {}
   return DEFAULT();
+}
+/**
+ * 1.18: цели живут в закладках (mark.plan). Старая цель закладки (goal: N страниц за раз) становится планом
+ * «читать по порядку, N страниц в день»; общая цель чтения (readGoal) — закладкой «Цель чтения» с таким же планом.
+ */
+function upgradeGoals(s) {
+  if (!Array.isArray(s.marks)) s.marks = [];
+  for (const m of s.marks) {
+    if (m.goal && !m.plan) m.plan = { k: "seq", unit: "p", n: m.goal };
+    delete m.goal;
+  }
+  const gl = s.readGoal;
+  if (gl && gl.pages) {
+    const m = gl.mark && s.marks.find((x) => x.id === gl.mark);
+    const page = gl.from + (gl.read || 0) > 604 ? 1 : gl.from + (gl.read || 0);
+    if (m) { // цель закладки: закладка уже стоит на нужном месте, если цель выполнена; иначе — там, где остановились
+      m.done = gl.done || 0;
+      if (!gl.done && gl.s) Object.assign(m, { s: gl.s, a: gl.a, p: page });
+    } else {
+      const mark = { id: "goal" + (gl.at || 1).toString(36), s: gl.s || 1, a: gl.a || 1, p: page, at: gl.at || Date.now(), name: "Цель чтения", plan: { k: "seq", unit: "p", n: gl.pages }, done: gl.done || 0 };
+      if (gl.done || !gl.s) mark.byPage = true; // место известно только как страница — сура и аят уточнятся при открытии
+      s.marks.unshift(mark);
+    }
+  }
+  s.readGoal = null;
+  return s;
 }
 function merge(base, x) {
   for (const k of Object.keys(x || {})) {
@@ -79,7 +105,7 @@ export const store = {
     const j = JSON.parse(text);
     const s = j.state || j;
     if (!s || typeof s !== "object" || !("lessons" in s)) throw new Error("Это не файл прогресса TanWin");
-    state = merge(DEFAULT(), migrate(s)); save();
+    state = upgradeGoals(merge(DEFAULT(), migrate(s))); save();
   },
 };
 

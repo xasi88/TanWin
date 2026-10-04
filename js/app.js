@@ -91,6 +91,7 @@ const routes = [
   [/^\/read$/, () => import("./views/quran.js").then((m) => m.ReadStart()), "Чтение"],
   [/^\/read\/(\d+)(?:\/(\d+))?$/, (n, a) => import("./views/quran.js").then((m) => m.ReadMode(+n, +a || 0)), (n) => `Чтение: сура ${n}`],
   [/^\/juz\/(\d+)(?:\/(\d+)(?:\/(\d+))?)?$/, (j, s, a) => import("./views/quran.js").then((m) => m.ReadJuz(+j, +s || 0, +a || 0)), (j) => `Чтение: джуз ${j}`],
+  [/^\/mark\/(\w+)(\/more)?$/, (id, more) => import("./views/quran.js").then((m) => m.ReadMark(id, !!more)), "Чтение: цель закладки"],
   [/^\/page\/(\d+)$/, (p) => import("./views/quran.js").then((m) => m.ReadPage(+p)), (p) => `Чтение: страница ${p}`],
   [/^\/bookmarks$/, () => import("./views/bookmarks.js").then((m) => m.BookmarksView()), "Закладки"],
   [/^\/progress$/, () => import("./views/progress.js").then((m) => m.ProgressView()), "Прогресс"],
@@ -103,7 +104,7 @@ const routes = [
   [/^\/changelog$/, () => import("./views/changelog.js").then((m) => m.ChangelogView()), "Версии"],
   [/^\/welcome$/, () => import("./views/onboard.js").then((m) => m.Onboarding()), "Знакомство"],
 ];
-const FULLSCREEN = /^\/(learn|surah|practice|welcome|read|juz|page)/;
+const FULLSCREEN = /^\/(learn|surah|practice|welcome|read|juz|page|mark)/;
 
 let routing = 0;
 async function route() {

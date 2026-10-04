@@ -1,5 +1,5 @@
 // Проверка учёта чтения: страница засчитывается при переходе на следующую и после 40 с на странице,
-// один раз за день; место чтения сохраняется; выполненная цель на следующий день начинается заново — с места, где читатель остановился.
+// один раз за день; место чтения сохраняется; старая цель чтения переезжает в закладку; цель закладки выполняется кнопкой «Я прочитал».
 // Запуск (нужен сервер на 8765: python -m http.server 8765):  node tools/audit/reading-check.mjs
 import { chromium } from "playwright";
 
@@ -21,7 +21,12 @@ await page.waitForTimeout(1500);
 const yesterday = Date.now() - 26 * 3600e3;
 await page.evaluate(async (y) => {
   const { store } = await import("/js/store.js"); // чистый профиль ещё не записан в хранилище — пишем через само приложение
-  store.set((st) => { st.profile.onboarded = true; st.readGoal = { from: 40, pages: 2, read: 2, s: 2, a: 250, at: y, done: y }; st.reading = { s: 3, a: 1, p: 50, mode: "surah", at: y }; }); // цель 40–41 выполнена вчера, а дочитано до 50-й
+  store.set((st) => { st.profile.onboarded = true; });
+  // данные «как в версии 1.17»: общая цель чтения (2 страницы, одна прочитана) и закладка со своей целью
+  const st = JSON.parse(localStorage.getItem("tanwin.v2"));
+  st.readGoal = { from: 40, pages: 2, read: 1, s: 2, a: 257, at: y, done: 0 };
+  st.marks = [{ id: "old1", s: 67, a: 1, p: 562, at: y, name: "Вечером", goal: 3 }];
+  localStorage.setItem("tanwin.v2", JSON.stringify(st));
 }, yesterday);
 
 // 1. переход на следующую страницу засчитывает предыдущую; место чтения сохраняется
@@ -29,7 +34,8 @@ await page.goto(`${BASE}/?run=1#/read/78`);
 await page.waitForSelector(".focus .page-mark", { state: "attached" }).catch(async (e) => { console.log("экран:", await page.evaluate(() => location.hash + " | " + document.querySelector("#view").innerText.slice(0, 200))); throw e; });
 await page.waitForTimeout(800);
 let st = await state();
-ok("цель вчерашнего дня началась заново с места, где остановились", st.readGoal.from === 50 && st.readGoal.pages === 2 && st.readGoal.read === 0 && !st.readGoal.done, st.readGoal);
+ok("старая общая цель стала закладкой с целью", !st.readGoal && st.marks.some((m) => m.name === "Цель чтения" && m.plan?.k === "seq" && m.plan.n === 2 && m.s === 2 && m.a === 257), st.marks);
+ok("цель старой закладки сохранилась", st.marks.find((m) => m.id === "old1")?.plan?.n === 3 && !("goal" in st.marks.find((m) => m.id === "old1")), st.marks);
 await page.evaluate(() => { const sc = document.querySelector(".focus-scroll"), m = document.querySelectorAll(".page-mark")[1]; sc.scrollTop += m.getBoundingClientRect().top - 300; });
 await page.waitForTimeout(900);
 st = await state();
@@ -50,6 +56,36 @@ for (let i = 0; i < 10; i++) { await page.mouse.move(100 + i, 300); await page.m
 st = await state();
 ok("разрозненная страница 100 засчитана по времени", today(st)?.pp?.includes(100) && today(st).pages === 2, today(st));
 ok("время чтения идёт в прогресс", today(st)?.ms >= 30000, today(st));
+
+// 4. закладка с целью «повторять отрывок»: на экране только отрывок, «Я прочитал» выполняет цель
+await page.evaluate(async () => {
+  const { store } = await import("/js/store.js");
+  store.set((s) => { s.marks.unshift({ id: "rep1", s: 2, a: 285, p: null, at: Date.now(), name: "Конец Аль-Бакара", plan: { k: "rep", items: [{ s: 2, from: 285, to: 286 }], days: null } }); });
+});
+await page.goto(`${BASE}/?run=2#/mark/rep1`);
+await page.waitForSelector(".focus-end .btn.primary", { state: "attached" });
+ok("в отрывке ровно два аята", await page.evaluate(() => [...document.querySelectorAll(".focus-part [data-a]")].map((e) => e.dataset.a).join()) === "285,286");
+await page.evaluate(() => document.querySelector(".focus-end .btn.primary").click());
+await page.waitForTimeout(600);
+st = await state();
+ok("«Я прочитал» выполняет цель закладки", !!st.marks.find((m) => m.id === "rep1").done && st.qread.goals === 1, st.marks[0]);
+
+// 5. цель «по порядку»: 3 страницы от закладки; после «Я прочитал» закладка переезжает, «Читать дальше» — и она идёт следом
+await page.goto(`${BASE}/?run=3#/mark/old1`);
+await page.waitForSelector(".focus-end .btn.primary", { state: "attached" });
+const pagesShown = await page.evaluate(() => [...new Set([...document.querySelectorAll(".focus-part [data-p]")].map((e) => e.dataset.p))].join());
+ok("на экране три страницы от закладки", pagesShown === "562,563,564", pagesShown);
+await page.evaluate(() => document.querySelector(".focus-end .btn.primary").click());
+await page.waitForTimeout(800);
+st = await state();
+const old1 = () => st.marks.find((m) => m.id === "old1");
+ok("закладка переехала за прочитанное", old1().done && old1().s === 68 && old1().a === 17 && old1().p === 565, old1()); // страница 564 кончается на 68:16
+await page.evaluate(() => [...document.querySelectorAll(".focus-end .btn")].find((b) => /Читать дальше/.test(b.textContent)).click());
+await page.waitForTimeout(2500);
+await page.evaluate(() => { const sc = document.querySelector(".focus-scroll"); sc.scrollTop += 1500; });
+await page.waitForTimeout(900);
+st = await state();
+ok("при чтении дальше закладка идёт следом", old1().s > 68 || old1().a > 17, old1());
 
 ok("ошибок JavaScript нет", !errors.length, errors);
 await browser.close();

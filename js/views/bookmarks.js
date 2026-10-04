@@ -1,14 +1,14 @@
-// Закладки и цель чтения: сохранённые места в Коране (с названиями, группами и своей целью) и обратный отсчёт страниц.
-import { h, icon, modal, toast, plural, confirmBox, confetti, keep } from "../ui.js";
+// Закладки и их цели: сохранённые места в Коране (с названиями и группами). У закладки может быть цель —
+// читать по порядку (столько-то страниц или аятов в день) или повторять отрывок (суру, аяты, свой набор).
+import { h, icon, modal, toast, plural, confirmBox, keep } from "../ui.js";
 import { loadSurahs, surahMeta } from "../data.js";
-import { store, readGoalDone } from "../store.js";
+import { store } from "../store.js";
 import { go } from "../app.js";
 import { enterFullscreen } from "../fullscreen.js";
 import { pageContent, PAGES, JUZ_PAGE } from "./quran.js";
 
 const MAX_MARKS = 100;
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-const pagesWord = (n) => plural(n, "страница", "страницы", "страниц");
 const juzOf = (p) => { let j = 0; while (j < 29 && JUZ_PAGE[j + 1] <= p) j++; return j + 1; };
 const dateRu = (t) => new Date(t).toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
 const ayahText = (s, a) => `${surahMeta(s)?.ru || `Сура ${s}`}, аят ${a}`;
@@ -20,41 +20,35 @@ function openRead(s, a) {
   const hash = `#/read/${s}/${a}`;
   if (location.hash === hash) window.dispatchEvent(new HashChangeEvent("hashchange")); else go(hash.slice(1));
 }
+// ---------- Цель закладки ----------
+// mark.plan — что читать:
+//   { k: "seq", unit: "p" | "a", n }             — по порядку: n страниц или аятов в день; закладка идёт вперёд
+//   { k: "rep", items: [{ s, from, to }], days } — повторять отрывок (сура, аяты, свой набор); days — дни недели (0 — вс) или null = каждый день
+// mark.done — когда цель выполнена в последний раз; mark.cur = { s, a } — где остановились, не дочитав сегодняшнее.
+// Цель считается только тогда, когда чтение открыто через эту закладку (экран #/mark/ID в views/quran.js).
 const sameDay = (t) => new Date(t).toDateString() === new Date().toDateString();
-/**
- * Цель — на день. Выполненная цель на следующий день начинается заново: столько же страниц, с места, где читатель
- * остановился. Прочитал сверх цели (например, целый джуз) — новый отсчёт идёт оттуда, перечитывать не нужно;
- * не читал дальше — с места, где закончился вчерашний план. Закладка с этой целью переезжает туда же.
- */
-export async function rollGoal() {
-  const gl = readGoal();
-  if (!gl || !gl.done || sameDay(gl.done)) return;
-  const planEnd = gl.from + gl.pages, r = store.get().reading;
-  let to = null;
-  if (r?.p && r.p >= planEnd && r.p <= PAGES && surahMeta(r.s)) to = { s: r.s, a: r.a, p: r.p }; // дочитал дальше плана
-  else {
-    const p = planEnd > PAGES ? 1 : planEnd;
-    const part = (await pageContent(p).catch(() => []))[0];
-    if (part) to = { s: part.s, a: part.from, p };
-  }
-  if (!to) return;
-  store.set((st) => {
-    st.readGoal = { from: to.p, pages: Math.min(gl.pages, PAGES + 1 - to.p), read: 0, s: to.s, a: to.a, at: Date.now(), done: 0, ...(gl.mark ? { mark: gl.mark } : {}) };
-    const m = gl.mark && (st.marks || []).find((x) => x.id === gl.mark);
-    if (m) Object.assign(m, to);
-  });
+const WD = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"], WEEK = [1, 2, 3, 4, 5, 6, 0];
+export const doneToday = (m) => !!m.done && sameDay(m.done);
+export const dueToday = (m) => !!m.plan && (m.plan.k !== "rep" || !m.plan.days || m.plan.days.includes(new Date().getDay()));
+const itemText = (x) => {
+  const sm = surahMeta(x.s), name = sm?.ru || `Сура ${x.s}`;
+  return x.from <= 1 && sm && x.to >= sm.verses ? `сура ${name}` : x.from === x.to ? `${name}, аят ${x.from}` : `${name}, аяты ${x.from}–${x.to}`;
+};
+/** Цель словами: «по 2 страницы в день», «сура Аль-Мульк · каждый день», «Аль-Бакара, аяты 285–286 · пт». */
+export function planText(pl) {
+  if (!pl) return "";
+  if (pl.k === "seq") return `по ${pl.n} ${pl.unit === "p" ? plural(pl.n, "странице", "страницы", "страниц") : plural(pl.n, "аяту", "аята", "аятов")} в день`;
+  const what = pl.items.length === 1 ? itemText(pl.items[0]) : `${pl.items.length} ${plural(pl.items.length, "отрывок", "отрывка", "отрывков")}`;
+  return `${what} · ${pl.days ? WEEK.filter((d) => pl.days.includes(d)).map((d) => WD[d]).join(", ") : "каждый день"}`;
 }
-/** Открыть закладку. Если у неё есть своя цель — отсчёт страниц начинается сам. */
-async function openMark(m) {
-  enterFullscreen(); // сразу, пока браузер считает это нажатием
-  await rollGoal();
-  if (m.goal && m.p) {
-    const gl = readGoal();
-    if (gl && gl.mark === m.id && !gl.done) return openRead(gl.s, gl.a); // цель этой закладки ещё идёт — продолжаем с места, где остановились
-    if (gl && gl.mark === m.id && sameDay(gl.done)) return openRead(m.s, m.a); // сегодняшняя цель уже выполнена — просто читаем дальше, новый отсчёт начнётся завтра
-    store.set((st) => { st.readGoal = { from: m.p, pages: Math.min(m.goal, PAGES + 1 - m.p), read: 0, s: m.s, a: m.a, at: Date.now(), done: 0, mark: m.id }; });
-  }
-  openRead(m.s, m.a);
+/** Изменить закладку. */
+export const setMark = (id, fn) => store.set((st) => { const m = (st.marks || []).find((x) => x.id === id); if (m) fn(m); });
+/** Открыть закладку: с целью — экран цели (только то, что нужно прочесть сегодня), без цели — чтение с этого места. */
+function openMark(m) {
+  if (!m.plan) return openRead(m.s, m.a);
+  enterFullscreen();
+  const hash = `#/mark/${m.id}`;
+  if (location.hash === hash) window.dispatchEvent(new HashChangeEvent("hashchange")); else go(hash.slice(1));
 }
 
 // ---------- Закладки и группы ----------
@@ -78,39 +72,92 @@ const orderMarks = (ids) => store.set((st) => {
 const removeMark = (id) => store.set((st) => { st.marks = (st.marks || []).filter((m) => m.id !== id); });
 const addGroup = (name) => { const id = "g" + newId(); store.set((st) => { st.markGroups = [...(st.markGroups || []), { id, name }]; }); return id; };
 
-/** Кнопка «Закладка» для панелей читалки. place() → { s, a, p } — где сейчас читатель. */
-export function markBtn(place) {
-  return h("button.tool", { type: "button", title: "Поставить закладку на этом месте", onclick: () => { const x = place(); addMark(x.s, x.a, x.p); } },
-    icon("bookmark", { size: 18 }), h("span", null, "Закладка"));
-}
-
-/** Настройки закладки: название, группа, своя цель, удаление. fresh — закладку только что поставили. */
+/** Настройки закладки: название, группа, цель, удаление. fresh — закладку только что поставили. */
 export function markEditor(id, { fresh = false, onChange } = {}) {
   const m = marks().find((x) => x.id === id);
   if (!m) return;
   modal((close) => {
     let g = groups().some((x) => x.id === m.g) ? m.g : "";
-    const name = h("input.text-in", { type: "text", maxlength: 60, value: m.name || "", placeholder: "Например: «Каждый день» или «В пятницу»", "aria-label": "Название закладки" });
+    const name = h("input.text-in", { type: "text", maxlength: 60, value: m.name || "", placeholder: "Например: «Каждый вечер» или «В пятницу»", "aria-label": "Название закладки" });
     const ng = h("input.text-in", { type: "text", maxlength: 40, hidden: true, placeholder: "Название новой группы", "aria-label": "Название новой группы" });
-    const goal = h("input.text-in", { type: "number", min: 0, max: PAGES, inputmode: "numeric", value: m.goal || "", placeholder: "Без цели", "aria-label": "Сколько страниц читать за раз" });
     const chips = h("div.rm-row");
     const drawChips = () => chips.replaceChildren(...[{ id: "", name: "Без группы" }, ...groups(), { id: "+", name: "+ Новая группа" }].map((x) =>
       h("button.seg-btn", { type: "button", class: x.id === g ? "on" : "", onclick: () => { g = x.id; ng.hidden = g !== "+"; drawChips(); if (g === "+") ng.focus(); } }, keep(x.name))));
     drawChips();
+
+    // --- цель ---
+    const verses = (s) => surahMeta(s)?.verses || 1;
+    let kind = m.plan?.k || "", unit = m.plan?.unit || "p";
+    let items = m.plan?.k === "rep" ? m.plan.items.map((x) => ({ ...x })) : [{ s: m.s, from: 1, to: verses(m.s) }];
+    let days = m.plan?.k === "rep" && m.plan.days ? new Set(m.plan.days) : null;
+    const num = (value, max, label) => h("input.text-in.num-in", { type: "number", min: 1, max, value, inputmode: "numeric", "aria-label": label });
+    const nIn = num(m.plan?.k === "seq" ? m.plan.n : 2, PAGES, "Сколько в день");
+    const kindRow = h("div.rm-row"), box = h("div.plan-box");
+    const seg = (list, cur, pick) => list.map(([k, t]) => h("button.seg-btn", { type: "button", class: k === cur ? "on" : "", onclick: () => pick(k) }, t));
+    const pFrom = num(m.p || 1, PAGES, "С какой страницы"), pTo = num(m.p || 1, PAGES, "По какую страницу");
+    const addPages = async () => {
+      const a = Math.round(+pFrom.value), b = Math.round(+pTo.value);
+      if (!(a >= 1 && b >= a && b <= PAGES)) return toast(`Страницы — от 1 до ${PAGES}, «с» не больше «по».`);
+      if (b - a > 40) return toast("За один раз — не больше 40 страниц.");
+      const add = [];
+      for (let p = a; p <= b; p++) for (const part of await pageContent(p).catch(() => [])) {
+        const last = add[add.length - 1];
+        if (last && last.s === part.s && last.to + 1 === part.from) last.to = part.to; else add.push({ s: part.s, from: part.from, to: part.to });
+      }
+      if (!add.length) return toast("Не удалось загрузить страницы. Проверьте интернет.");
+      items = [...items, ...add].slice(0, 40);
+      draw();
+    };
+    const itemRow = (x, i) => {
+      const sel = h("select.text-in", { "aria-label": "Сура" }, ...Array.from({ length: 114 }, (_, k) => h("option", { value: k + 1, selected: k + 1 === x.s }, keep(`${k + 1}. ${surahMeta(k + 1)?.ru || ""}`))));
+      const from = num(x.from, verses(x.s), "С какого аята"), to = num(x.to, verses(x.s), "По какой аят");
+      sel.addEventListener("change", () => { x.s = +sel.value; x.from = 1; x.to = verses(x.s); draw(); });
+      from.addEventListener("change", () => { x.from = Math.min(verses(x.s), Math.max(1, Math.round(+from.value) || 1)); if (x.to < x.from) x.to = x.from; draw(); });
+      to.addEventListener("change", () => { x.to = Math.min(verses(x.s), Math.max(x.from, Math.round(+to.value) || x.from)); draw(); });
+      return h("div.plan-item", null, sel, h("label", null, "с аята", from), h("label", null, "по", to),
+        items.length > 1 ? h("button.icon-btn", { type: "button", "aria-label": "Убрать отрывок", title: "Убрать", onclick: () => { items.splice(i, 1); draw(); } }, icon("trash", { size: 18 })) : null);
+    };
+    const draw = () => {
+      kindRow.replaceChildren(...seg([["", "Без цели"], ["seq", "Читать по порядку"], ["rep", "Повторять отрывок"]], kind, (k) => { kind = k; draw(); }));
+      if (kind === "seq") box.replaceChildren(
+        h("div.plan-seq", null, nIn, h("div.rm-row", null, ...seg([["p", "страниц в день"], ["a", "аятов в день"]], unit, (k) => { unit = k; draw(); }))),
+        h("p.muted.small", null, "Откроете закладку — на экране будет ровно столько, сколько нужно прочесть сегодня. В конце нажмите «Я прочитал» — и можно читать дальше: назавтра закладка будет ждать там, где вы остановитесь."));
+      else if (kind === "rep") box.replaceChildren(
+        h("div.label", null, "Что читать"),
+        ...items.map(itemRow),
+        h("p.muted.small", null, "Вся сура — аяты с первого по последний. Чтобы читать только часть, поменяйте номера аятов."),
+        h("button.btn.ghost.small-btn", { type: "button", onclick: () => { const lastS = items[items.length - 1]?.s || m.s; const s = Math.min(114, lastS + 1); items.push({ s, from: 1, to: verses(s) }); draw(); } }, "+ Ещё сура или отрывок"),
+        h("div.plan-pages", null, h("span", null, "Или страницы: с"), pFrom, h("span", null, "по"), pTo, h("button.btn.ghost.small-btn", { type: "button", onclick: addPages }, "Добавить")),
+        h("div.label", null, "Когда"),
+        h("div.rm-row", null,
+          h("button.seg-btn", { type: "button", class: days ? "" : "on", onclick: () => { days = null; draw(); } }, "Каждый день"),
+          ...WEEK.map((d) => h("button.seg-btn", { type: "button", class: days?.has(d) ? "on" : "", onclick: () => { days = days || new Set(); if (days.has(d)) days.delete(d); else days.add(d); if (!days.size || days.size === 7) days = null; draw(); } }, WD[d]))),
+        h("p.muted.small", null, "Откроете закладку — на экране будет только этот отрывок. Место закладки не меняется: в следующий раз вы прочтёте его снова."));
+      else box.replaceChildren();
+    };
+    draw();
+
     const save = () => {
       const gid = g === "+" ? (ng.value.trim() ? addGroup(ng.value.trim()) : "") : g;
-      const n = Math.max(0, Math.min(PAGES, Math.round(+goal.value) || 0));
-      store.set((st) => { const x = st.marks.find((y) => y.id === id); if (x) Object.assign(x, { name: name.value.trim(), g: gid, goal: n }); });
+      const plan = kind === "seq" ? { k: "seq", unit, n: Math.max(1, Math.min(unit === "p" ? PAGES : 300, Math.round(+nIn.value) || 1)) }
+        : kind === "rep" ? { k: "rep", items: items.map((x) => ({ s: x.s, from: x.from, to: x.to })), days: days ? [...days] : null } : null;
+      const changed = JSON.stringify(plan) !== JSON.stringify(m.plan || null);
+      setMark(id, (x) => {
+        Object.assign(x, { name: name.value.trim(), g: gid });
+        if (!changed) return;
+        if (plan) x.plan = plan; else delete x.plan;
+        delete x.done; delete x.cur; // новая цель — новый отсчёт
+        if (plan?.k === "rep") Object.assign(x, { s: plan.items[0].s, a: plan.items[0].from, p: null }); // закладка стоит на начале отрывка
+      });
       close(); onChange?.();
     };
-    for (const inp of [name, ng, goal]) inp.addEventListener("keydown", (e) => e.key === "Enter" && save());
+    for (const inp of [name, ng]) inp.addEventListener("keydown", (e) => e.key === "Enter" && save());
     return h("div.mark-edit", null,
       h("h2", null, fresh ? "Закладка поставлена ✓" : "Закладка"),
       h("p.muted", null, placeText(m.s, m.a, m.p)),
       h("div.label", null, "Название — если нужно"), name,
       h("div.label", null, "Группа"), chips, ng,
-      h("div.label", null, "Цель: сколько страниц читать за раз"), goal,
-      h("p.muted.small", null, "С целью отсчёт страниц начинается сам, как только вы откроете закладку. Цель выполнена — закладка переезжает вперёд, и в следующий раз чтение продолжится с нового места."),
+      h("div.label", null, "Цель"), kindRow, box,
       h("div.row.gap.wrap", null,
         h("button.btn.primary", { type: "button", onclick: save }, fresh ? "Готово" : "Сохранить"),
         fresh ? null : h("button.btn.ghost", { type: "button", onclick: async () => {
@@ -200,11 +247,13 @@ function marksList({ onOpen, onChange } = {}) {
   const wrap = h("div.mark-groups");
   const redraw = () => (onChange ? onChange() : draw());
   const row = (m, box, many) => {
-    const sub = [m.name ? ayahText(m.s, m.a) : null, m.p ? `стр. ${m.p}` : null, !m.name && m.p ? `джуз ${juzOf(m.p)}` : null, m.goal ? `цель: ${m.goal} стр.` : dateRu(m.at)].filter(Boolean).join(" · ");
+    const rep = m.plan?.k === "rep"; // у отрывка для повтора место — сам отрывок
+    const status = !m.plan ? null : doneToday(m) ? "сегодня выполнено ✓" : dueToday(m) ? "ждёт сегодня" : null;
+    const sub = [m.name && !rep ? ayahText(m.s, m.a) : null, m.p && !rep ? `стр. ${m.p}` : null, !m.name && m.p && !rep ? `джуз ${juzOf(m.p)}` : null, m.plan ? `цель: ${rep && !m.name ? planText(m.plan).split(" · ").slice(1).join(" · ") : planText(m.plan)}` : dateRu(m.at), status].filter(Boolean).join(" · ");
     const r = h("div.mark-row", { "data-id": m.id },
       h("button.mark-open", { type: "button", onclick: () => { onOpen?.(); openMark(m); } },
-        h("span.rc-ic", null, icon(m.goal ? "target" : "bookmark", m.goal ? { size: 22 } : { size: 22, fill: true, sw: 1 })),
-        h("div", null, h("b", null, keep(m.name || ayahText(m.s, m.a))), h("small.muted", null, sub))),
+        h("span.rc-ic", { class: m.plan && doneToday(m) ? "done" : "" }, icon(m.plan ? (doneToday(m) ? "check" : "target") : "bookmark", m.plan ? { size: 22, sw: doneToday(m) ? 3 : 2 } : { size: 22, fill: true, sw: 1 })),
+        h("div", null, h("b", null, keep(m.name || (rep ? planText(m.plan).split(" · ")[0] : ayahText(m.s, m.a)))), h("small.muted", null, sub))),
       h("button.icon-btn", { type: "button", title: "Название, группа, цель, удаление", "aria-label": "Настроить закладку", onclick: () => markEditor(m.id, { onChange: redraw }) }, icon("more", { sw: 3 })));
     if (many) r.prepend(gripBtn(box, r));
     return r;
@@ -223,7 +272,7 @@ function marksList({ onOpen, onChange } = {}) {
       }),
       gs.length && loose.length ? h("div.label", null, "Без группы") : null,
       loose.length ? rows(loose) : null,
-      all.length ? null : h("p.muted", null, "Закладок пока нет. Откройте суру в разделе «Мой Коран», нажмите на экран и выберите вверху «Закладка здесь». Или нажмите на слово и удерживайте — закладка встанет точно на этот аят."),
+      all.length ? null : h("p.muted", null, "Закладок пока нет. Откройте суру в разделе «Мой Коран», нажмите на экран и выберите вверху «Закладка здесь». Или нажмите на слово и удерживайте — закладка встанет точно на этот аят. Закладке можно задать цель: например, две страницы в день или сура Аль-Мульк каждый вечер."),
       all.length > 1 ? h("p.muted.small", null, "Чтобы поменять порядок, потяните закладку за точки слева вверх или вниз.") : null,
       h("button.btn.secondary", { type: "button", onclick: () => groupEditor(null, redraw) }, "Новая группа"),
     ].filter(Boolean));
@@ -237,122 +286,13 @@ export function marksSheet() {
   modal((close) => h("div.read-menu", null, h("h2", null, "Мои закладки"), marksList({ onOpen: close })), { cls: "sheet" });
 }
 
-// ---------- Цель чтения: обратный отсчёт страниц ----------
-export const readGoal = () => store.get().readGoal || null;
-const goalRead = (gl, page) => Math.max(0, Math.min(gl.pages, page - gl.from));
-export const goalLeft = () => { const gl = readGoal(); return gl ? gl.pages - (gl.read || 0) : 0; };
-
-/** Цель закладки выполнена: закладка переезжает на начало страницы p (после конца Корана — в его начало). Возвращает новую страницу. */
-async function advanceMark(id, p) {
-  const part = p > PAGES ? null : (await pageContent(p).catch(() => []))[0];
-  const to = part ? { s: part.s, a: part.from, p } : p > PAGES ? { s: 1, a: 1, p: 1 } : null;
-  if (!to || !marks().some((m) => m.id === id)) return 0;
-  store.set((st) => { Object.assign(st.marks.find((m) => m.id === id), to, { at: Date.now() }); });
-  return to.p;
-}
-
-/**
- * Полоска цели: «осталось N страниц из M». set(page, s, a) вызывается при движении по тексту
- * (page = 605, когда дочитан конец Корана); onDone — цель только что выполнена.
- */
-export function goalStrip(onDone) {
-  const fill = h("i"), cap = h("small.gs-cap");
-  const el = h("div.goal-strip", { hidden: true }, h("div.gs-bar", { "aria-hidden": "true" }, fill), cap);
-  const paint = () => {
-    const gl = readGoal();
-    el.hidden = !gl;
-    if (!gl) return;
-    const read = gl.read || 0, left = gl.pages - read;
-    fill.style.width = (read / gl.pages * 100).toFixed(1) + "%";
-    el.classList.toggle("done", !left);
-    cap.textContent = left ? `Цель: ${plural(left, "осталась", "остались", "осталось")} ${left} ${pagesWord(left)} из ${gl.pages}` : `Цель выполнена: ${gl.pages} ${pagesWord(gl.pages)} ✓`;
-  };
-  const set = (page, s, a) => {
-    const gl = readGoal();
-    if (!gl || gl.done || !page) return paint();
-    const read = goalRead(gl, page);
-    if (read < (gl.read || 0) || page > gl.from + gl.pages + 1) return paint(); // вернулись назад или открыли другое место — достигнутое не теряем и чужое не засчитываем
-    if (read !== gl.read || (s && (gl.s !== s || gl.a !== a))) {
-      const done = read >= gl.pages;
-      store.set((st) => { Object.assign(st.readGoal, { read, done: done ? Date.now() : 0 }, s && !done ? { s, a } : {}); });
-      if (done) {
-        confetti();
-        readGoalDone();
-        const msg = `Цель выполнена: прочитано ${gl.pages} ${pagesWord(gl.pages)}. Да примет Аллах ваше чтение!`;
-        if (gl.mark) advanceMark(gl.mark, gl.from + gl.pages).then((p) => toast(msg + (p ? ` Закладка переехала на страницу ${p}.` : ""), 6500));
-        else toast(msg, 5200);
-        onDone?.();
-      }
-    }
-    paint();
-  };
-  paint();
-  return { el, set, paint };
-}
-
-/** Окно «Цель чтения». start = { s, a, p } — откуда считать; after() — после установки цели. */
-export function goalModal(start, after) {
-  modal((close) => {
-    const gl = readGoal();
-    const max = PAGES + 1 - start.p;
-    const inp = h("input.text-in.big", { type: "number", min: 1, max, value: Math.min(max, gl?.pages || 20), inputmode: "numeric", "aria-label": "Сколько страниц прочесть" });
-    const till = h("p.muted");
-    const val = () => Math.round(+inp.value);
-    const sync = () => { const n = val(); till.textContent = n >= 1 && n <= max ? `Читаем со страницы ${start.p} по ${start.p + n - 1}. Отсчёт виден вверху экрана в режиме чтения.` : `Число страниц — от 1 до ${max}.`; };
-    inp.addEventListener("input", sync);
-    const apply = () => {
-      const n = val();
-      if (!(n >= 1 && n <= max)) return toast(`Число страниц — от 1 до ${max}`);
-      store.set((st) => { st.readGoal = { from: start.p, pages: n, read: 0, s: start.s, a: start.a, at: Date.now(), done: 0 }; });
-      close();
-      toast(`Цель поставлена: ${n} ${pagesWord(n)}, начиная со страницы ${start.p}`, 3200);
-      after?.();
-    };
-    inp.addEventListener("keydown", (e) => e.key === "Enter" && apply());
-    sync();
-    return h("div.page-picker.goal-box", null,
-      h("h2", null, "Цель чтения"),
-      h("p", null, `Сколько страниц вы хотите прочесть, начиная с этого места? Начало: ${placeText(start.s, start.a, start.p)}.`),
-      gl ? h("p.muted", null, gl.done ? `Прошлая цель выполнена: ${gl.pages} ${pagesWord(gl.pages)}.` : `Сейчас идёт цель: ${plural(goalLeft(), "осталась", "остались", "осталось")} ${goalLeft()} из ${gl.pages}. Новая цель её заменит.`) : null,
-      h("div.row.gap", null, inp, h("button.btn.primary", { type: "button", onclick: apply }, "Начать отсчёт")),
-      h("div.rm-row", null, ...[[5, "5"], [10, "10"], [20, "20 — один джуз"]].filter(([n]) => n <= max).map(([n, t]) => h("button.seg-btn", { type: "button", onclick: () => { inp.value = n; sync(); } }, t))),
-      till,
-      h("p.muted.small", null, "Чтобы цель включалась сама каждый раз, задайте её у закладки: кнопка «⋯» в списке закладок."),
-      gl ? h("button.btn.ghost", { type: "button", onclick: () => { store.set((st) => { st.readGoal = null; }); close(); toast("Цель снята."); after?.(); } }, icon("trash", { size: 18 }), "Снять цель") : null);
-  });
-}
-
-/** Карточка цели для страницы «Закладки». */
-function goalCard(redraw) {
-  const gl = readGoal(), r = store.get().reading;
-  const here = r?.p ? { s: r.s, a: r.a, p: r.p } : { s: 1, a: 1, p: 1 };
-  if (!gl) return h("section.card.goal-card", null,
-    h("h3", null, icon("target", { size: 20 }), " Цель чтения"),
-    h("p.muted", null, "Задайте, сколько страниц прочесть, — и приложение покажет обратный отсчёт: сколько осталось до цели."),
-    h("button.btn.primary", { type: "button", onclick: () => goalModal(here, redraw) }, `Поставить цель с места чтения (стр. ${here.p})`));
-  const left = goalLeft(), strip = goalStrip();
-  return h("section.card.goal-card", null,
-    h("h3", null, icon("target", { size: 20 }), " Цель чтения"),
-    h("div.gc-num", null, left ? h("b", null, left) : icon("check", { size: 40, sw: 3 }), h("span", null, left ? `${pagesWord(left)} ${plural(left, "осталась", "остались", "осталось")} из ${gl.pages}` : `Цель выполнена: ${gl.pages} ${pagesWord(gl.pages)}`)),
-    strip.el,
-    h("p.muted.small", null, `Со страницы ${gl.from} по ${gl.from + gl.pages - 1} · начато ${dateRu(gl.at)}`),
-    left ? null : h("p.muted", null, `Завтра цель начнётся заново: ${gl.pages} ${pagesWord(gl.pages)} с места, где вы остановитесь. Прочитаете сегодня больше — перечитывать не придётся.`),
-    h("div.row.gap.wrap", null,
-      left ? h("button.btn.primary", { type: "button", onclick: () => openRead(gl.s, gl.a) }, "Продолжить чтение", icon("right", { size: 18 })) : null,
-      h("button.btn.secondary", { type: "button", onclick: () => goalModal(here, redraw) }, left ? "Изменить" : "Новая цель")));
-}
-
 // ---------- Страница «Закладки» ----------
 export async function BookmarksView() {
   await loadSurahs();
-  await rollGoal();
   const body = h("div.bm-body");
-  const draw = () => body.replaceChildren(
-    goalCard(draw),
-    h("h3.bm-h", null, "Мои закладки"),
-    marksList({ onChange: draw }));
+  const draw = () => body.replaceChildren(marksList({ onChange: draw }));
   draw();
   return h("div.page.bookmarks", null,
-    h("header.page-head", null, h("h1", null, "Закладки"), h("p.muted", null, "Сохранённые места в Коране — с названиями, группами и своей целью — и обратный отсчёт страниц. Место, где вы остановились, запоминается само — оно в разделе «Мой Коран».")),
+    h("header.page-head", null, h("h1", null, "Закладки"), h("p.muted", null, "Сохранённые места в Коране — с названиями, группами и целями: читать по порядку или повторять суру и отдельные аяты. Цель считается, когда вы открываете чтение через её закладку.")),
     body);
 }
