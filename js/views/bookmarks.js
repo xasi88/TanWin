@@ -22,16 +22,27 @@ function openRead(s, a) {
 }
 const sameDay = (t) => new Date(t).toDateString() === new Date().toDateString();
 /**
- * Цель — на день. Выполненная цель на следующий день начинается заново: столько же страниц, с места, где закончился
- * вчерашний план (а не где читатель остановился на самом деле — прочитанное сверх цели в неё не входит).
+ * Цель — на день. Выполненная цель на следующий день начинается заново: столько же страниц, с места, где читатель
+ * остановился. Прочитал сверх цели (например, целый джуз) — новый отсчёт идёт оттуда, перечитывать не нужно;
+ * не читал дальше — с места, где закончился вчерашний план. Закладка с этой целью переезжает туда же.
  */
 export async function rollGoal() {
   const gl = readGoal();
   if (!gl || !gl.done || sameDay(gl.done)) return;
-  const from = gl.from + gl.pages > PAGES ? 1 : gl.from + gl.pages;
-  const part = (await pageContent(from).catch(() => []))[0];
-  if (!part) return;
-  store.set((st) => { st.readGoal = { from, pages: Math.min(gl.pages, PAGES + 1 - from), read: 0, s: part.s, a: part.from, at: Date.now(), done: 0, ...(gl.mark ? { mark: gl.mark } : {}) }; });
+  const planEnd = gl.from + gl.pages, r = store.get().reading;
+  let to = null;
+  if (r?.p && r.p >= planEnd && r.p <= PAGES && surahMeta(r.s)) to = { s: r.s, a: r.a, p: r.p }; // дочитал дальше плана
+  else {
+    const p = planEnd > PAGES ? 1 : planEnd;
+    const part = (await pageContent(p).catch(() => []))[0];
+    if (part) to = { s: part.s, a: part.from, p };
+  }
+  if (!to) return;
+  store.set((st) => {
+    st.readGoal = { from: to.p, pages: Math.min(gl.pages, PAGES + 1 - to.p), read: 0, s: to.s, a: to.a, at: Date.now(), done: 0, ...(gl.mark ? { mark: gl.mark } : {}) };
+    const m = gl.mark && (st.marks || []).find((x) => x.id === gl.mark);
+    if (m) Object.assign(m, to);
+  });
 }
 /** Открыть закладку. Если у неё есть своя цель — отсчёт страниц начинается сам. */
 async function openMark(m) {
@@ -325,7 +336,7 @@ function goalCard(redraw) {
     h("div.gc-num", null, left ? h("b", null, left) : icon("check", { size: 40, sw: 3 }), h("span", null, left ? `${pagesWord(left)} ${plural(left, "осталась", "остались", "осталось")} из ${gl.pages}` : `Цель выполнена: ${gl.pages} ${pagesWord(gl.pages)}`)),
     strip.el,
     h("p.muted.small", null, `Со страницы ${gl.from} по ${gl.from + gl.pages - 1} · начато ${dateRu(gl.at)}`),
-    left ? null : h("p.muted", null, gl.from + gl.pages > PAGES ? "Завтра цель начнётся заново — с начала Корана." : `Завтра цель начнётся заново: ${gl.pages} ${pagesWord(gl.pages)} со страницы ${gl.from + gl.pages}. То, что прочитано сегодня сверх цели, в неё не входит.`),
+    left ? null : h("p.muted", null, `Завтра цель начнётся заново: ${gl.pages} ${pagesWord(gl.pages)} с места, где вы остановитесь. Прочитаете сегодня больше — перечитывать не придётся.`),
     h("div.row.gap.wrap", null,
       left ? h("button.btn.primary", { type: "button", onclick: () => openRead(gl.s, gl.a) }, "Продолжить чтение", icon("right", { size: 18 })) : null,
       h("button.btn.secondary", { type: "button", onclick: () => goalModal(here, redraw) }, left ? "Изменить" : "Новая цель")));

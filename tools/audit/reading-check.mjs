@@ -1,5 +1,5 @@
 // Проверка учёта чтения: страница засчитывается при переходе на следующую и после 40 с на странице,
-// один раз за день; место чтения сохраняется; выполненная цель на следующий день начинается заново.
+// один раз за день; место чтения сохраняется; выполненная цель на следующий день начинается заново — с места, где читатель остановился.
 // Запуск (нужен сервер на 8765: python -m http.server 8765):  node tools/audit/reading-check.mjs
 import { chromium } from "playwright";
 
@@ -21,16 +21,15 @@ await page.waitForTimeout(1500);
 const yesterday = Date.now() - 26 * 3600e3;
 await page.evaluate(async (y) => {
   const { store } = await import("/js/store.js"); // чистый профиль ещё не записан в хранилище — пишем через само приложение
-  store.set((st) => { st.profile.onboarded = true; st.readGoal = { from: 40, pages: 2, read: 2, s: 2, a: 250, at: y, done: y }; });
+  store.set((st) => { st.profile.onboarded = true; st.readGoal = { from: 40, pages: 2, read: 2, s: 2, a: 250, at: y, done: y }; st.reading = { s: 3, a: 1, p: 50, mode: "surah", at: y }; }); // цель 40–41 выполнена вчера, а дочитано до 50-й
 }, yesterday);
 
 // 1. переход на следующую страницу засчитывает предыдущую; место чтения сохраняется
-await page.goto(`${BASE}/#/read/78`);
-await page.reload();
-await page.waitForSelector(".focus .page-mark", { state: "attached" });
+await page.goto(`${BASE}/?run=1#/read/78`);
+await page.waitForSelector(".focus .page-mark", { state: "attached" }).catch(async (e) => { console.log("экран:", await page.evaluate(() => location.hash + " | " + document.querySelector("#view").innerText.slice(0, 200))); throw e; });
 await page.waitForTimeout(800);
 let st = await state();
-ok("цель вчерашнего дня началась заново с места по плану", st.readGoal.from === 42 && st.readGoal.read === 0 && !st.readGoal.done, st.readGoal);
+ok("цель вчерашнего дня началась заново с места, где остановились", st.readGoal.from === 50 && st.readGoal.pages === 2 && st.readGoal.read === 0 && !st.readGoal.done, st.readGoal);
 await page.evaluate(() => { const sc = document.querySelector(".focus-scroll"), m = document.querySelectorAll(".page-mark")[1]; sc.scrollTop += m.getBoundingClientRect().top - 300; });
 await page.waitForTimeout(900);
 st = await state();
