@@ -30,6 +30,31 @@
   <link rel="preload" href="fonts/amiri-quran.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/nunito.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/app.css">
+  <!--PRELOAD-->
+  <link rel="modulepreload" href="js/arabic.js">
+  <link rel="modulepreload" href="js/audio.js">
+  <link rel="modulepreload" href="js/course.js">
+  <link rel="modulepreload" href="js/data.js">
+  <link rel="modulepreload" href="js/diagram.js">
+  <link rel="modulepreload" href="js/exercises.js">
+  <link rel="modulepreload" href="js/feedback.js">
+  <link rel="modulepreload" href="js/fullscreen.js">
+  <link rel="modulepreload" href="js/install.js">
+  <link rel="modulepreload" href="js/lesson.js">
+  <link rel="modulepreload" href="js/letters.js">
+  <link rel="modulepreload" href="js/metrika.js">
+  <link rel="modulepreload" href="js/path.js">
+  <link rel="modulepreload" href="js/rules.js">
+  <link rel="modulepreload" href="js/speech.js">
+  <link rel="modulepreload" href="js/store.js">
+  <link rel="modulepreload" href="js/syllables.js">
+  <link rel="modulepreload" href="js/tutor.js">
+  <link rel="modulepreload" href="js/ui.js">
+  <link rel="modulepreload" href="js/version.js">
+  <link rel="modulepreload" href="js/views/home.js">
+  <link rel="modulepreload" href="js/views/more.js">
+  <link rel="modulepreload" href="js/wake.js">
+  <!--/PRELOAD-->
 </head>
 <body>
   <div id="app">
@@ -40,5 +65,12 @@
   <div id="modal-root"></div>
   <noscript><p style="padding:24px;font-family:sans-serif">Для работы TanWin нужен JavaScript.</p></noscript>
   <script type="module" src="js/app.js"></script>
+  <script>
+    // приложение не запустилось за 15 секунд (оборвалась загрузка) — показываем, что делать, а не пустой экран
+    setTimeout(function () {
+      var v = document.getElementById("view");
+      if (v && !v.firstChild) v.innerHTML = '<div style="padding:48px 24px;text-align:center;font-family:sans-serif"><p style="font-size:1.1rem">TanWin не загрузился: похоже, связь прервалась.</p><button onclick="location.reload()" style="margin-top:12px;padding:14px 28px;border:0;border-radius:14px;background:#12a37f;color:#fff;font-size:1rem;font-weight:700">Попробовать ещё раз</button></div>';
+    }, 15000);
+  </script>
 </body>
 </html>

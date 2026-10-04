@@ -1,5 +1,5 @@
 // Service worker TanWin: офлайн-режим. Список файлов и версия обновляются командой: node tools/build.mjs
-const VERSION = "22be1d61d5";
+const VERSION = "0e1495ab42";
 const CORE = `tanwin-core-${VERSION}`;
 const AUDIO = "tanwin-audio";
 /*FILES*/
@@ -209,15 +209,35 @@ const FILES = [
   "js/views/review.js",
   "js/views/surah.js",
   "js/views/thanks.js",
+  "js/wake.js",
   "manifest.webmanifest",
 ];
 /*END*/
 const AUDIO_HOSTS = ["audio.qurancdn.com", "everyayah.com", "verses.quran.com", "mirrors.quranicaudio.com"];
 
+// На компьютере разработчика код всегда берётся из сети — иначе правки не видны, пока не пересобран список файлов.
+const DEV = /^(localhost|127\.\d+\.\d+\.\d+|\[::1\])$/.test(location.hostname);
+
+// Файл для кэша версии: до трёх попыток — на плохой связи один сорвавшийся запрос не должен отменять всю установку.
+async function grab(c, f) {
+  for (let i = 0; ; i++) {
+    try {
+      const r = await fetch(new Request(f, { cache: "reload" })); // с сервера, а не из HTTP-кэша браузера (иначе новая версия могла получить, например, старый шрифт)
+      if (!r.ok) throw new Error(r.status + " " + f);
+      return await c.put(f, r);
+    } catch (err) {
+      if (i >= 2) throw err;
+      await new Promise((ok) => setTimeout(ok, 1000 * (i + 1)));
+    }
+  }
+}
 self.addEventListener("install", (e) => {
   // новая версия ждёт, пока ученик нажмёт «Обновить» (чтобы не перезагружать страницу посреди урока)
-  // cache: "reload" — файлы с сервера, а не из HTTP-кэша браузера (иначе новая версия могла получить, например, старый шрифт)
-  e.waitUntil(caches.open(CORE).then((c) => c.addAll(FILES.map((f) => new Request(f, { cache: "reload" })))));
+  // файлы качаем по восемь, а не все двести разом: так меньше обрывов на медленной связи
+  e.waitUntil((async () => {
+    const c = await caches.open(CORE);
+    for (let i = 0; i < FILES.length; i += 8) await Promise.all(FILES.slice(i, i + 8).map((f) => grab(c, f)));
+  })());
 });
 self.addEventListener("activate", (e) => {
   e.waitUntil((async () => {
@@ -271,7 +291,16 @@ self.addEventListener("fetch", (e) => {
     e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((r) => { if (r.ok) { const cp = r.clone(); caches.open(CORE).then((c) => c.put(req, cp)); } return r; })));
     return;
   }
-  // Код и страницы: сначала сеть (чтобы получать обновления), без сети — кэш
+  // Код, стили и страницы: из кэша этой версии — приложение открывается сразу и не зависит от качества связи.
+  // Обновление приходит целиком: браузер сам проверяет sw.js, новая версия скачивает все файлы и подменяет старую.
+  if (!DEV) {
+    e.respondWith((async () => {
+      const c = await caches.open(CORE);
+      const hit = (await c.match(req, { ignoreSearch: true })) || (req.mode === "navigate" ? await c.match("./") : null);
+      return hit || fetch(req);
+    })());
+    return;
+  }
   e.respondWith(fetch(req).then((r) => { if (r.ok) { const cp = r.clone(); caches.open(CORE).then((c) => c.put(req, cp)); } return r; })
     .catch(() => caches.match(req, { ignoreSearch: true }).then((hit) => hit || (req.mode === "navigate" ? caches.match("index.html") : Response.error()))));
 });

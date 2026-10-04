@@ -115,7 +115,7 @@ function readAlongStep(n, meta, data) {
 
 export async function SurahLesson(n) {
   const root = h("div.lesson-root");
-  if (!surahUnlocked(n)) { go(`/quran/${n}`); return root; }
+  if (!surahUnlocked(n)) { go(`/read/${n}`); return root; }
   const [list, data] = await Promise.all([loadSurahs(), loadSurah(n)]);
   const meta = list[n - 1];
   // правила, встречающиеся в суре (для упражнений «найди правило»)

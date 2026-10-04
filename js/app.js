@@ -9,7 +9,8 @@ import { canPrompt, install, isInstalled, isStandalone, manualHint } from "./ins
 import { initMetrika, hit, track } from "./metrika.js";
 import { initFeedback, setScreen } from "./feedback.js";
 import { fill } from "./tutor.js";
-import { initFullscreen, canFullscreen, isFullscreen, setFullscreen, onFullscreenChange, enterFullscreen } from "./fullscreen.js";
+import { initWake } from "./wake.js";
+import { initFullscreen, canFullscreen, isFullscreen, setFullscreen, onFullscreenChange } from "./fullscreen.js";
 
 const view = $("#view");
 const nav = $("#nav");
@@ -38,9 +39,8 @@ export function applySettings() {
 const TABS = [
   { path: "/", label: "Путь", ic: "path" },
   { path: "/review", label: "Практика", ic: "repeat" },
-  { path: "/read", label: "Чтение", ic: "page", fs: true },
-  { path: "/quran", label: "Коран", ic: "book" },
-  { path: "/bookmarks", label: "Закладки", ic: "bookmark", wide: true }, // только в боковой колонке: в нижней панели телефона шесть вкладок — предел
+  { path: "/quran", label: "Мой Коран", ic: "book" },
+  { path: "/bookmarks", label: "Закладки", ic: "bookmark" },
   { path: "/progress", label: "Прогресс", ic: "chart" },
   { path: "/more", label: "Ещё", ic: "more" },
 ];
@@ -50,9 +50,8 @@ function renderNav(active) {
   nav.replaceChildren(
     h("a.brand", { href: "#/", "aria-label": "TanWin — на главную" }, logo(), h("span.brand-name", null, "TanWin"), h("span.brand-sub", null, "путь к чтению Корана")),
     h("div.nav-tabs", { role: "tablist" }, ...TABS.map((t) => {
-      const on = t.path === "/" ? active === "/" : active.startsWith(t.path) || (t.path === "/quran" && active.startsWith("/page"));
-      // «Чтение» сразу разворачивает Коран на весь экран (браузер разрешает это только по нажатию)
-      return h("a.tab", { href: "#" + t.path, class: (on ? "on" : "") + (t.wide ? " wide-only" : ""), "aria-current": on ? "page" : null, onclick: t.fs ? () => enterFullscreen() : null }, icon(t.ic, { size: 24 }), h("span", null, t.label));
+      const on = t.path === "/" ? active === "/" : active.startsWith(t.path);
+      return h("a.tab", { href: "#" + t.path, class: on ? "on" : "", "aria-current": on ? "page" : null }, icon(t.ic, { size: 24 }), h("span", null, t.label));
     })),
     canFullscreen() ? h("button.nav-fs", { type: "button", "data-fs-switch": true, onclick: () => setFullscreen(!isFullscreen()) },
       icon(isFullscreen() ? "shrink" : "expand", { size: 18 }), h("span", null, isFullscreen() ? "Выйти из полного экрана" : "На весь экран")) : "",
@@ -86,11 +85,14 @@ const routes = [
   [/^\/surah\/(\d+)$/, (n) => import("./views/surah.js").then((m) => m.SurahLesson(+n)), (n) => `Урок суры ${n}`],
   [/^\/review$/, () => import("./views/review.js").then((m) => m.ReviewView()), "Практика"],
   [/^\/practice\/(\w+)$/, (k) => import("./views/review.js").then((m) => m.PracticeRoute(k)), (k) => `Практика: ${k}`],
-  [/^\/quran$/, () => import("./views/quran.js").then((m) => m.QuranList()), "Коран"],
-  [/^\/quran\/(\d+)(?:\/(\d+))?$/, (n, a) => import("./views/quran.js").then((m) => m.Reader(+n, +a || 0)), (n) => `Коран: сура ${n}`],
+  [/^\/quran$/, () => import("./views/quran.js").then((m) => m.MyQuran()), "Мой Коран"],
+  // старые адреса суры (#/quran/2/255) открывают чтение
+  [/^\/quran\/(\d+)(?:\/(\d+))?$/, (n, a) => { location.replace(`#/read/${n}${a ? `/${a}` : ""}`); return h("div"); }, (n) => `Чтение: сура ${n}`],
   [/^\/read$/, () => import("./views/quran.js").then((m) => m.ReadStart()), "Чтение"],
   [/^\/read\/(\d+)(?:\/(\d+))?$/, (n, a) => import("./views/quran.js").then((m) => m.ReadMode(+n, +a || 0)), (n) => `Чтение: сура ${n}`],
-  [/^\/page\/(\d+)$/, (p) => import("./views/quran.js").then((m) => m.MushafPage(+p)), (p) => `Мусхаф: страница ${p}`],
+  [/^\/juz\/(\d+)(?:\/(\d+)(?:\/(\d+))?)?$/, (j, s, a) => import("./views/quran.js").then((m) => m.ReadJuz(+j, +s || 0, +a || 0)), (j) => `Чтение: джуз ${j}`],
+  [/^\/mark\/(\w+)(\/more)?$/, (id, more) => import("./views/quran.js").then((m) => m.ReadMark(id, !!more)), "Чтение: цель закладки"],
+  [/^\/page\/(\d+)$/, (p) => import("./views/quran.js").then((m) => m.ReadPage(+p)), (p) => `Чтение: страница ${p}`],
   [/^\/bookmarks$/, () => import("./views/bookmarks.js").then((m) => m.BookmarksView()), "Закладки"],
   [/^\/progress$/, () => import("./views/progress.js").then((m) => m.ProgressView()), "Прогресс"],
   [/^\/more$/, () => import("./views/more.js").then((m) => m.MoreView()), "Ещё"],
@@ -102,7 +104,7 @@ const routes = [
   [/^\/changelog$/, () => import("./views/changelog.js").then((m) => m.ChangelogView()), "Версии"],
   [/^\/welcome$/, () => import("./views/onboard.js").then((m) => m.Onboarding()), "Знакомство"],
 ];
-const FULLSCREEN = /^\/(learn|surah|practice|welcome|read)/;
+const FULLSCREEN = /^\/(learn|surah|practice|welcome|read|juz|page|mark)/;
 
 let routing = 0;
 async function route() {
@@ -150,11 +152,32 @@ async function start() {
   store.on(() => applySettings());
   window.addEventListener("hashchange", route);
   initFullscreen();
+  initWake();
   initFeedback();
   startMetrika();
   view.replaceChildren(h("div.boot", null, logo(72), h("div.spinner")));
-  try { await Promise.all([loadBank(), loadSurahs(), document.fonts?.load?.('40px "Amiri Quran"', "بسم"), document.fonts?.load?.(`40px ${AR_FONTS[arFont()].css}`, "بسم")]); }
-  catch (e) { console.error(e); }
+  // связь медленная — говорим об этом, а не держим человека перед пустым экраном
+  const slow = setTimeout(() => view.querySelector(".boot")?.append(
+    h("p.muted.center", null, "Загрузка идёт дольше обычного. Проверьте интернет."),
+    h("button.btn.secondary", { type: "button", onclick: () => location.reload() }, "Обновить")), 8000);
+  // шрифты ждём не дольше четырёх секунд: без них приложение откроется, а текст перерисуется, когда они придут
+  const fonts = Promise.race([
+    Promise.all([document.fonts?.load?.('40px "Amiri Quran"', "بسم"), document.fonts?.load?.(`40px ${AR_FONTS[arFont()].css}`, "بسم")]).catch(() => {}),
+    new Promise((ok) => setTimeout(ok, 4000))]);
+  let loaded = false;
+  for (let i = 0; i < 3 && !loaded; i++) { // данные: три попытки
+    try { await Promise.all([loadBank(), loadSurahs()]); loaded = true; }
+    catch (e) { console.error(e); await new Promise((ok) => setTimeout(ok, 1200)); }
+  }
+  await fonts;
+  clearTimeout(slow);
+  if (!loaded) {
+    view.replaceChildren(h("div.page", null, h("div.card", null, h("h2", null, "Не удалось загрузить приложение"),
+      h("p", null, "Похоже, связь прервалась. Проверьте интернет и попробуйте ещё раз. После первой удачной загрузки приложение открывается и без интернета."),
+      h("button.btn.primary", { type: "button", onclick: () => location.reload() }, "Повторить"))));
+    registerSW();
+    return;
+  }
   checkShaping();
   // крупный арабский текст подгоняется под ширину экрана: после каждой отрисовки, поворота экрана, смены масштаба
   new MutationObserver(queueFit).observe(document.body, { childList: true, subtree: true });
@@ -204,8 +227,11 @@ function registerSW() {
       });
     });
   }).catch(() => {});
+  // перезагрузка нужна только при обновлении. При самом первом заходе service worker тоже «берёт управление»,
+  // но версия та же — перезагружать страницу посреди знакомства или урока незачем
+  const updating = !!navigator.serviceWorker.controller;
   let reloaded = false;
-  navigator.serviceWorker.addEventListener("controllerchange", () => { if (!reloaded) { reloaded = true; location.reload(); } });
+  navigator.serviceWorker.addEventListener("controllerchange", () => { if (updating && !reloaded) { reloaded = true; location.reload(); } });
 }
 
 start();

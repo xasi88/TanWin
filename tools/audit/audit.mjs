@@ -59,6 +59,9 @@ await ctx.addInitScript(([s, u, variant, theme, font]) => {
     st.xp = 1234; st.stats = { answers: 300, correct: 260, ms: 3600000, lessons: 12 };
     st.reading = { s: 2, a: 25, p: 5, mode: "ayah", at: Date.now() };
   }
+  // закладки с целями (экраны #/mark/…) и ученик «со стажем» — чтобы на главной было письмо «Что нового»
+  st.marks = [{ id: "aud1", s: 2, a: 285, p: null, at: Date.now(), name: "Конец суры Аль-Бакара", plan: { k: "rep", items: [{ s: 2, from: 285, to: 286 }, { s: 112, from: 1, to: 4 }], days: [5] } }, { id: "aud2", s: 67, a: 1, p: 562, at: Date.now(), plan: { k: "seq", unit: "p", n: 2 } }];
+  st.profile.created = Date.parse("2026-10-01");
   localStorage.setItem("tanwin.v2", JSON.stringify(st));
 }, [scale, ui, variant, theme, font]);
 const page = await ctx.newPage();
@@ -68,7 +71,7 @@ page.on("pageerror", (e) => errors.push(e.message));
 const AUDIT = () => {
   const W = innerWidth, issues = [];
   const BOX = ".card, .opt, .word-chip, .match-btn, .alpha-cell, .form-cell, .syll, .st-cell, .vt-word, .sn-btn, .rd-word, .hero-card, .unit-head, .node-disc, .modal, .sheet-in, .drill, .more-link, .surah-row, .tile, .stat, .schip, .badge-cell, .m-cell, .rw-cell, .stop-cell, .verse-block, .verses, .seg-btn, .btn, .hs-pill, .hs-goal, .dev-banner, .version, .donor, .res-goal, .ob-pt, .start-opt, .goal-opt, .si-plan div, .map-info, .q-big, .rd-word, .lc-glyph, .snd-tile, .li-glyph, .bb-out, .blend";
-  const OVERLAY = ".fb-tab, .lp-sheet, .lp-actions, #nav, #toast, .lp-top, .reader-tools, .focus-bar, .focus-juz";
+  const OVERLAY = ".fb-tab, .lp-sheet, .lp-actions, #nav, #toast, .lp-top, .reader-tools, .focus-bar, .focus-juz, .focus-menu, .page-wheel, .sura-scrub";
   const modalOpen = document.querySelector("#modal-root .modal-wrap:not(.out)");
   const roots = modalOpen ? [modalOpen] : [document.querySelector("#app")];
   const texts = [];
@@ -103,7 +106,7 @@ const AUDIT = () => {
   }
   for (const x of texts) {
     const { rc, el } = x;
-    if (el.closest(".lp-sheet:not(.show)")) continue;
+    if (el.closest(".lp-sheet:not(.show), .focus.quiet .page-wheel, .focus.quiet .focus-bar, .focus.quiet .focus-menu")) continue; // спрятанные панели сдвинуты за край нарочно
     if (rc.left < -1 || rc.right > W + 1) issues.push({ k: "offscreen", t: x.t, at: desc(el), l: Math.round(rc.left), r: Math.round(rc.right) });
     const box = el.closest(BOX);
     if (box && !box.contains(el) === false) {
@@ -154,7 +157,7 @@ async function check(label) {
   return issues;
 }
 
-const PAGES = ["/surah/1", "/surah/112", "/page/1", "/page/582", "/read/1", "/read/2", "/read/112", "/", "/review", "/quran", "/quran/1", "/quran/2", "/quran/112", "/progress", "/bookmarks", "/more", "/letters", "/rules", "/method", "/thanks", "/changelog"];
+const PAGES = ["/surah/1", "/surah/112", "/page/1", "/page/582", "/mark/aud1", "/mark/aud2", "/read/1", "/read/2", "/read/112", "/juz/1", "/juz/30", "/", "/review", "/quran", "/progress", "/bookmarks", "/more", "/letters", "/rules", "/method", "/thanks", "/changelog"];
 await page.goto(`${BASE}/#/`);
 await page.waitForTimeout(1500);
 for (const p of args.nopages ? [] : PAGES) {
@@ -162,12 +165,25 @@ for (const p of args.nopages ? [] : PAGES) {
   await page.waitForTimeout(900);
   if (p === "/") await page.evaluate(() => document.querySelectorAll(".unit:not(.open) .uh-toggle").forEach((b) => b.click()));
   await check("page " + p);
-  if (/^\/quran\/\d/.test(p)) { // режим «по аятам»
-    await page.evaluate(() => [...document.querySelectorAll(".reader-tools .tool")].find((b) => /аятам|Мусхаф/.test(b.textContent))?.click());
+  if (p === "/quran") { // «Мой Коран»: раскрытый джуз
+    await page.evaluate(() => { document.querySelector(".mq-juz")?.click(); });
+    await check("page " + p + " juz-list");
+    await page.evaluate(() => document.querySelector(".juz-row")?.click());
+    await check("page " + p + " juz");
+    await page.evaluate(() => { document.querySelector(".mq-back")?.click(); document.querySelector(".mq-back")?.click(); });
+  }
+  if (/^\/read\/\d/.test(p)) { // чтение: верхнее меню и вид «по аятам»
+    const tile = (re) => page.evaluate((src) => [...document.querySelectorAll(".fm-tile")].find((b) => new RegExp(src).test(b.textContent))?.click(), re);
+    await page.evaluate(() => document.querySelector(".focus-scroll")?.click());
+    await page.waitForTimeout(1500); // панели выезжают с анимацией (на длинной суре — с задержкой)
+    await check("page " + p + " menu");
+    await tile("По аятам");
     await check("page " + p + " ayat");
-    await page.evaluate(() => [...document.querySelectorAll(".reader-tools .tool")].find((b) => /аятам|Мусхаф/.test(b.textContent))?.click());
-    await page.evaluate(() => document.querySelector(".qw")?.click());
-    await check("page " + p + " word-pop");
+    await tile("Сплошной");
+  }
+  if (p === "/bookmarks") { // настройки закладки с целью
+    await page.evaluate(() => document.querySelector(".mark-row .icon-btn:last-child")?.click());
+    await check("page /bookmarks editor");
     await page.keyboard.press("Escape");
   }
   if (p === "/letters") {
@@ -264,7 +280,7 @@ if (args.extra) {
   await page.evaluate(() => document.querySelector(".fb-tab")?.click()); await check("modal feedback"); await page.keyboard.press("Escape");
   await reload("/progress");
   await check("page /progress full");
-  await reload("/quran/1");
+  await reload("/read/1");
   await page.evaluate(() => [...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Aa")?.click()); await check("modal Aa"); await page.keyboard.press("Escape");
   // знакомство — как новый ученик
   await seed((st) => { st.profile.onboarded = false; st.profile.name = "Абдуррахман"; });
