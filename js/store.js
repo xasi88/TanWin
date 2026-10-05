@@ -23,7 +23,11 @@ const LESSON_MOVES = {
 };
 /** Прогресс, сохранённый до перестановки этапов (в том числе из файла экспорта): переносим уроки на новые номера. */
 function migrate(s) {
-  if (!s || typeof s !== "object" || s.course >= COURSE) return s;
+  if (!s || typeof s !== "object") return s;
+  // До 1.23 настройка «Транскрипция» ни на что не действовала: в карточках теории транскрипция была видна всегда, а в настройке
+  // у всех стояло «По нажатию». Чтобы у тех, кто её не трогал, уроки не изменились, один раз переводим её в «Показывать».
+  if (s.settings && !s.settings.translitV) { if (s.settings.translit === "tap") s.settings.translit = "show"; s.settings.translitV = 2; }
+  if (s.course >= COURSE) return s;
   if (s.lessons && typeof s.lessons === "object") s.lessons = Object.fromEntries(Object.entries(s.lessons).map(([id, v]) => [LESSON_MOVES[id] || id, v]));
   s.course = COURSE;
   return s;
@@ -33,7 +37,7 @@ const DEFAULT = () => ({
   v: 2,
   course: COURSE,
   profile: { name: "", form: "vy", gender: "", created: Date.now(), goal: 30, onboarded: false }, // form: «вы» или «ты», gender: "m" | "f" | ""
-  settings: { theme: "auto", arScale: 1, reciter: "husary", translit: "tap", tajweed: true, sfx: true, translation: true, rate: 1, unlockAll: false, uiScale: 1, analytics: true, arFont: "hafs" },
+  settings: { theme: "auto", arScale: 1, reciter: "husary", translit: "show", translitV: 2, tajweed: true, sfx: true, translation: true, rate: 1, unlockAll: false, uiScale: 1, analytics: true, arFont: "hafs" },
   lessons: {},
   surahs: {},
   xp: 0,
@@ -49,7 +53,7 @@ const DEFAULT = () => ({
   readGoal: null, // до 1.18 — общая цель чтения; теперь цели живут в закладках (upgradeGoals)
 });
 
-// TanWin и «Мой Коран» — два окна с одним хранилищем (как и две вкладки одного приложения). Каждое держит прогресс в памяти
+// Две вкладки приложения (или вкладка и установленное приложение) — два окна с одним хранилищем. Каждое держит прогресс в памяти
 // и записывает его целиком, поэтому перед любым изменением окно берёт из хранилища то, что успело записать другое (pull), —
 // иначе его запись стёрла бы чужую работу: закладку, место чтения, пройденный урок. По той же причине каждое изменение
 // записывается сразу: несохранённое в памяти пропало бы при следующем pull.

@@ -65,9 +65,14 @@ export function addMark(s, a, p) {
   markEditor(id, { fresh: true });
   return true;
 }
-/** Новый порядок закладок: ids — закладки одного списка сверху вниз; остальные остаются на своих местах. */
-const orderMarks = (ids) => store.set((st) => {
-  const by = new Map((st.marks || []).map((m) => [m.id, m])), set = new Set(ids);
+/**
+ * Новый порядок и группы закладок: lists — [[группа, [id…]]…], списки сверху вниз, как на экране ("" — «Без группы»).
+ * Закладка получает группу своего списка; закладки, которых на экране нет, остаются на своих местах.
+ */
+const arrangeMarks = (lists) => store.set((st) => {
+  const by = new Map((st.marks || []).map((m) => [m.id, m]));
+  for (const [g, l] of lists) for (const id of l) { const m = by.get(id); if (m) { if (g) m.g = g; else delete m.g; } }
+  const ids = lists.flatMap(([, l]) => l).filter((id) => by.has(id)), set = new Set(ids);
   let i = 0;
   st.marks = (st.marks || []).map((m) => (set.has(m.id) ? by.get(ids[i++]) : m));
 });
@@ -203,42 +208,60 @@ function groupEditor(id, onChange) {
 
 const scrollBox = (el) => { for (let p = el.parentElement; p; p = p.parentElement) if (/auto|scroll/.test(getComputedStyle(p).overflowY) && p.scrollHeight > p.clientHeight) return p; return document.scrollingElement; };
 /**
- * Ручка «переместить»: закладку тянут вверх или вниз (или двигают стрелками на клавиатуре).
- * Сдвигаются соседние строки, а не сама закладка: иначе браузер отпустил бы её из-под пальца.
+ * Ручка «переместить»: закладку тянут вверх или вниз (или двигают стрелками на клавиатуре) — внутри своего списка,
+ * в соседнюю группу или в «Без группы». wrap — все списки закладок (.mark-list), save — записать то, что получилось.
+ * Внутри списка сдвигаются соседние строки, а не сама закладка. В соседний список закладка переезжает сама; браузер при этом
+ * отпускает её из-под пальца, поэтому движение слушаем на окне и берём закладку заново (hold).
  */
-function gripBtn(box, row) {
-  const save = () => orderMarks([...box.children].map((x) => x.dataset.id).filter(Boolean));
+function gripBtn(wrap, row, save) {
   const mid = (x) => { const r = x.getBoundingClientRect(); return r.top + r.height / 2; };
-  const up = () => { const x = row.previousElementSibling; if (x?.dataset.id) { row.after(x); return true; } };
-  const down = () => { const x = row.nextElementSibling; if (x?.dataset.id) { row.before(x); return true; } };
+  /** Соседний список: выше (-1) или ниже (1). Свёрнутые группы и спрятанный блок «Без группы» пропускаем. */
+  const beside = (d) => {
+    const all = [...wrap.querySelectorAll(".mark-list")].filter((b) => b === row.parentElement || (!b.closest("details:not([open])") && b.getClientRects().length));
+    const i = all.indexOf(row.parentElement);
+    return i < 0 ? null : all[i + d] || null;
+  };
+  const up = () => { const x = row.previousElementSibling, box = beside(-1); if (x) row.after(x); else if (box) box.append(row); else return false; return true; };
+  const down = () => { const x = row.nextElementSibling, box = beside(1); if (x) row.before(x); else if (box) box.prepend(row); else return false; return true; };
   const btn = h("button.icon-btn.mark-grip", { type: "button", title: "Переместить: потяните вверх или вниз", "aria-label": "Переместить закладку: потяните или нажимайте стрелки вверх и вниз" }, icon("grip", { sw: 3 }));
   btn.addEventListener("keydown", (e) => {
     if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
     e.preventDefault();
-    if (e.key === "ArrowUp" ? up() : down()) { save(); row.scrollIntoView({ block: "nearest" }); }
+    if (e.key === "ArrowUp" ? up() : down()) { save(); btn.focus(); row.scrollIntoView({ block: "nearest" }); } // при переезде в другой список фокус теряется
   });
   btn.addEventListener("pointerdown", (e) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     e.preventDefault();
-    try { btn.setPointerCapture(e.pointerId); } catch {}
-    row.classList.add("drag");
-    const sc = scrollBox(box);
+    const hold = () => { try { btn.setPointerCapture(e.pointerId); } catch {} };
+    hold();
+    row.classList.add("drag"); wrap.classList.add("dragging");
+    const sc = scrollBox(wrap);
     let y = e.clientY, raf = 0;
-    const place = () => { if (row.previousElementSibling?.dataset.id && y < mid(row.previousElementSibling)) up(); else if (row.nextElementSibling?.dataset.id && y > mid(row.nextElementSibling)) down(); };
+    const place = () => {
+      for (let n = 0; n < 40; n++) { // быстрым движением закладка проходит несколько строк и списков
+        const box = row.parentElement, prev = row.previousElementSibling, next = row.nextElementSibling, r = row.getBoundingClientRect();
+        // граница с соседним списком — середина промежутка между ним и закладкой (там заголовок группы)
+        const above = prev ? mid(prev) : beside(-1) ? (beside(-1).getBoundingClientRect().bottom + r.top) / 2 : -Infinity;
+        const below = next ? mid(next) : beside(1) ? (r.bottom + beside(1).getBoundingClientRect().top) / 2 : Infinity;
+        if (y < above) up(); else if (y > below) down(); else break;
+        if (row.parentElement !== box) hold();
+      }
+    };
     const edge = () => { // у края экрана список подкручивается сам
       const r = sc === document.scrollingElement ? { top: 0, bottom: innerHeight } : sc.getBoundingClientRect();
       const d = y < r.top + 56 ? -9 : y > r.bottom - 56 ? 9 : 0;
       if (d) { sc.scrollTop += d; place(); }
       raf = requestAnimationFrame(edge);
     };
-    const move = (ev) => { y = ev.clientY; place(); };
-    const drop = () => {
+    const move = (ev) => { if (ev.pointerId !== e.pointerId) return; y = ev.clientY; place(); };
+    const drop = (ev) => {
+      if (ev.pointerId !== e.pointerId) return;
       cancelAnimationFrame(raf);
-      row.classList.remove("drag");
-      btn.removeEventListener("pointermove", move); btn.removeEventListener("pointerup", drop); btn.removeEventListener("pointercancel", drop);
+      row.classList.remove("drag"); wrap.classList.remove("dragging");
+      removeEventListener("pointermove", move); removeEventListener("pointerup", drop); removeEventListener("pointercancel", drop);
       save();
     };
-    btn.addEventListener("pointermove", move); btn.addEventListener("pointerup", drop); btn.addEventListener("pointercancel", drop);
+    addEventListener("pointermove", move); addEventListener("pointerup", drop); addEventListener("pointercancel", drop);
     raf = requestAnimationFrame(edge);
   });
   return btn;
@@ -248,7 +271,12 @@ function gripBtn(box, row) {
 function marksList({ onOpen, onChange } = {}) {
   const wrap = h("div.mark-groups");
   const redraw = () => (onChange ? onChange() : draw());
-  const row = (m, box, many) => {
+  // после перетаскивания на экране уже всё как надо: записываем порядок и группы и поправляем счётчики групп
+  const save = () => {
+    arrangeMarks([...wrap.querySelectorAll(".mark-list")].map((b) => [b.dataset.g || "", [...b.children].map((x) => x.dataset.id).filter(Boolean)]));
+    for (const d of wrap.querySelectorAll(".mark-group")) d.querySelector(".mg-count").textContent = d.querySelectorAll(".mark-row").length;
+  };
+  const row = (m, grip) => {
     const rep = m.plan?.k === "rep"; // у отрывка для повтора место — сам отрывок
     const status = !m.plan ? null : doneToday(m) ? "сегодня выполнено ✓" : dueToday(m) ? "ждёт сегодня" : null;
     const sub = [m.name && !rep ? ayahText(m.s, m.a) : null, m.p && !rep ? `стр. ${m.p}` : null, !m.name && m.p && !rep ? `джуз ${juzOf(m.p)}` : null, m.plan ? `цель: ${rep && !m.name ? planText(m.plan).split(" · ").slice(1).join(" · ") : planText(m.plan)}` : dateRu(m.at), status].filter(Boolean).join(" · ");
@@ -257,25 +285,27 @@ function marksList({ onOpen, onChange } = {}) {
         h("span.rc-ic", { class: m.plan && doneToday(m) ? "done" : "" }, icon(m.plan ? (doneToday(m) ? "check" : "target") : "bookmark", m.plan ? { size: 22, sw: doneToday(m) ? 3 : 2 } : { size: 22, fill: true, sw: 1 })),
         h("div", null, h("b", null, keep(m.name || (rep ? planText(m.plan).split(" · ")[0] : ayahText(m.s, m.a)))), h("small.muted", null, sub))),
       h("button.icon-btn", { type: "button", title: "Название, группа, цель, удаление", "aria-label": "Настроить закладку", onclick: () => markEditor(m.id, { onChange: redraw }) }, icon("more", { sw: 3 })));
-    if (many) r.prepend(gripBtn(box, r));
+    if (grip) r.prepend(gripBtn(wrap, r, save));
     return r;
   };
-  const rows = (list) => { const box = h("div.mark-list"); box.append(...list.map((m) => row(m, box, list.length > 1))); return box; };
   const draw = () => {
     const all = marks(), gs = groups(), known = new Set(gs.map((g) => g.id));
     const loose = all.filter((m) => !known.has(m.g));
+    const grip = all.length > 1 || (all.length > 0 && gs.length > 0); // ручка — у каждой закладки, когда её есть куда двигать: есть другая закладка или группа
+    const rows = (list, g = "") => { const box = h("div.mark-list"); box.dataset.g = g; box.append(...list.map((m) => row(m, grip))); return box; };
     wrap.replaceChildren(...[
       ...gs.map((g) => {
         const list = all.filter((m) => m.g === g.id);
         return h("details.mark-group", { open: !g.closed, ontoggle: (e) => { const closed = !e.currentTarget.open; if (closed !== !!g.closed) store.set((st) => { const x = st.markGroups.find((y) => y.id === g.id); if (x) x.closed = closed; }); } },
-          h("summary", null, icon("down2", { size: 18, sw: 3 }), h("b", null, keep(g.name)), h("span.muted", null, list.length),
+          h("summary", null, icon("down2", { size: 18, sw: 3 }), h("b", null, keep(g.name)), h("span.muted.mg-count", null, list.length),
             h("button.icon-btn", { type: "button", title: "Переименовать, переместить или удалить группу", "aria-label": "Настроить группу", onclick: (e) => { e.preventDefault(); groupEditor(g.id, redraw); } }, icon("more", { sw: 3 }))),
-          list.length ? rows(list) : h("p.muted.small", null, "В группе пока пусто. Нажмите «⋯» у закладки и выберите эту группу."));
+          rows(list, g.id),
+          h("p.muted.small.mark-empty", null, "В группе пока пусто. Перетащите сюда закладку за точки слева или нажмите «⋯» у закладки и выберите эту группу."));
       }),
-      gs.length && loose.length ? h("div.label", null, "Без группы") : null,
-      loose.length ? rows(loose) : null,
+      // пустой блок «Без группы» виден только пока закладку тянут: в него тоже можно перенести
+      h("div.mark-loose", null, gs.length ? h("div.label", null, "Без группы") : null, rows(loose)),
       all.length ? null : h("p.muted", null, "Закладок пока нет. Откройте суру в разделе «Мой Коран», нажмите на экран и выберите вверху «Закладка здесь». Или нажмите на слово и удерживайте — закладка встанет точно на этот аят. Закладке можно задать цель: например, две страницы в день или сура Аль-Мульк каждый вечер."),
-      all.length > 1 ? h("p.muted.small", null, "Чтобы поменять порядок, потяните закладку за точки слева вверх или вниз.") : null,
+      grip ? h("p.muted.small", null, "Чтобы поменять порядок, потяните закладку за точки слева вверх или вниз." + (gs.length ? " Так же её можно перенести в другую раскрытую группу или в «Без группы»." : "")) : null,
       h("button.btn.secondary", { type: "button", onclick: () => groupEditor(null, redraw) }, "Новая группа"),
     ].filter(Boolean));
   };

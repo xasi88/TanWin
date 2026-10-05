@@ -3,8 +3,7 @@ import { h, ar, icon, toast, confirmBox, SIZES, AR_FONTS, arFont, keep } from ".
 import { store, backupDone } from "../store.js";
 import { RECITERS } from "../data.js";
 import { go, installApp, checkUpdate } from "../app.js";
-import { isInstalled, onInstallChange, quranInstalled } from "../install.js";
-import { sharedShort } from "./qapp.js";
+import { isInstalled, onInstallChange } from "../install.js";
 import { canFullscreen, wantFullscreen, setFullscreen } from "../fullscreen.js";
 import { APP_VERSION, CHANGELOG, CONTACT } from "../version.js";
 import { devBanner, feedbackButton, openFeedback } from "../feedback.js";
@@ -47,12 +46,6 @@ function installLink() {
   return b;
 }
 
-/** «Мой Коран» отдельным приложением: установка идёт со страницы /quran/ — у неё свой значок и своё название. */
-function quranAppLink() {
-  if (quranInstalled()) return null;
-  return h("a.more-link.install", { href: "quran/?install=1" }, h("span.ml-ic", null, icon("book", { size: 22 })), h("div", null, h("b", null, keep("Установить «Мой Коран» отдельно")), h("small.muted", null, "Второй значок: только чтение Корана, закладки и цели — без уроков. " + sharedShort())), icon("right", { size: 18 }));
-}
-
 export function MoreView() {
   const s = store.get();
   const preview = ar("بِسۡمِ [wٱ]للَّهِ", { cls: "size-preview" });
@@ -76,7 +69,6 @@ export function MoreView() {
     h("header.page-head", null, h("h1", null, "Ещё")),
     h("a.more-link.author-link", { href: "#/author" }, h("span.ml-ic", null, icon("chat", { size: 22 })), h("div", null, h("b", null, "Послание от разработчика"), h("small.muted", null, "Как и зачем появился TanWin — слово автора")), icon("right", { size: 18 })),
     installLink(),
-    quranAppLink(),
     h("a.more-link.thanks-link", { href: "#/thanks" }, h("span.ml-ic", null, icon("heart", { size: 22, fill: true, sw: 1 })), h("div", null, h("b", null, "Благодарности"), h("small.muted", null, "Люди, благодаря пожертвованиям которых состоялся проект")), icon("right", { size: 18 })),
     CONTACT.whatsapp ? h("button.more-link.contact-link", { type: "button", onclick: openFeedback }, h("span.ml-ic", null, icon("chat", { size: 22 })), h("div", null, h("b", null, "Написать автору в WhatsApp"), h("small.muted", null, "Нашли ошибку или неточность? Есть идея? Напишите — версия и экран подставятся сами")), icon("right", { size: 18 })) : null,
     h("div.more-links", null,
@@ -111,7 +103,7 @@ export function MoreView() {
       seg("Чтец аятов", Object.entries(RECITERS).map(([k, r]) => [k, r.name.split(" ").slice(-1)[0]]), s.settings.reciter, set("reciter")),
       h("small.muted.set-note", null, "Хусари — обучающее медленное чтение (рекомендуем для учёбы). Афаси — обычный темп. Слова отдельно всегда озвучены чтецом Quran.com."),
       seg("Транскрипция", [["show", "Показывать"], ["tap", "По нажатию"], ["hide", "Скрыть"]], s.settings.translit, set("translit")),
-      h("small.muted.set-note", null, "Транскрипция — это костыль: чем раньше вы будете читать по арабскому тексту, тем лучше. Рекомендуем «По нажатию»."),
+      h("small.muted.set-note", null, "Русские буквы под словами в карточках теории и в окне буквы. «По нажатию» — появляются, когда вы нажмёте на слово. Транскрипция — это костыль: чем раньше вы будете читать по арабскому тексту, тем лучше. Рекомендуем «По нажатию»."),
       toggle("Звуки ответов", "sfx")),
     h("section.card.settings", null,
       h("h3", null, "Обучение"),

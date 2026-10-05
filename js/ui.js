@@ -284,9 +284,15 @@ function sizePanel(anchor) {
 }
 
 // ---------- Кнопка «послушать слово» ----------
-/** Слово Корана с кнопкой звука. key — «SSS_AAA_WWW». */
-export function wordChip(w, { showTr = store.get().settings.translit === "show", size, big = false, onplay } = {}) {
-  const trEl = w.tr ? tr(w.tr, { hidden: !showTr }) : null;
+/**
+ * Транскрипция под словами в карточках теории и в окне буквы — по настройке «Транскрипция» («Ещё» → «Звук и подсказки»):
+ * true — видна сразу, false — появляется по нажатию на слово, null — не показывается совсем.
+ */
+export const cardTr = () => { const m = store.get().settings.translit; return m === "hide" ? null : m !== "tap"; };
+
+/** Слово Корана с кнопкой звука. key — «SSS_AAA_WWW». showTr — как у cardTr(). */
+export function wordChip(w, { showTr = cardTr(), size, big = false, onplay } = {}) {
+  const trEl = w.tr && showTr !== null ? tr(w.tr, { hidden: !showTr }) : null;
   const b = h("button.word-chip", { type: "button", class: big ? "big" : "", "aria-label": "Послушать слово" + (w.tr ? " " + w.tr : "") },
     ar(w.d, { size }), trEl, h("span.wc-ico", null, icon("vol", { size: 16 })));
   const id = "w:" + w.a;
@@ -324,7 +330,14 @@ export function toast(msg, ms = 2600) {
 
 export function modal(content, { onClose, cls = "" } = {}) {
   const root = $("#modal-root");
-  const close = () => { wrap.classList.add("out"); setTimeout(() => wrap.remove(), 200); document.removeEventListener("keydown", esc); onClose?.(); };
+  let closed = false;
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    wrap.classList.add("out"); setTimeout(() => wrap.remove(), 200);
+    document.removeEventListener("keydown", esc); removeEventListener("hashchange", close);
+    onClose?.();
+  };
   const esc = (e) => e.key === "Escape" && close();
   const box = h("div.modal", { role: "dialog", "aria-modal": "true", class: cls },
     h("button.modal-x", { type: "button", "aria-label": "Закрыть", onclick: close }, icon("close")),
@@ -332,6 +345,7 @@ export function modal(content, { onClose, cls = "" } = {}) {
   const wrap = h("div.modal-wrap", { onclick: (e) => e.target === wrap && close() }, box);
   root.append(wrap);
   document.addEventListener("keydown", esc);
+  addEventListener("hashchange", close); // перешли на другой экран — окно не остаётся висеть поверх него
   requestAnimationFrame(() => box.querySelector("button:not(.modal-x), a")?.focus?.());
   return close;
 }

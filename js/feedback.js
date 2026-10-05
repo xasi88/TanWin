@@ -23,7 +23,7 @@ function where() {
     const arabic = clip(stage.querySelector(".q-word, .q-big, .card-big, .bb-out .ar, .snd-tile .ar, .rd-word .ar")?.textContent, 40);
     if (head) parts.push(`«${head}»`);
     if (arabic) parts.push(arabic);
-  } else if (/^\/(quran\/|read|page)/.test(screen.path)) {
+  } else if (/^\/(quran\/|read|juz|page|mark)/.test(screen.path)) {
     const r = store.get().reading;
     if (r) parts.push(`сура ${r.s}, аят ${r.a}${r.p ? `, стр. ${r.p}` : ""}`);
   }

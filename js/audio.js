@@ -41,7 +41,7 @@ export const playingId = () => current?.id || null;
 export async function playUrl(url, { id = url, rate = 1, onEnd, onTime, onError, onStop } = {}) {
   stop();
   current = { id, onEnd, onTime, onError, onStop };
-  el.src = new URL(url, ROOT).href; // свои записи лежат в корне сайта, а «Мой Коран» открыт из папки /quran/
+  el.src = new URL(url, ROOT).href; // свои записи лежат в корне сайта
   el.playbackRate = rate;
   emit();
   try { await el.play(); return true; }

@@ -10,7 +10,6 @@ import { store, surahDone, readTick, readPage, readGoalDone } from "../store.js"
 import { go } from "../app.js";
 import { wakeWhile } from "../wake.js";
 import { marks, addMark, marksSheet, planText, doneToday, setMark } from "./bookmarks.js";
-import { quranInstallCard, quranFoot } from "./qapp.js";
 import { enterFullscreen, exitFullscreen, isFullscreen, wantFullscreen, onFullscreenChange } from "../fullscreen.js";
 
 export const arNum = (n) => String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[d]);
@@ -78,15 +77,13 @@ export async function MyQuran() {
     } else {
       const surahs = h("div.surah-list", null, ...list.map((s) => row(s)));
       body.replaceChildren(
-        quranInstallCard() || "",
         continueReading() || "",
         h("button.card.pages-card.mq-juz", { type: "button", onclick: () => open(-1) },
           h("span.rc-ic", null, icon("page", { size: 24 })),
           h("div", null, h("b", null, "30 джузов"), h("div.muted", null, "Прочесть джуз целиком или выбрать суру внутри джуза")),
           icon("right")),
         h("h2.mq-h", null, "Все суры"),
-        surahs,
-        quranFoot() || "");
+        surahs);
       scrub = surahScrub(surahs, list);
     }
   };
@@ -546,7 +543,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
     let prev = null;
     flat = [];
     textBox.replaceChildren(...parts.map((p, i) => {
-      p.view = renderVerses(p.s, p.data, p.meta, { mode, bare: true, colors: true, pages: kind !== "page", prevPage: prev, hifz: hifzLevel(), translation: true, from: p.from, to: p.to });
+      p.view = renderVerses(p.s, p.data, p.meta, { mode, bare: true, colors: true, pages: kind !== "page", prevPage: prev, hifz: hifzLevel(), translation: store.get().settings.translation, from: p.from, to: p.to });
       prev = p.data.v[p.to - 1][4][0];
       for (let a = p.from; a <= p.to; a++) flat.push({ p, a, el: p.view.ayahEls[a] });
       return h("div.focus-part", { "data-s": p.s },
@@ -781,7 +778,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
       tile("slow", `Темп чтеца: ${st.rate || 1}×`, () => { stop(); store.set((s) => { const r = s.settings.rate || 1; s.settings.rate = r === 1 ? 0.8 : r === 0.8 ? 0.6 : r === 0.6 ? 1.2 : 1; }); }, (st.rate || 1) !== 1),
       tile("loop", `Повтор аята: ×${repeatN}`, () => { repeatN = repeatN === 1 ? 3 : repeatN === 3 ? 5 : 1; }, repeatN > 1),
       tile("book", "Сплошной текст", () => setView("text"), view === "text"),
-      tile("chat", "По аятам, с переводом", () => setView("ayat"), view === "ayat"),
+      tile("chat", st.translation ? "По аятам, с переводом" : "По аятам", () => setView("ayat"), view === "ayat"),
       tile("page", "По страницам", () => setView("page"), view === "page"),
       tile("eye", `Скрыть слова: ${HIFZ[lv]}`, () => {
         const next = (hifzLevel() + 1) % HIFZ.length;
@@ -932,7 +929,12 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
   // --- выход: кнопка, Esc, «назад»; место чтения запоминается ---
   let closed = false;
   const close = () => location.replace("#/quran");
+  // Открытое окно или панель «Aa»: Esc и «назад» закрывают только их, чтение остаётся. Клавиши слушаем на этапе capture —
+  // раньше, чем окно закроет само себя: иначе к этому моменту окна уже нет, и тот же Esc закрывал бы ещё и чтение.
+  const overlay = () => document.querySelector("#modal-root .modal-wrap:not(.out), .size-pop");
+  let escAt = 0; // когда Esc достался окну: выход из полного экрана от того же нажатия чтение не закрывает
   const keys = (e) => {
+    if (e.key === "Escape" && overlay()) { escAt = Date.now(); return; }
     if (e.target.closest?.("input, .size-pop") || document.querySelector("#modal-root .modal-wrap:not(.out)")) return;
     if (e.key === " ") { if (e.target.closest?.("button")) return; e.preventDefault(); setRunning(!running); } // на кнопке пробел и так её нажимает
     else if (e.key === "+" || e.key === "=") setSpeed(1);
@@ -947,7 +949,11 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
   const offFs = onFullscreenChange(() => {
     const on = isFullscreen();
     if (root.isConnected) fillMenu();
-    if (wasFull && !on && !closed) close();
+    if (wasFull && !on && !closed) {
+      // в полном экране Esc и «назад» до страницы не доходят — браузер просто выходит из него; открытое окно закрываем сами
+      if (overlay()) document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+      else if (Date.now() - escAt > 600) close();
+    }
     wasFull = on;
   });
   const cleanup = () => {
@@ -959,10 +965,10 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
     running = false; cancelAnimationFrame(raf); clearTimeout(jmTm);
     clearInterval(clock); readTick(spent); spent = 0;
     wakeWhile(null);
-    removeEventListener("keydown", keys); offFs(); offPlay();
+    removeEventListener("keydown", keys, true); offFs(); offPlay();
     if (!wantFullscreen() && !READING.test(location.hash)) exitFullscreen(); // при переходе к следующей суре экран остаётся развёрнутым
   };
-  addEventListener("keydown", keys);
+  addEventListener("keydown", keys, true);
   wakeWhile(() => running || listening); // пока текст идёт сам или читает чтец, экран не гаснет и без касаний
   addEventListener("hashchange", cleanup, { once: true });
 

@@ -21,7 +21,6 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const MAP_DIR = "docs/Карта TanWin";
 const MAP = join(root, MAP_DIR);
 const HOME = "Карта TanWin";
-const APPS = { TanWin: "TanWin", "Мой Коран отдельным приложением": "Мой Коран" }; // заметка приложения → столбец списка
 const TYPES = ["приложение", "экран", "функция", "карта"];
 const STATUS = ["работает", "расхождение", "вопрос"];
 const CHECK = ["бот", "частично", "нет"];
@@ -158,7 +157,6 @@ for (const n of notes.values()) {
 // ---------- Список на главной заметке ----------
 const byName = (a, b) => a.name.localeCompare(b.name, "ru");
 const all = (t) => [...notes.values()].filter((n) => n.pr["тип"] === t).sort(byName);
-const appCols = (n) => Object.keys(APPS).map((a) => (propLinks(n, "приложения").includes(a) ? "да" : "—"));
 function index() {
   const screens = all("экран"), feats = all("функция");
   const open = feats.filter((f) => f.pr["статус"] !== "работает");
@@ -171,11 +169,11 @@ function index() {
     "## Что требует решения", "",
     ...(open.length ? open.map((f) => `- [[${f.name}]] — ${f.pr["статус"]}. ${first(f)}`) : ["Сейчас ничего."]), "",
     "## Экраны", "",
-    head("Экран", "Адрес", ...Object.values(APPS), "Своих функций"),
-    ...screens.map((s) => row(`[[${s.name}]]`, s.pr["адрес"], ...appCols(s), featsOn(s))), "",
+    head("Экран", "Адрес", "Своих функций"),
+    ...screens.map((s) => row(`[[${s.name}]]`, s.pr["адрес"], featsOn(s))), "",
     "## Функции", "",
-    head("Функция", "Статус", "Проверка", ...Object.values(APPS), "Экраны"),
-    ...feats.map((f) => row(`[[${f.name}]]`, f.pr["статус"], f.pr["проверка"], ...appCols(f), propLinks(f, "экраны").map((s) => `[[${s}]]`).join(", "))), "",
+    head("Функция", "Статус", "Проверка", "Экраны"),
+    ...feats.map((f) => row(`[[${f.name}]]`, f.pr["статус"], f.pr["проверка"], propLinks(f, "экраны").map((s) => `[[${s}]]`).join(", "))), "",
     `Всего: экранов — ${screens.length}, функций — ${feats.length}. Поведение проверяет бот: ${count("проверка", "бот")}; частично: ${count("проверка", "частично")}; без проверки: ${count("проверка", "нет")}.`,
   ].join("\n");
 }

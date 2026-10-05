@@ -922,11 +922,11 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .db-x:hover { background: var(--card-3); color: var(--ink); }
 .nf-ver { font-size: .78rem; color: var(--ink-3); font-weight: 700; margin-top: 2px; }
 .about-app .btn { min-height: 44px; }
-.versions { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.versions { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .version { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); }
 .version.latest { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
 .v-head { display: flex; align-items: center; gap: 12px; }
-.v-head > div { display: grid; flex: 1; }
+.v-head > div { display: grid; flex: 1; min-width: 0; overflow-wrap: anywhere; } /* длинное слово в названии версии при самом крупном тексте переносится, а не раздвигает страницу */
 .v-num { font-weight: 950; font-size: .95rem; padding: 6px 10px; border-radius: 10px; background: var(--card-3); color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .version.latest .v-num { background: var(--accent); color: var(--accent-ink); }
 .v-cur { font-size: .75rem; font-weight: 850; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-2); }
@@ -993,15 +993,11 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .backup-card .rc-ic { background: var(--c-sky); }
 .backup-card .muted { font-size: .92rem; }
 .install-card { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: linear-gradient(135deg, var(--accent-soft), var(--card)); }
-/* «Мой Коран» отдельным приложением: подвал списка сур и окно про обновления */
-.q-foot { display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: center; align-items: center; margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--line); font-size: .92rem; }
-.q-foot a, .q-foot .link { color: var(--ink-2); font-weight: 750; }
+/* Окно про обновления и VPN */
 .upd-note { display: grid; gap: 12px; }
 .upd-note h2, .upd-note p { margin: 0; }
 .upd-note p { line-height: 1.5; color: var(--ink-2); }
 .upd-note .btn { margin-top: 6px; }
-.boot-q { text-align: center; padding: 0 20px; }
-.boot-q h1, .boot-q p { margin: 0; }
 .install-card .rc-ic { background: var(--accent); color: var(--accent-ink); }
 
 /* ---------- Режим чтения: арабский текст на весь экран, автопрокрутка ---------- */
@@ -1234,7 +1230,13 @@ body:has(.focus) .fb-tab { right: auto; left: 0; padding: 0 2px 0 0; border-radi
 
 /* Группы закладок, настройки закладки (views/bookmarks.js) */
 .mark-groups { display: grid; gap: 12px; }
-.mark-groups > .label { margin: 4px 0 -4px; }
+.mark-loose { display: grid; gap: 10px; }
+.mark-loose > .label { margin: 4px 0 -4px; }
+/* «Без группы» без закладок не виден; пока закладку тянут — это место, куда её можно перенести */
+.mark-loose:not(:has(.mark-row)) { display: none; }
+.mark-groups.dragging .mark-loose { display: grid; }
+.mark-groups.dragging .mark-loose .mark-list:empty { min-height: 3.2rem; border: 2px dashed var(--line); border-radius: 18px; }
+.mark-list:not(:empty) + .mark-empty { display: none; }
 .mark-groups > .btn { justify-self: start; }
 .mark-group { border-radius: 22px; border: 1px solid color-mix(in srgb, var(--gold) 40%, var(--line)); background: linear-gradient(180deg, var(--gold-soft), transparent 90px); padding: 4px 8px 8px; }
 .mark-group summary { display: flex; align-items: center; gap: 8px; padding: 4px 0 4px 8px; cursor: pointer; list-style: none; -webkit-user-select: none; user-select: none; }
