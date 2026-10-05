@@ -6,9 +6,10 @@ import { readdirSync, readFileSync, writeFileSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildPages } from "./pages.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
-const SKIP = new Set(["og.png", "sw.js", "robots.txt", "sitemap.xml", "README.md", "CNAME", ".git", "node_modules", "tools", "docs", ".claude", "q"]);
+const SKIP = new Set(["og.png", "sw.js", "robots.txt", "sitemap.xml", "alfavit", "README.md", "CNAME", ".git", "node_modules", "tools", "docs", ".claude", "q"]);
 const files = [];
 (function walk(dir) {
   for (const name of readdirSync(dir)) {
@@ -40,8 +41,10 @@ if (!stages.length) throw new Error("build: не нашёл этапы курс�
 const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 const stageList = ["<ol>", ...stages.map((m) => `  <li><b>${esc(m[1])}.</b> ${esc(m[2])}.</li>`), "</ol>"].map((l) => "          " + l).join("\n");
 writeFileSync(htmlPath, readFileSync(htmlPath, "utf8").replace(/<!--STAGES-->[\s\S]*?<!--\/STAGES-->/, `<!--STAGES-->\n${stageList}\n          <!--/STAGES-->`));
-// Карта сайта: дата последнего выпуска
-writeFileSync(join(root, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>https://tanwin.xasi88.ru/</loc><lastmod>${new Date().toISOString().slice(0, 10)}</lastmod></url>\n</urlset>\n`);
+// Страницы для поисковиков (буквы) и карта сайта: дата последнего выпуска
+const today = new Date().toISOString().slice(0, 10);
+const pages = ["", ...buildPages(root)];
+writeFileSync(join(root, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages.map((p) => `  <url><loc>https://tanwin.xasi88.ru/${p}</loc><lastmod>${today}</lastmod></url>`).join("\n")}\n</urlset>\n`);
 
 const hash = createHash("sha1");
 for (const f of files) { hash.update(f); hash.update(readFileSync(join(root, f))); }
