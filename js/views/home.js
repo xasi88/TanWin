@@ -3,7 +3,7 @@ import { h, ar, icon, ring, modal, plural, mixed, keep } from "../ui.js";
 import { UNITS, SURAH_PATH, SURAH_UNIT, lessonById } from "../course.js";
 import { store, streakNow, levelInfo, todayXp, srsDue, lessonDone, surahDone, backupDue, backupLater } from "../store.js";
 import { saveProgressFile } from "./more.js";
-import { lessonUnlocked, surahUnlocked, surahsOpen, unitProgress, nextTarget, applySkip, courseProgress, allOpen } from "../path.js";
+import { lessonUnlocked, surahUnlocked, surahsOpen, unitProgress, nextTarget, courseProgress, allOpen } from "../path.js";
 import { surahMeta } from "../data.js";
 import { playLesson } from "../lesson.js";
 import { go, celebrate, installApp } from "../app.js";
@@ -238,7 +238,6 @@ export function LessonRoute(id) {
   playLesson(root, {
     id, title: l.title, steps: l.steps, isTest: !!l.test, lesson: l,
     onExit: (res) => {
-      if (res?.passed && l.test) applySkip(id);
       go("/");
       if (res) setTimeout(() => celebrate(res.events), 400);
     },
