@@ -66,11 +66,13 @@ export async function installApp() {
 }
 onFullscreenChange(() => renderNav(location.hash.replace(/^#/, "") || "/"));
 
+let logoN = 0;
 export function logo(size = 34) {
+  const id = `lg${++logoN}`; // у каждой эмблемы свой градиент: общий перестаёт работать, когда эмблема в скрытом меню
   const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   s.setAttribute("viewBox", "0 0 64 64"); s.setAttribute("width", size); s.setAttribute("height", size); s.setAttribute("class", "logo");
-  s.innerHTML = `<defs><linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd97a"/><stop offset="1" stop-color="#d49a24"/></linearGradient></defs>
-    <path d="M32 2l6.9 13.4 14.3-4.6-4.6 14.3L62 32l-13.4 6.9 4.6 14.3-14.3-4.6L32 62l-6.9-13.4-14.3 4.6 4.6-14.3L2 32l13.4-6.9-4.6-14.3 14.3 4.6Z" fill="url(#lg1)"/>
+  s.innerHTML = `<defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd97a"/><stop offset="1" stop-color="#d49a24"/></linearGradient></defs>
+    <path d="M32 2l6.9 13.4 14.3-4.6-4.6 14.3L62 32l-13.4 6.9 4.6 14.3-14.3-4.6L32 62l-6.9-13.4-14.3 4.6 4.6-14.3L2 32l13.4-6.9-4.6-14.3 14.3 4.6Z" fill="url(#${id})"/>
     <circle cx="32" cy="33.5" r="17" fill="#0b3b30"/>
     <path d="M32 27.5c-3.6-2.5-8.6-3.3-13.2-2.8v16.8c4.6-.5 9.6.3 13.2 2.8Z" fill="#ffd97a"/>
     <path d="M32 27.5c3.6-2.5 8.6-3.3 13.2-2.8v16.8c-4.6-.5-9.6.3-13.2 2.8Z" fill="#f2c257"/>`;
@@ -155,7 +157,8 @@ async function start() {
   initWake();
   initFeedback();
   startMetrika();
-  view.replaceChildren(h("div.boot", null, logo(72), h("div.spinner")));
+  // на странице уже стоит заставка с описанием сайта (index.html) — оставляем её до первого экрана
+  if (!view.querySelector(".boot")) view.replaceChildren(h("div.boot", null, logo(72), h("div.spinner")));
   // связь медленная — говорим об этом, а не держим человека перед пустым экраном
   const slow = setTimeout(() => view.querySelector(".boot")?.append(
     h("p.muted.center", null, "Загрузка идёт дольше обычного. Проверьте интернет."),
