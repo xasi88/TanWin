@@ -155,7 +155,8 @@ async function start() {
   initWake();
   initFeedback();
   startMetrika();
-  view.replaceChildren(h("div.boot", null, logo(72), h("div.spinner")));
+  // на странице уже стоит заставка с описанием сайта (index.html) — оставляем её до первого экрана
+  if (!view.querySelector(".boot")) view.replaceChildren(h("div.boot", null, logo(72), h("div.spinner")));
   // связь медленная — говорим об этом, а не держим человека перед пустым экраном
   const slow = setTimeout(() => view.querySelector(".boot")?.append(
     h("p.muted.center", null, "Загрузка идёт дольше обычного. Проверьте интернет."),

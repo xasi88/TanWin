@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>TanWin — путь к чтению Корана</title>
+  <title>TanWin — научиться читать Коран с нуля: арабские буквы, слоги, таджвид</title>
   <meta name="description" content="Научитесь читать Коран с нуля по правилам таджвида: буквы, махраджи, огласовки, мадды, правила нун и мим, остановки и чтение сур. Живые чтецы, интервальные повторения, прогресс.">
   <link rel="canonical" href="https://tanwin.xasi88.ru/">
   <!-- подтверждение прав на сайт в Яндекс.Вебмастере и Google Search Console -->
@@ -28,11 +28,13 @@
   <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="TanWin">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="preload" href="fonts/hafs.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/amiri-quran.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/nunito.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/app.css">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"TanWin","alternateName":"TanWin — путь к чтению Корана","url":"https://tanwin.xasi88.ru/","description":"Научитесь читать Коран с нуля по правилам таджвида: арабские буквы, огласовки, слоги, слова, аяты и суры. Каждое слово и аят — голосом чтеца.","applicationCategory":"EducationalApplication","operatingSystem":"Any","inLanguage":"ru","image":"https://tanwin.xasi88.ru/icons/og.png"}</script>
   <!--PRELOAD-->
   <link rel="modulepreload" href="js/arabic.js">
   <link rel="modulepreload" href="js/audio.js">
@@ -62,7 +64,56 @@
 <body>
   <div id="app">
     <nav id="nav" aria-label="Основное меню"></nav>
-    <main id="view" tabindex="-1"></main>
+    <main id="view" tabindex="-1">
+      <!-- О чём сайт: видно, пока приложение загружается, и поисковикам. Приложение заменяет этот блок своим экраном.
+           Список этапов между STAGES вписывает tools/build.mjs из js/course.js — руками не править. -->
+      <div class="boot-about">
+        <div class="boot">
+          <svg class="logo" viewBox="0 0 64 64" width="72" height="72" aria-hidden="true"><defs><linearGradient id="lg0" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd97a"/><stop offset="1" stop-color="#d49a24"/></linearGradient></defs><path d="M32 2l6.9 13.4 14.3-4.6-4.6 14.3L62 32l-13.4 6.9 4.6 14.3-14.3-4.6L32 62l-6.9-13.4-14.3 4.6 4.6-14.3L2 32l13.4-6.9-4.6-14.3 14.3 4.6Z" fill="url(#lg0)"/><circle cx="32" cy="33.5" r="17" fill="#0b3b30"/><path d="M32 27.5c-3.6-2.5-8.6-3.3-13.2-2.8v16.8c4.6-.5 9.6.3 13.2 2.8Z" fill="#ffd97a"/><path d="M32 27.5c3.6-2.5 8.6-3.3 13.2-2.8v16.8c-4.6-.5-9.6.3-13.2 2.8Z" fill="#f2c257"/></svg>
+          <h1>TanWin — путь к чтению Корана</h1>
+          <p class="lead">Научитесь читать Коран с нуля по правилам таджвида — маленькими шагами, по 10 минут в день.</p>
+          <div class="spinner"></div>
+        </div>
+        <section>
+          <h2>Чему учит TanWin</h2>
+          <p>Курс ведёт от первой арабской буквы до чтения сур по мусхафу. Этапы идут по порядку, и каждый опирается на предыдущий:</p>
+          <!--STAGES-->
+          <ol>
+            <li><b>Первые шаги.</b> Как устроено арабское письмо.</li>
+            <li><b>Алфавит: буквы.</b> 28 букв — как выглядят и как называются.</li>
+            <li><b>Алфавит: формы букв.</b> Как буква выглядит в начале, середине и конце слова.</li>
+            <li><b>Огласовки.</b> Фатха, касра, дамма, сукун, танвин.</li>
+            <li><b>Слоги.</b> Слог за слогом — получается слово.</li>
+            <li><b>Слова.</b> Читаем слова Корана.</li>
+            <li><b>Слова: мадд, сукун, шадда.</b> Долгие гласные, закрытые слоги, удвоение.</li>
+            <li><b>Аяты.</b> Слова складываются в предложение. Особые написания мусхафа.</li>
+            <li><b>Махраджи.</b> Откуда рождается звук.</li>
+            <li><b>Таджвид: нун и мим.</b> Изхар, идгам, икляб, ихфа.</li>
+            <li><b>Таджвид: мадды.</b> Сколько тянуть гласную.</li>
+            <li><b>Таджвид: звучание.</b> Ра, калькаля, слияния.</li>
+            <li><b>Остановка (вакф).</b> Где и как останавливаться.</li>
+            <li><b>Читаем Коран.</b> Аль-Фатиха и Джуз Амма.</li>
+          </ol>
+          <!--/STAGES-->
+        </section>
+        <section>
+          <h2>Как проходят занятия</h2>
+          <ul>
+            <li>Короткие уроки: объяснение, затем упражнения — послушать, выбрать, прочитать самому.</li>
+            <li>Каждое слово и каждый аят звучат голосом чтеца: Махмуд Халиль аль-Хусари и Мишари Рашид аль-Афаси.</li>
+            <li>С первых слогов — настоящие слова Корана, а не выдуманные примеры.</li>
+            <li>То, в чём вы ошиблись, возвращается на следующих занятиях, пока не запомнится.</li>
+            <li>Можно записать свой голос и сравнить с чтецом.</li>
+            <li>Раздел «Коран» — весь мусхаф с цветной разметкой таджвида, закладками и целями чтения.</li>
+            <li>Регистрация не нужна. TanWin устанавливается на телефон как приложение и работает без интернета.</li>
+          </ul>
+        </section>
+        <section>
+          <h2>Для кого</h2>
+          <p>Для тех, кто говорит по-русски и хочет читать Коран в оригинале: для начинающих с нуля, для тех, кто знает буквы, но читает медленно, и для тех, кто читает, но хочет разобраться в правилах таджвида. Начать можно с любого этапа — сдав короткую проверку.</p>
+        </section>
+      </div>
+    </main>
   </div>
   <div id="toast" role="status" aria-live="polite"></div>
   <div id="modal-root"></div>
@@ -72,7 +123,7 @@
     // приложение не запустилось за 8 секунд (оборвалась загрузка, мешает или нужен VPN) — показываем, что делать, а не пустой экран
     setTimeout(function () {
       var v = document.getElementById("view");
-      if (v && !v.firstChild) v.innerHTML = '<div style="padding:48px 24px;text-align:center;font-family:sans-serif"><p style="font-size:1.1rem">TanWin пока не загрузился. Проверьте интернет.</p><p style="max-width:30rem;margin:12px auto;line-height:1.5">Если у вас включён VPN — попробуйте его выключить. Если выключен — попробуйте включить: иногда сайт не открывается именно из-за этого.</p><button onclick="location.reload()" style="margin-top:12px;padding:14px 28px;border:0;border-radius:14px;background:#12a37f;color:#fff;font-size:1rem;font-weight:700">Попробовать ещё раз</button></div>';
+      if (v && (!v.firstChild || v.querySelector(".boot-about"))) v.innerHTML = '<div style="padding:48px 24px;text-align:center;font-family:sans-serif"><p style="font-size:1.1rem">TanWin пока не загрузился. Проверьте интернет.</p><p style="max-width:30rem;margin:12px auto;line-height:1.5">Если у вас включён VPN — попробуйте его выключить. Если выключен — попробуйте включить: иногда сайт не открывается именно из-за этого.</p><button onclick="location.reload()" style="margin-top:12px;padding:14px 28px;border:0;border-radius:14px;background:#12a37f;color:#fff;font-size:1rem;font-weight:700">Попробовать ещё раз</button></div>';
     }, 8000);
   </script>
 </body>
