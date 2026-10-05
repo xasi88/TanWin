@@ -34,3 +34,14 @@
 - `js/ui.js` · `function sizePanel`
 
 Проверка: бота нет.
+
+## Робот
+
+- открыть `#/read/112`
+- коснуться `6,400`
+- нажать `.focus-bar .size-btn`
+- есть `.size-pop .sp-row >> text="Арабский"`
+- есть `.size-pop .sp-row >> text="Текст"`
+- есть `.size-pop .sp-row .sp-btn >> nth=3` — «−» и «+» у обоих размеров
+- есть `.size-pop .sp-fonts .seg-btn >> nth=3` — четыре шрифта
+- есть `.size-pop .switch[aria-label="Цвета таджвида"]`

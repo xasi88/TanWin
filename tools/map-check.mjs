@@ -3,6 +3,7 @@
 //   • экран и функция знают друг о друге: функция называет экран — на экране есть ссылка на неё, и наоборот;
 //   • привязки к коду живы: строка, на которую опирается заметка, дословно есть в названном файле;
 //   • у функции указаны приложения, экраны, статус и проверка; расхождение и вопрос описаны словами;
+//   • у экрана есть раздел «Робот» с понятными шагами (их выполняет tools/audit/screens-check.mjs);
 //   • список на главной заметке свежий.
 // Запуск из корня проекта:
 //   node tools/map-check.mjs             — проверить
@@ -14,6 +15,7 @@ import { readdirSync, readFileSync, writeFileSync, existsSync, statSync } from "
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
+import { parseSteps } from "./map-steps.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const MAP_DIR = "docs/Карта TanWin";
@@ -111,9 +113,13 @@ for (const n of notes.values()) {
     for (const a of apps) if (type(a) !== "приложение") err(n.name, `в «приложениях» названо не приложение: ${a}`);
   }
   if (t === "экран") {
-    for (const s of ["Как сюда попадают", "Что на экране", "Для разработки"]) if (!(s in n.sec)) err(n.name, `нет раздела «${s}»`);
+    for (const s of ["Как сюда попадают", "Что на экране", "Для разработки", "Робот"]) if (!(s in n.sec)) err(n.name, `нет раздела «${s}»`);
     const base = propLinks(n, "основа");
     for (const b of base) if (type(b) !== "экран") err(n.name, `«основа» должна быть экраном: ${b}`);
+    // шаги для робота по экранам (tools/audit/screens-check.mjs): запись понятна, экран открывается и на нём что-то проверяется
+    const robot = parseSteps(n.sec["Робот"]);
+    for (const b of robot.bad) err(n.name, `в разделе «Робот» непонятная строка: ${b}`);
+    for (const v of ["открыть", "есть"]) if ("Робот" in n.sec && !robot.steps.some((s) => s.verb === v)) err(n.name, `в разделе «Робот» нет ни одного шага «${v}»`);
   }
   if (t === "функция") {
     for (const s of ["Правила", "Для разработки"]) if (!(s in n.sec)) err(n.name, `нет раздела «${s}»`);
