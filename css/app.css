@@ -922,11 +922,11 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .db-x:hover { background: var(--card-3); color: var(--ink); }
 .nf-ver { font-size: .78rem; color: var(--ink-3); font-weight: 700; margin-top: 2px; }
 .about-app .btn { min-height: 44px; }
-.versions { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.versions { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .version { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); }
 .version.latest { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
 .v-head { display: flex; align-items: center; gap: 12px; }
-.v-head > div { display: grid; flex: 1; }
+.v-head > div { display: grid; flex: 1; min-width: 0; overflow-wrap: anywhere; } /* длинное слово в названии версии при самом крупном тексте переносится, а не раздвигает страницу */
 .v-num { font-weight: 950; font-size: .95rem; padding: 6px 10px; border-radius: 10px; background: var(--card-3); color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .version.latest .v-num { background: var(--accent); color: var(--accent-ink); }
 .v-cur { font-size: .75rem; font-weight: 850; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-2); }
