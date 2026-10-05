@@ -284,9 +284,15 @@ function sizePanel(anchor) {
 }
 
 // ---------- Кнопка «послушать слово» ----------
-/** Слово Корана с кнопкой звука. key — «SSS_AAA_WWW». */
-export function wordChip(w, { showTr = store.get().settings.translit === "show", size, big = false, onplay } = {}) {
-  const trEl = w.tr ? tr(w.tr, { hidden: !showTr }) : null;
+/**
+ * Транскрипция под словами в карточках теории и в окне буквы — по настройке «Транскрипция» («Ещё» → «Звук и подсказки»):
+ * true — видна сразу, false — появляется по нажатию на слово, null — не показывается совсем.
+ */
+export const cardTr = () => { const m = store.get().settings.translit; return m === "hide" ? null : m !== "tap"; };
+
+/** Слово Корана с кнопкой звука. key — «SSS_AAA_WWW». showTr — как у cardTr(). */
+export function wordChip(w, { showTr = cardTr(), size, big = false, onplay } = {}) {
+  const trEl = w.tr && showTr !== null ? tr(w.tr, { hidden: !showTr }) : null;
   const b = h("button.word-chip", { type: "button", class: big ? "big" : "", "aria-label": "Послушать слово" + (w.tr ? " " + w.tr : "") },
     ar(w.d, { size }), trEl, h("span.wc-ico", null, icon("vol", { size: 16 })));
   const id = "w:" + w.a;

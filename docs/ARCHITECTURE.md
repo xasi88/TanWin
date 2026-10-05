@@ -87,8 +87,10 @@
 | `tools/map-check.mjs` | Проверка карты функций (`docs/Карта TanWin/`): ссылки между заметками, привязки заметок к коду, список на главной заметке |
 | `tools/audit/screens-check.mjs` | Робот по экранам: открывает каждый экран карты и проверяет, что всё перечисленное в разделе «Робот» его заметки на месте (шаги разбирает `tools/map-steps.mjs`) |
 | `tools/audit/shared-data-check.mjs` | Два открытых окна приложения не стирают данные друг друга (нужен сервер на 8765) |
-| `tools/audit/reading-windows-check.mjs` | Окна поверх чтения: Esc и выход из полного экрана закрывают только окно; «Подробно о правилах» не оставляет окно висеть; выключатель перевода; место чтения в сообщении разработчику (нужен сервер на 8765) |
-| `tools/audit/start-check.mjs` | Запуск и оболочка: знакомство новичку, старый адрес `/quran/`, окно про обновления один раз, меню, чтение, закладка, проверка обновления (нужен сервер на 8765) |
+| `tools/audit/reading-windows-check.mjs` | Окна поверх чтения: Esc и выход из полного экрана закрывают только окно; «Подробно о правилах» не оставляет окно висеть; выключатель перевода; место чтения в сообщении разработчику |
+| `tools/audit/translit-check.mjs` | Настройка «Транскрипция» управляет транскрипцией в карточках теории; старые данные и новый ученик видят её сразу |
+| `tools/audit/start-check.mjs` | Запуск и оболочка: знакомство новичку, старый адрес `/quran/`, окно про обновления один раз, меню, чтение, закладка, проверка обновления |
+| `tools/audit/serve.mjs` | Свой маленький сервер для проверок (`start-check`, `reading-windows-check`, `translit-check`): им не нужен сервер на 8765 |
 
 ## 4. Экраны и маршруты
 
@@ -268,7 +270,7 @@
 
 ## 9. Выпуск версии
 
-1. Изменения → проверка локально (`python -m http.server 8080`), проверка данных `node tools/content-check.mjs`, словаря обращений `node tools/speech-check.mjs` и автопроверка вёрстки: `node tools/audit/audit.mjs` (установка и варианты запуска — в начале файла). Полный набор перед выпуском: телефон 390 и 320 px, планшет `--width 820`, компьютер `--width 1280`, самый крупный текст `--ar 2.4 --ui 1.4`, Safari `--engine webkit`, остальные шрифты `--font amiri|scheherazade|noto`. Бот проходит и режим чтения (`#/read/…`). Ещё четыре проверки: карта функций — `node tools/map-check.mjs`; робот по экранам — `node tools/audit/screens-check.mjs`; общие данные двух окон — `node tools/audit/shared-data-check.mjs`; запуск, чтение, окна поверх чтения и чтец — `node tools/audit/start-check.mjs`, `reading-check.mjs`, `reading-windows-check.mjs`, `reciter-check.mjs` (им и проверке общих данных нужен сервер на 8765).
+1. Изменения → проверка локально (`python -m http.server 8080`), проверка данных `node tools/content-check.mjs`, словаря обращений `node tools/speech-check.mjs` и автопроверка вёрстки: `node tools/audit/audit.mjs` (установка и варианты запуска — в начале файла). Полный набор перед выпуском: телефон 390 и 320 px, планшет `--width 820`, компьютер `--width 1280`, самый крупный текст `--ar 2.4 --ui 1.4`, Safari `--engine webkit`, остальные шрифты `--font amiri|scheherazade|noto`. Бот проходит и режим чтения (`#/read/…`). Ещё четыре проверки: карта функций — `node tools/map-check.mjs`; робот по экранам — `node tools/audit/screens-check.mjs`; общие данные двух окон — `node tools/audit/shared-data-check.mjs`; запуск, окна поверх чтения и настройка «Транскрипция» — `node tools/audit/start-check.mjs`, `reading-windows-check.mjs`, `translit-check.mjs`; чтение и чтец — `reading-check.mjs`, `reciter-check.mjs` (двум последним и проверке общих данных нужен сервер на 8765).
 2. В `js/version.js` поднять `APP_VERSION` и добавить запись в начало `CHANGELOG` — она появится в разделе «Версии».
 3. `node tools/build.mjs` — новая версия и список офлайн-файлов в `sw.js`.
 4. `git commit` и `git push` — GitHub Pages публикует сайт автоматически.

@@ -1,5 +1,5 @@
 // Плеер урока: карточки теории, упражнения, повтор ошибок, итог.
-import { h, ar, rich, tr, icon, wordChip, playBtn, toast, confetti, ring, shuffle, sample, plural, modal, mixed, sizeButton } from "./ui.js";
+import { h, ar, rich, tr, icon, wordChip, cardTr, playBtn, toast, confetti, ring, shuffle, sample, plural, modal, mixed, sizeButton } from "./ui.js";
 import { build, quiz, ruleIndex, stepForKey } from "./exercises.js";
 import { g, you } from "./speech.js";
 import { byId, forms, POINTS, ZONES, LETTERS } from "./letters.js";
@@ -34,7 +34,7 @@ function drawGlyph(ch) {
   svg.innerHTML = `<text x="100" y="128" text-anchor="middle" class="gd-text">${ch}</text>`;
   return svg;
 }
-function wordsRow(ws, { showTr = true } = {}) {
+function wordsRow(ws, { showTr = cardTr() } = {}) {
   return h("div.words-row", null, ...ws.map((w) => wordChip(w, { showTr })));
 }
 
@@ -170,10 +170,10 @@ async function renderCard(step) {
     const [a, b] = step.contrast;
     const ps = minimalPairs().filter((p) => (p.a === a && p.b === b) || (p.a === b && p.b === a));
     const pairs = sample(ps, 2);
-    if (pairs.length) extras.append(...pairs.map((p) => h("div.pair-row", null, wordChip(p.w1, { showTr: true }), h("span.vs", null, "или"), wordChip(p.w2, { showTr: true }))));
+    if (pairs.length) extras.append(...pairs.map((p) => h("div.pair-row", null, wordChip(p.w1), h("span.vs", null, "или"), wordChip(p.w2))));
     else extras.append(lettersRow([a, b]));
   }
-  if (step.muqattaat) extras.append(h("div.words-row", null, ...MUQ.map(([t, a, trn]) => wordChip({ d: t, a, tr: trn }, { showTr: true }))));
+  if (step.muqattaat) extras.append(h("div.words-row", null, ...MUQ.map(([t, a, trn]) => wordChip({ d: t, a, tr: trn }))));
   if (step.stopSigns) extras.append(h("div.stop-grid", null, ...STOP_SIGNS.map(([s, n, m]) => h("div.stop-cell", null, ar("ـ" + s + "ـ", { cls: "stop-sign" }), h("b", null, n), h("small", null, m)))));
   if (step.ruleWheel) extras.append(h("div.rule-wheel", null,
     ...[["Изхар", "ء ه ع ح غ خ", "ясно", "izhar"], ["Идгам", "ي ر م ل و ن", "слияние", "d"], ["Икляб", "ب", "н → м", "i"], ["Ихфа", "15 букв", "скрыто", "f"]]

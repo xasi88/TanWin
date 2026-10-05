@@ -1,10 +1,12 @@
 // Проверка запуска и оболочки: новичку открывается знакомство; старый адрес отдельного «Моего Корана» (/quran/) открывает
 // раздел «Мой Коран» в TanWin; окно про обновления показывается один раз; меню, чтение, закладки и проверка обновления на месте.
-// Нужен сервер на 8765.
+// Сервер не нужен: проверка поднимает свой.
 // Запуск:  node tools/audit/start-check.mjs [адрес] [папка для снимков]
 import { chromium } from "playwright";
+import { serve } from "./serve.mjs";
 
-const BASE = process.argv[2] || "http://localhost:8765";
+const own = process.argv[2] ? null : await serve();
+const BASE = process.argv[2] || own.base;
 const SHOTS = process.argv[3] || "";
 // без признака «управляется роботом»: окно про обновления роботам не показывается
 const browser = await chromium.launch({ args: ["--disable-blink-features=AutomationControlled"] });
@@ -71,4 +73,5 @@ await shot("5-more");
 ok("ошибок на страницах нет", !errors.length, errors);
 await browser.close();
 console.log(fails.length ? `Не прошло: ${fails.length}` : "Запуск и оболочка в порядке.");
+own?.stop();
 process.exit(fails.length ? 1 : 0);

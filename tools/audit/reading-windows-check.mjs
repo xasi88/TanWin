@@ -1,9 +1,11 @@
 // Проверка окон поверх чтения: Esc и выход из полного экрана закрывают только открытое окно или панель «Aa», а не чтение;
 // «Подробно о правилах» не оставляет окно висеть; выключатель «Перевод смыслов» действует в чтении; в сообщение разработчику
-// попадают сура и аят при любом виде чтения. Нужен сервер на 8765.
+// попадают сура и аят при любом виде чтения. Сервер не нужен: проверка поднимает свой.
 // Запуск:  node tools/audit/reading-windows-check.mjs [адрес]
 import { chromium } from "playwright";
-const BASE = process.argv[2] || "http://localhost:8765";
+import { serve } from "./serve.mjs";
+const own = process.argv[2] ? null : await serve();
+const BASE = process.argv[2] || own.base;
 const b = await chromium.launch();
 const ctx = await b.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: "block" });
 await ctx.route(/mc\.yandex|everyayah|qurancdn/, (r) => r.abort());
@@ -86,4 +88,5 @@ for (const [h, name] of [["#/juz/30", "джуз"], ["#/mark/seq1", "цель з�
 ok("ошибок на страницах нет", !errors.length, errors);
 await b.close();
 console.log(fails.length ? `Не прошло: ${fails.length}` : "Окна поверх чтения в порядке.");
+own?.stop();
 process.exit(fails.length ? 1 : 0);
