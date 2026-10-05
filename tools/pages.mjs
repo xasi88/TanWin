@@ -203,7 +203,10 @@ export function buildPages(root) {
   const out = join(root, DIR);
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
-  writeFileSync(join(out, "index.html"), indexPage());
-  LETTERS.forEach((l, i) => { mkdirSync(join(out, l.id)); writeFileSync(join(out, l.id, "index.html"), letterPage(root, l, i)); });
+  // рядом с каждой страницей — js/app.js: «спасатель» для тех, у кого ещё старая версия приложения (см. tools/pages-rescue.js)
+  const rescue = readFileSync(join(root, "tools/pages-rescue.js"), "utf8");
+  const put = (dir, html) => { mkdirSync(join(dir, "js"), { recursive: true }); writeFileSync(join(dir, "index.html"), html); writeFileSync(join(dir, "js/app.js"), rescue); };
+  put(out, indexPage());
+  LETTERS.forEach((l, i) => put(join(out, l.id), letterPage(root, l, i)));
   return [`${DIR}/`, ...LETTERS.map((l) => `${DIR}/${l.id}/`)];
 }

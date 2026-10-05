@@ -1,5 +1,5 @@
 // Service worker TanWin: офлайн-режим. Список файлов и версия обновляются командой: node tools/build.mjs
-const VERSION = "98addac3bb";
+const VERSION = "c2d82d2911";
 const CORE = `tanwin-core-${VERSION}`;
 const AUDIO = "tanwin-audio";
 const ROOT = new URL("./", self.location).pathname;
@@ -239,6 +239,9 @@ self.addEventListener("install", (e) => {
   e.waitUntil((async () => {
     const c = await caches.open(CORE);
     for (let i = 0; i < FILES.length; i += 8) await Promise.all(FILES.slice(i, i + 8).map((f) => grab(c, f)));
+    // приложение нигде не открыто (открыта только страница для поисковиков или вообще ничего) — прерывать нечего, включаемся сразу
+    const wins = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    if (!wins.some((w) => [ROOT, ROOT + "index.html"].includes(new URL(w.url).pathname))) self.skipWaiting();
   })());
 });
 self.addEventListener("activate", (e) => {
@@ -293,9 +296,9 @@ self.addEventListener("fetch", (e) => {
     e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((r) => { if (r.ok) { const cp = r.clone(); caches.open(CORE).then((c) => c.put(req, cp)); } return r; })));
     return;
   }
-  // Страницы для поисковиков (/alfavit/…) — не часть приложения: берём из сети, без связи показываем приложение
+  // Страницы для поисковиков (/alfavit/…) — не часть приложения: берём из сети, без связи отправляем в приложение
   if (req.mode === "navigate" && url.pathname !== ROOT && url.pathname !== ROOT + "index.html") {
-    e.respondWith(fetch(req).catch(() => caches.match("./").then((hit) => hit || Response.error())));
+    e.respondWith(fetch(req).catch(() => Response.redirect(ROOT)));
     return;
   }
   // Код, стили и страницы: из кэша этой версии — приложение открывается сразу и не зависит от качества связи.
