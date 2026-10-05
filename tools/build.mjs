@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { buildPages } from "./pages.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
-const SKIP = new Set(["og.png", "sw.js", "robots.txt", "sitemap.xml", "alfavit", "README.md", "CNAME", ".git", "node_modules", "tools", "docs", ".claude", "q"]);
+const SKIP = new Set(["og.png", "sw.js", "robots.txt", "sitemap.xml", "alfavit", "tajvid", "README.md", "CNAME", ".git", "node_modules", "tools", "docs", ".claude", "q"]);
 const files = [];
 (function walk(dir) {
   for (const name of readdirSync(dir)) {

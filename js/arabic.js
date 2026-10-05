@@ -188,3 +188,28 @@ export function levelOf(f) {
   }
   return "full";
 }
+
+// ---------- Связность букв через границу <span> (см. checkShaping в ui.js; этим же пользуется tools/pages.mjs) ----------
+export const ZWJ = "‍";
+export const isMarkCh = (c) => /[ؐ-ًؚ-ٰٟۖ-ۜ۟-۪ۤۧۨ-ۭ]/.test(c);
+export const JOIN_NEXT = /[ئبت-خس-غـ-هىيٮٯ]/; // ب ت … ي, татвиль: соединяются и со следующей буквой
+export const JOIN_PREV = /[آ-إاةد-زوٱ]/; // ا د ذ ر ز و ة ٱ: только с предыдущей
+
+/** Переносит границы кусочков [текст, класс] между целыми буквами и склеивает соседей соединителем ZWJ. */
+export function glue(parts) {
+  const cl = []; // буква со знаками → класс: своей буквы, а если его нет — цветного знака
+  for (const [t, c] of parts) for (const ch of t) {
+    const last = cl[cl.length - 1];
+    if (last && (isMarkCh(ch) || ch === ZWJ || (last.t[0] === "ل" && /[آأإاٱ]/.test(ch)))) { last.t += ch; last.c ||= c; }
+    else cl.push({ t: ch, c });
+  }
+  const runs = [];
+  for (const x of cl) {
+    const r = runs[runs.length - 1];
+    if (r && r.c === x.c) { r.t += x.t; r.last = x.t[0]; } else runs.push({ t: x.t, c: x.c, first: x.t[0], last: x.t[0] });
+  }
+  for (let i = 1; i < runs.length; i++) {
+    if (JOIN_NEXT.test(runs[i - 1].last) && (JOIN_NEXT.test(runs[i].first) || JOIN_PREV.test(runs[i].first))) { runs[i - 1].t += ZWJ; runs[i].t = ZWJ + runs[i].t; }
+  }
+  return runs.map((r) => [r.t, r.c]);
+}
