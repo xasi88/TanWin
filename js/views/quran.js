@@ -810,9 +810,13 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
   // палец ещё на экране, когда карточка уже открыта: на Android его отпускание приходит нажатием по затемнению
   // вокруг карточки и тут же её закрывает — такие нажатия гасим, пока палец не поднят
   const eat = (e) => { e.stopPropagation(); e.preventDefault(); };
+  // и текст карточки под пальцем Android не выделяет (класс held): палец подняли — выделять и копировать снова можно
+  const unhold = () => { document.removeEventListener("click", eat, true); document.removeEventListener("contextmenu", eat, true); document.documentElement.classList.remove("held"); };
   const eatClicks = () => {
     document.addEventListener("click", eat, true);
-    const off = () => setTimeout(() => document.removeEventListener("click", eat, true), 400);
+    document.addEventListener("contextmenu", eat, true);
+    document.documentElement.classList.add("held");
+    const off = () => setTimeout(unhold, 400);
     for (const ev of ["pointerup", "touchend", "touchcancel"]) addEventListener(ev, off, { once: true, capture: true });
     setTimeout(off, 5000);
   };
