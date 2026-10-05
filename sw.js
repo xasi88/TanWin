@@ -1,7 +1,8 @@
 // Service worker TanWin: офлайн-режим. Список файлов и версия обновляются командой: node tools/build.mjs
-const VERSION = "13c8fc1da3";
+const VERSION = "98addac3bb";
 const CORE = `tanwin-core-${VERSION}`;
 const AUDIO = "tanwin-audio";
+const ROOT = new URL("./", self.location).pathname;
 /*FILES*/
 const FILES = [
   "./",
@@ -119,6 +120,7 @@ const FILES = [
   "audio/letters/zza-u.mp3",
   "audio/letters/zza.mp3",
   "css/app.css",
+  "css/pages.css",
   "data/bank.json",
   "data/pairs.json",
   "data/q/001.json",
@@ -289,6 +291,11 @@ self.addEventListener("fetch", (e) => {
   // Данные и шрифты: сначала кэш
   if (/\/(data|fonts|icons)\//.test(url.pathname)) {
     e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((r) => { if (r.ok) { const cp = r.clone(); caches.open(CORE).then((c) => c.put(req, cp)); } return r; })));
+    return;
+  }
+  // Страницы для поисковиков (/alfavit/…) — не часть приложения: берём из сети, без связи показываем приложение
+  if (req.mode === "navigate" && url.pathname !== ROOT && url.pathname !== ROOT + "index.html") {
+    e.respondWith(fetch(req).catch(() => caches.match("./").then((hit) => hit || Response.error())));
     return;
   }
   // Код, стили и страницы: из кэша этой версии — приложение открывается сразу и не зависит от качества связи.
