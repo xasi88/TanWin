@@ -220,7 +220,7 @@ function speakStep(step, api) {
   const playMine = h("button.btn.secondary.hidden", { type: "button", onclick: () => myUrl && playUrl(myUrl, { id: "mine" }) }, icon("play", { size: 18 }), "Мой голос");
   let recording = false;
   mic.addEventListener("click", async () => {
-    if (!canRecord()) return;
+    if (!canRecord()) { track("speech_used", { Микрофон: "не поддерживается" }); return; }
     if (!recording) {
       try { stop(); await startRecording(); recording = true; mic.classList.add("rec"); status.textContent = you("Идёт запись… нажмите ещё раз, чтобы остановить"); }
       catch { status.textContent = you("Нет доступа к микрофону. Разрешите его в настройках браузера."); }
@@ -307,6 +307,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
   const total0 = screens.filter((s) => s.type === "q").length;
   let idx = 0, firstTryOk = 0, answered = 0, xp = 0, combo = 0, bestCombo = 0;
   const t0 = Date.now();
+  if (id && !isTest && !isSurah) track("lesson_started", { Урок: `${id}. ${title}` });
   const mistakes = [];
   const voice = lessonVoice({ id, isTest, isSurah, title });
   const tutorNote = () => h("p.tutor-note", null, icon("sparkle", { size: 16 }), h("span", null, mixed(voice.intro({ warm: warmLabel }))));

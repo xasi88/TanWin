@@ -1,6 +1,7 @@
 // Звук: записи чтецов (слова и аяты), звуки ответов (синтез в браузере) и запись своего голоса.
 import { wordAudioUrl, RECITERS } from "./data.js";
 import { store } from "./store.js";
+import { track } from "./metrika.js";
 
 const el = new Audio();
 el.preload = "auto";
@@ -115,12 +116,15 @@ export const sfx = {
 let rec = null;
 export const canRecord = () => !!(navigator.mediaDevices?.getUserMedia && window.MediaRecorder);
 export async function startRecording() {
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
+  catch (e) { track("speech_used", { Микрофон: "нет доступа" }); throw e; }
   const chunks = [];
   const mr = new MediaRecorder(stream);
   mr.ondataavailable = (e) => e.data.size && chunks.push(e.data);
   const done = new Promise((res) => { mr.onstop = () => { stream.getTracks().forEach((t) => t.stop()); res(new Blob(chunks, { type: mr.mimeType || "audio/webm" })); }; });
   mr.start();
+  track("speech_used", { Микрофон: "работает" });
   rec = { mr, done, t0: Date.now() };
   return rec;
 }

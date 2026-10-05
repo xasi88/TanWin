@@ -4,6 +4,7 @@ import { h, icon, modal, toast, plural, confirmBox, keep } from "../ui.js";
 import { loadSurahs, surahMeta } from "../data.js";
 import { store } from "../store.js";
 import { go } from "../app.js";
+import { track } from "../metrika.js";
 import { enterFullscreen } from "../fullscreen.js";
 import { pageContent, PAGES, JUZ_PAGE } from "./quran.js";
 
@@ -60,6 +61,7 @@ export function addMark(s, a, p) {
   if (marks().some((m) => m.s === s && m.a === a)) { toast("Закладка на этом аяте уже стоит."); return false; }
   const id = newId();
   store.set((st) => { st.marks = [{ id, s, a, p: p || null, at: Date.now() }, ...(st.marks || [])].slice(0, MAX_MARKS); });
+  track("bookmark_added");
   markEditor(id, { fresh: true });
   return true;
 }

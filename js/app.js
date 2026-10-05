@@ -6,7 +6,7 @@ import { stop } from "./audio.js";
 import { checkBadges, courseProgress, nextTarget, lessonById } from "./path.js";
 import { APP_VERSION } from "./version.js";
 import { canPrompt, install, isInstalled, isStandalone, manualHint } from "./install.js";
-import { initMetrika, hit, track } from "./metrika.js";
+import { initMetrika, hit, track, whoParams } from "./metrika.js";
 import { initFeedback, setScreen } from "./feedback.js";
 import { fill } from "./tutor.js";
 import { initWake } from "./wake.js";
@@ -206,6 +206,7 @@ function startMetrika() {
       "Текущий этап": !s.profile.onboarded ? "новичок" : nt?.type === "lesson" ? lessonById[nt.id]?.unit ?? "—" : nt ? "суры" : "курс пройден",
       "Уровень": levelInfo().n,
       "Установлено": isInstalled() ? "да" : "нет",
+      ...whoParams(),
     },
   });
   // «Написать автору» — ссылки на WhatsApp в разных местах приложения
