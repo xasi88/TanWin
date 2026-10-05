@@ -1230,7 +1230,13 @@ body:has(.focus) .fb-tab { right: auto; left: 0; padding: 0 2px 0 0; border-radi
 
 /* Группы закладок, настройки закладки (views/bookmarks.js) */
 .mark-groups { display: grid; gap: 12px; }
-.mark-groups > .label { margin: 4px 0 -4px; }
+.mark-loose { display: grid; gap: 10px; }
+.mark-loose > .label { margin: 4px 0 -4px; }
+/* «Без группы» без закладок не виден; пока закладку тянут — это место, куда её можно перенести */
+.mark-loose:not(:has(.mark-row)) { display: none; }
+.mark-groups.dragging .mark-loose { display: grid; }
+.mark-groups.dragging .mark-loose .mark-list:empty { min-height: 3.2rem; border: 2px dashed var(--line); border-radius: 18px; }
+.mark-list:not(:empty) + .mark-empty { display: none; }
 .mark-groups > .btn { justify-self: start; }
 .mark-group { border-radius: 22px; border: 1px solid color-mix(in srgb, var(--gold) 40%, var(--line)); background: linear-gradient(180deg, var(--gold-soft), transparent 90px); padding: 4px 8px 8px; }
 .mark-group summary { display: flex; align-items: center; gap: 8px; padding: 4px 0 4px 8px; cursor: pointer; list-style: none; -webkit-user-select: none; user-select: none; }
