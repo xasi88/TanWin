@@ -1,11 +1,10 @@
 // Service worker TanWin: офлайн-режим. Список файлов и версия обновляются командой: node tools/build.mjs
-const VERSION = "1f5f990342";
+const VERSION = "86732086da";
 const CORE = `tanwin-core-${VERSION}`;
 const AUDIO = "tanwin-audio";
 const ROOT = new URL("./", self.location).pathname;
-// Страницы самого приложения: TanWin и «Мой Коран» (/quran/ — тот же код отдельным значком)
-const APP_PAGES = [ROOT, ROOT + "index.html", ROOT + "quran/", ROOT + "quran/index.html"];
-const isQuran = (path) => path.startsWith(ROOT + "quran/");
+// Страницы самого приложения
+const APP_PAGES = [ROOT, ROOT + "index.html"];
 /*FILES*/
 const FILES = [
   "./",
@@ -179,10 +178,6 @@ const FILES = [
   "icons/icon-512.png",
   "icons/icon-maskable-512.png",
   "icons/icon.svg",
-  "icons/quran-192.png",
-  "icons/quran-512.png",
-  "icons/quran-maskable-512.png",
-  "icons/quran.svg",
   "index.html",
   "js/app.js",
   "js/arabic.js",
@@ -214,7 +209,6 @@ const FILES = [
   "js/views/more.js",
   "js/views/onboard.js",
   "js/views/progress.js",
-  "js/views/qapp.js",
   "js/views/quran.js",
   "js/views/reference.js",
   "js/views/review.js",
@@ -222,8 +216,6 @@ const FILES = [
   "js/views/thanks.js",
   "js/wake.js",
   "manifest.webmanifest",
-  "quran/index.html",
-  "quran/manifest.webmanifest",
 ];
 /*END*/
 const AUDIO_HOSTS = ["audio.qurancdn.com", "everyayah.com", "verses.quran.com", "mirrors.quranicaudio.com"];
@@ -307,6 +299,11 @@ self.addEventListener("fetch", (e) => {
     e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((r) => { if (r.ok) { const cp = r.clone(); caches.open(CORE).then((c) => c.put(req, cp)); } return r; })));
     return;
   }
+  // Отдельного приложения «Мой Коран» больше нет (было в 1.22.0–1.22.1): его адрес открывает раздел «Мой Коран» в TanWin
+  if (req.mode === "navigate" && url.pathname.startsWith(ROOT + "quran/")) {
+    e.respondWith(Response.redirect(ROOT + "#/quran"));
+    return;
+  }
   // Страницы для поисковиков (/alfavit/…) — не часть приложения: берём из сети, без связи отправляем в приложение
   if (req.mode === "navigate" && !APP_PAGES.includes(url.pathname)) {
     e.respondWith(fetch(req).catch(() => Response.redirect(ROOT)));
@@ -317,11 +314,11 @@ self.addEventListener("fetch", (e) => {
   if (!DEV) {
     e.respondWith((async () => {
       const c = await caches.open(CORE);
-      const hit = (await c.match(req, { ignoreSearch: true })) || (req.mode === "navigate" ? await c.match(isQuran(url.pathname) ? "quran/index.html" : "./") : null);
+      const hit = (await c.match(req, { ignoreSearch: true })) || (req.mode === "navigate" ? await c.match("./") : null);
       return hit || fetch(req);
     })());
     return;
   }
   e.respondWith(fetch(req).then((r) => { if (r.ok) { const cp = r.clone(); caches.open(CORE).then((c) => c.put(req, cp)); } return r; })
-    .catch(() => caches.match(req, { ignoreSearch: true }).then((hit) => hit || (req.mode === "navigate" ? caches.match(isQuran(url.pathname) ? "quran/index.html" : "index.html") : Response.error()))));
+    .catch(() => caches.match(req, { ignoreSearch: true }).then((hit) => hit || (req.mode === "navigate" ? caches.match("index.html") : Response.error()))));
 });

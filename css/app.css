@@ -993,15 +993,11 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .backup-card .rc-ic { background: var(--c-sky); }
 .backup-card .muted { font-size: .92rem; }
 .install-card { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: linear-gradient(135deg, var(--accent-soft), var(--card)); }
-/* «Мой Коран» отдельным приложением: подвал списка сур и окно про обновления */
-.q-foot { display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: center; align-items: center; margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--line); font-size: .92rem; }
-.q-foot a, .q-foot .link { color: var(--ink-2); font-weight: 750; }
+/* Окно про обновления и VPN */
 .upd-note { display: grid; gap: 12px; }
 .upd-note h2, .upd-note p { margin: 0; }
 .upd-note p { line-height: 1.5; color: var(--ink-2); }
 .upd-note .btn { margin-top: 6px; }
-.boot-q { text-align: center; padding: 0 20px; }
-.boot-q h1, .boot-q p { margin: 0; }
 .install-card .rc-ic { background: var(--accent); color: var(--accent-ink); }
 
 /* ---------- Режим чтения: арабский текст на весь экран, автопрокрутка ---------- */

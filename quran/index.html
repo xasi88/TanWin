@@ -2,55 +2,16 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <!-- «Мой Коран» — отдельное приложение: тот же код, что у TanWin (../js/app.js), но только чтение Корана и закладки.
-       У страницы свой манифест, поэтому она ставится на устройство вторым значком. См. js/env.js и docs/ARCHITECTURE.md. -->
-  <title>Мой Коран — чтение Корана с чтецом, закладками и целями | TanWin</title>
-  <meta name="description" content="Мой Коран — весь мусхаф Мадины с цветной разметкой таджвида: 114 сур, 30 джузов, 604 страницы. Чтец читает с любого аята, закладки и цели чтения. Бесплатно, работает без интернета.">
-  <link rel="canonical" href="https://tanwin.xasi88.ru/quran/">
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="TanWin">
-  <meta property="og:title" content="Мой Коран — чтение с чтецом, закладками и целями">
-  <meta property="og:description" content="Весь мусхаф с разметкой таджвида: суры, джузы, страницы. Чтец читает с любого аята. Бесплатно.">
-  <meta property="og:url" content="https://tanwin.xasi88.ru/quran/">
-  <meta property="og:locale" content="ru_RU">
-  <meta property="og:image" content="https://tanwin.xasi88.ru/icons/og.png">
-  <meta name="theme-color" content="#fbf7ef">
-  <meta name="color-scheme" content="light dark">
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="../icons/quran.svg" type="image/svg+xml">
-  <link rel="icon" href="../icons/quran-192.png" sizes="192x192" type="image/png">
-  <link rel="apple-touch-icon" href="../icons/quran-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Мой Коран">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <link rel="preload" href="../fonts/hafs.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="../fonts/amiri-quran.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="../fonts/nunito.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="../css/app.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Отдельного приложения «Мой Коран» больше нет (было в версиях 1.22.0–1.22.1): этот адрес открывает раздел «Мой Коран» в TanWin.
+       Тем, у кого приложение уже загружено, то же самое делает sw.js — без сети. -->
+  <title>Мой Коран — раздел приложения TanWin</title>
+  <meta name="robots" content="noindex">
+  <link rel="canonical" href="https://tanwin.xasi88.ru/">
+  <meta http-equiv="refresh" content="0; url=../#/quran">
+  <script>location.replace("../#/quran");</script>
 </head>
 <body>
-  <div id="app">
-    <nav id="nav" aria-label="Основное меню"></nav>
-    <main id="view" tabindex="-1">
-      <div class="boot boot-q">
-        <img src="../icons/quran.svg" width="72" height="72" alt="">
-        <h1>Мой Коран</h1>
-        <p class="muted center">Суры, джузы и страницы мусхафа — с чтецом, закладками и целями чтения.</p>
-        <div class="spinner"></div>
-      </div>
-    </main>
-  </div>
-  <div id="toast" role="status" aria-live="polite"></div>
-  <div id="modal-root"></div>
-  <noscript><p style="padding:24px;font-family:sans-serif">Для работы приложения нужен JavaScript. Уроки чтения — на <a href="/">главной странице TanWin</a>.</p></noscript>
-  <script type="module" src="../js/app.js"></script>
-  <script>
-    // приложение не запустилось за 8 секунд (оборвалась загрузка, мешает или нужен VPN) — показываем, что делать, а не пустой экран
-    setTimeout(function () {
-      var v = document.getElementById("view");
-      if (v && (!v.firstChild || v.querySelector(".boot-q"))) v.innerHTML = '<div style="padding:48px 24px;text-align:center;font-family:sans-serif"><p style="font-size:1.1rem">«Мой Коран» пока не загрузился. Проверьте интернет.</p><p style="max-width:30rem;margin:12px auto;line-height:1.5">Если у вас включён VPN — попробуйте его выключить. Если выключен — попробуйте включить: иногда сайт не открывается именно из-за этого.</p><button onclick="location.reload()" style="margin-top:12px;padding:14px 28px;border:0;border-radius:14px;background:#12a37f;color:#fff;font-size:1rem;font-weight:700">Попробовать ещё раз</button></div>';
-    }, 8000);
-  </script>
+  <p style="padding:24px;font-family:sans-serif">«Мой Коран» теперь внутри приложения TanWin: <a href="../#/quran">открыть «Мой Коран»</a>.</p>
 </body>
 </html>

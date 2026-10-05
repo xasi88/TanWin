@@ -1,5 +1,5 @@
 // TanWin — оболочка приложения: маршруты, навигация, тема, офлайн.
-import { h, $, icon, toast, checkShaping, queueFit, AR_FONTS, arFont } from "./ui.js";
+import { h, $, icon, toast, modal, checkShaping, queueFit, AR_FONTS, arFont } from "./ui.js";
 import { store, streakNow, levelInfo, todayXp, protectStorage } from "./store.js";
 import { loadBank, loadSurahs } from "./data.js";
 import { stop } from "./audio.js";
@@ -10,7 +10,7 @@ import { initMetrika, hit, track, whoParams } from "./metrika.js";
 import { initFeedback, setScreen } from "./feedback.js";
 import { fill } from "./tutor.js";
 import { initWake } from "./wake.js";
-import { QURAN_APP, ROOT, APP_NAME } from "./env.js";
+import { ROOT } from "./env.js";
 import { initFullscreen, canFullscreen, isFullscreen, setFullscreen, onFullscreenChange } from "./fullscreen.js";
 
 const view = $("#view");
@@ -37,11 +37,7 @@ export function applySettings() {
 }
 
 // ---------- Навигация ----------
-// «Мой Коран» отдельным приложением: только чтение и закладки
-const TABS = QURAN_APP ? [
-  { path: "/quran", label: "Мой Коран", ic: "book" },
-  { path: "/bookmarks", label: "Закладки", ic: "bookmark" },
-] : [
+const TABS = [
   { path: "/", label: "Путь", ic: "path" },
   { path: "/review", label: "Практика", ic: "repeat" },
   { path: "/quran", label: "Мой Коран", ic: "book" },
@@ -53,21 +49,20 @@ function renderNav(active) {
   const s = store.get();
   const lv = levelInfo();
   nav.replaceChildren(
-    QURAN_APP ? h("a.brand", { href: "#/quran", "aria-label": "Мой Коран — к списку сур" }, logo(), h("span.brand-name", null, "Мой Коран"), h("span.brand-sub", null, "чтение · TanWin"))
-      : h("a.brand", { href: "#/", "aria-label": "TanWin — на главную" }, logo(), h("span.brand-name", null, "TanWin"), h("span.brand-sub", null, "путь к чтению Корана")),
+    h("a.brand", { href: "#/", "aria-label": "TanWin — на главную" }, logo(), h("span.brand-name", null, "TanWin"), h("span.brand-sub", null, "путь к чтению Корана")),
     h("div.nav-tabs", { role: "tablist" }, ...TABS.map((t) => {
       const on = t.path === "/" ? active === "/" : active.startsWith(t.path);
       return h("a.tab", { href: "#" + t.path, class: on ? "on" : "", "aria-current": on ? "page" : null }, icon(t.ic, { size: 24 }), h("span", null, t.label));
     })),
     canFullscreen() ? h("button.nav-fs", { type: "button", "data-fs-switch": true, onclick: () => setFullscreen(!isFullscreen()) },
       icon(isFullscreen() ? "shrink" : "expand", { size: 18 }), h("span", null, isFullscreen() ? "Выйти из полного экрана" : "На весь экран")) : "",
-    h("div.nav-foot", null, ...(QURAN_APP ? [] : [
+    h("div.nav-foot", null,
       h("div.nf-row", null, icon("flame", { size: 18, fill: true, sw: 1, cls: streakNow() ? "fire" : "" }), h("b", null, streakNow()), h("span", null, "дней подряд")),
-      h("div.nf-row", null, icon("nur", { size: 18, fill: true, sw: 1, cls: "nur" }), h("b", null, s.xp), h("span", null, `нура · уровень ${lv.n}`))]),
+      h("div.nf-row", null, icon("nur", { size: 18, fill: true, sw: 1, cls: "nur" }), h("b", null, s.xp), h("span", null, `нура · уровень ${lv.n}`)),
       h("a.nf-ver", { href: "#/changelog" }, `Версия ${APP_VERSION} · в разработке`)));
 }
 export async function installApp() {
-  if (canPrompt()) { if (await install()) toast(`${APP_NAME} установлен — ищите его на рабочем столе ✓`); }
+  if (canPrompt()) { if (await install()) toast("TanWin установлен — ищите его на рабочем столе ✓"); }
   else toast(manualHint(), 6000);
 }
 onFullscreenChange(() => renderNav(location.hash.replace(/^#/, "") || "/"));
@@ -113,17 +108,14 @@ const routes = [
   [/^\/welcome$/, () => import("./views/onboard.js").then((m) => m.Onboarding()), "Знакомство"],
 ];
 const FULLSCREEN = /^\/(learn|surah|practice|welcome|read|juz|page|mark)/;
-const QURAN_PATHS = /^\/(quran|read|juz|page|mark|bookmarks|changelog)(\/|$)/; // всё, что есть в «Моём Коране»
 
 let routing = 0;
 async function route() {
   const my = ++routing;
   stop();
-  store.sync(); // другое окно (TanWin или «Мой Коран») могло что-то записать — новый экран рисуем по свежим данным
+  store.sync(); // другая вкладка могла что-то записать — новый экран рисуем по свежим данным
   const path = location.hash.replace(/^#/, "") || "/";
-  // «Мой Коран»: знакомства с курсом нет, остальные разделы TanWin ведут к списку сур
-  if (QURAN_APP) { if (!QURAN_PATHS.test(path)) { location.replace("#/quran"); return; } }
-  else if (!store.get().profile.onboarded && !path.startsWith("/welcome")) { location.replace("#/welcome"); return; }
+  if (!store.get().profile.onboarded && !path.startsWith("/welcome")) { location.replace("#/welcome"); return; }
   const full = FULLSCREEN.test(path);
   document.body.classList.toggle("fullscreen", full);
   renderNav(path);
@@ -139,7 +131,7 @@ async function route() {
       const name = typeof title === "function" ? title(...m.slice(1)) : title;
       setScreen(name, path); // для кнопки «Написать разработчику»
       hit(path, name);
-      if (!full) import("./views/qapp.js").then((m) => m.updateNotice()); // один раз: «приложение обновляется само»
+      if (!full) updateNotice(); // один раз: «приложение обновляется само»
     } catch (e) {
       console.error(e);
       view.replaceChildren(h("div.page", null, h("div.card", null, h("h2", null, "Что-то пошло не так"), h("p", null, "Проверьте подключение к интернету и обновите страницу."), h("pre.small", null, String(e?.message || e)), h("a.btn.primary", { href: "#/" }, "На главную"))));
@@ -212,7 +204,7 @@ function startMetrika() {
   const count = (map) => Object.values(map).filter((x) => x.done && !x.skipped).length;
   const nt = nextTarget();
   initMetrika({
-    params: { Режим: isStandalone() ? "приложение" : "браузер", Приложение: APP_NAME },
+    params: { Режим: isStandalone() ? "приложение" : "браузер" },
     user: {
       "Пройдено уроков": count(s.lessons),
       "Выучено сур": count(s.surahs),
@@ -262,6 +254,21 @@ export async function checkUpdate() {
       swReg.waiting?.postMessage({ type: "SKIP_WAITING" });
     } else toast(`У вас последняя версия — ${APP_VERSION} ✓`, 4000);
   } catch { toast("Не получилось проверить обновление. Включите или выключите VPN и попробуйте ещё раз.", 7000); }
+}
+
+/**
+ * Окно «Приложение обновляется само»: один раз каждому. Обновление может не дойти из-за VPN (включённого или выключенного),
+ * и тогда приложение зависает или не открывается — человек должен знать, что это не поломка и что делать.
+ */
+const NOTE = "tanwin.updNote";
+function updateNotice() {
+  try { if (localStorage.getItem(NOTE) || navigator.webdriver) return; localStorage.setItem(NOTE, "1"); } catch { return; }
+  modal((close) => h("div.upd-note", null,
+    h("h2", null, "Приложение обновляется само"),
+    h("p", null, "Мы почти каждый день делаем его лучше. Обновления приходят сами — устанавливать ничего не нужно."),
+    h("p", null, "Но иногда обновление доходит не сразу: это зависит от того, включён у вас VPN или выключен. Тогда приложение может зависнуть, не открыть страницу или показать ошибку."),
+    h("p", null, h("b", null, "Это не поломка."), " Если что-то не работает — включите или выключите VPN и нажмите «Проверить обновление»: кнопка в разделе «Ещё» → «О приложении»."),
+    h("button.btn.primary.wide", { type: "button", onclick: close }, "Понятно")));
 }
 
 start();

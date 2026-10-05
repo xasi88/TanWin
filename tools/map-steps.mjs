@@ -9,17 +9,16 @@
 //   - есть `селектор`             такой элемент есть, и он виден
 //   - нет `селектор`              видимого элемента такого нет
 // Селекторы — как в Playwright: CSS, `text="Точный текст"`, `text=/часть/`, `>> nth=0`.
-// Перед шагом можно написать «только TanWin:» или «только Мой Коран:». После шага через « — » — пояснение.
+// После шага через « — » — пояснение.
 export const VERBS = ["состояние", "ширина", "открыть", "коснуться", "нажать", "держать", "есть", "нет"];
-export const ONLY = { TanWin: "TanWin", "Мой Коран": "Мой Коран отдельным приложением" }; // слово в шаге → заметка приложения
-const STEP = new RegExp(`^- (?:только (${Object.keys(ONLY).join("|")}): )?(${VERBS.join("|")}) \`([^\`]+)\`(?: — .*)?$`);
+const STEP = new RegExp(`^- (${VERBS.join("|")}) \`([^\`]+)\`(?: — .*)?$`);
 
-/** Разбирает раздел «Робот»: { steps: [{ only, verb, arg, line }], bad: [строки, которые не удалось понять] }. */
+/** Разбирает раздел «Робот»: { steps: [{ verb, arg, line }], bad: [строки, которые не удалось понять] }. */
 export function parseSteps(text = "") {
   const steps = [], bad = [];
   for (const line of text.split("\n").map((l) => l.trimEnd()).filter((l) => l.trim())) {
     const m = line.match(STEP);
-    if (m) steps.push({ only: m[1] ? ONLY[m[1]] : "", verb: m[2], arg: m[3], line }); else bad.push(line);
+    if (m) steps.push({ verb: m[1], arg: m[2], line }); else bad.push(line);
   }
   return { steps, bad };
 }

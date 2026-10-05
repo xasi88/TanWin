@@ -1,5 +1,5 @@
-// Робот по экранам: открывает каждый экран из карты функций (docs/Карта TanWin/Экраны) в настоящем браузере — в TanWin
-// и в отдельном «Моём Коране» — и проверяет, что всё перечисленное в разделе «Робот» его заметки на месте.
+// Робот по экранам: открывает каждый экран из карты функций (docs/Карта TanWin/Экраны) в настоящем браузере
+// и проверяет, что всё перечисленное в разделе «Робот» его заметки на месте.
 // Так пропажу кнопки или плитки на одном из экранов видно до выпуска. Как пишутся шаги — tools/map-steps.mjs.
 // Сервер не нужен: робот поднимает свой.
 // Запуск из корня проекта:  node tools/audit/screens-check.mjs [часть названия экрана]
@@ -13,7 +13,6 @@ import { parseSteps } from "../map-steps.mjs";
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
 const DIR = join(root, "docs", "Карта TanWin", "Экраны");
-const APPS = { TanWin: { path: "/", name: "TanWin" }, "Мой Коран отдельным приложением": { path: "/quran/", name: "Мой Коран" } };
 const filter = (process.argv[2] || "").toLowerCase();
 
 // ---------- С какими данными открывается приложение ----------
@@ -54,7 +53,7 @@ const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/cs
 const server = createServer(async (req, res) => {
   let path = normalize(decodeURIComponent(new URL(req.url, "http://x").pathname)).replace(/^([/\\])+/, "");
   if (path.includes("..")) { res.writeHead(403); return res.end(); }
-  if (!path || /[/\\]$/.test(path)) path += "index.html"; // «/quran/» — отдельное приложение
+  if (!path || /[/\\]$/.test(path)) path += "index.html"; // «/quran/» — старый адрес отдельного «Моего Корана»
   try { const body = await readFile(join(root, path)); res.writeHead(200, { "Content-Type": TYPES[extname(path)] || "application/octet-stream" }); res.end(body); }
   catch { res.writeHead(404); res.end(); }
 }).listen(0, "127.0.0.1");
@@ -64,9 +63,8 @@ const BASE = `http://127.0.0.1:${server.address().port}`;
 // ---------- Заметки экранов ----------
 const notes = readdirSync(DIR).filter((f) => f.endsWith(".md")).map((f) => {
   const src = readFileSync(join(DIR, f), "utf8").replace(/\r\n/g, "\n");
-  const apps = [...(src.match(/^приложения:\n((?:\s+-.*\n)+)/m)?.[1] || "").matchAll(/\[\[([^\]]+)\]\]/g)].map((m) => m[1]);
   const robot = src.match(/^## Робот\n([\s\S]*?)(?=^## |(?![\s\S]))/m)?.[1] || "";
-  return { name: f.replace(/\.md$/, ""), apps, ...parseSteps(robot) };
+  return { name: f.replace(/\.md$/, ""), ...parseSteps(robot) };
 }).filter((n) => n.name.toLowerCase().includes(filter));
 
 // Виден ли элемент человеку: есть размер, не спрятан и не прозрачен (панели чтения прячутся прозрачностью)
@@ -83,9 +81,8 @@ const fails = [];
 let checks = 0, runs = 0;
 for (const note of notes) {
   if (!note.steps.length) { fails.push(`${note.name}: нет шагов в разделе «Робот»`); console.log(`✗ ${note.name}: нет шагов в разделе «Робот»`); continue; }
-  for (const app of note.apps) {
-    const where = `${note.name} · ${APPS[app]?.name || app}`;
-    if (!APPS[app]) { fails.push(`${where}: неизвестное приложение`); continue; }
+  {
+    const where = note.name;
     const ctx = await browser.newContext({ viewport: { width: 390, height: 800 }, serviceWorkers: "block" });
     await ctx.route(/mc\.yandex|everyayah|qurancdn|verses\.quran/, (r) => r.abort());
     const page = await ctx.newPage();
@@ -96,7 +93,6 @@ for (const note of notes) {
     const has = (sel) => page.locator(sel).evaluateAll(shown);
     try {
       for (const s of note.steps) {
-        if (s.only && s.only !== app) continue;
         if (s.verb === "состояние") { if (!STATES[s.arg]) throw new Error(`нет состояния «${s.arg}»`); state = s.arg; }
         else if (s.verb === "ширина") { await page.setViewportSize({ width: +s.arg, height: 800 }); await settle(); }
         else if (s.verb === "открыть") {
@@ -109,7 +105,7 @@ for (const note of notes) {
             }, [STATES[state](), QUIET]);
             seeded = true;
           }
-          await page.goto(BASE + APPS[app].path + s.arg);
+          await page.goto(BASE + "/" + s.arg);
           // приложение готово, когда на месте заставки появился экран; у страниц для поисковиков (без #view) — когда страница загрузилась
           await page.waitForFunction(() => { const v = document.querySelector("#view"); return v ? v.firstElementChild && !v.querySelector(".boot") : document.readyState === "complete"; }, null, { timeout: 20000 });
           await settle(600);
