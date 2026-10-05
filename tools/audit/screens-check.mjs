@@ -110,7 +110,8 @@ for (const note of notes) {
             seeded = true;
           }
           await page.goto(BASE + APPS[app].path + s.arg);
-          await page.waitForFunction(() => { const v = document.querySelector("#view"); return v?.firstElementChild && !v.querySelector(".boot"); }, null, { timeout: 20000 });
+          // приложение готово, когда на месте заставки появился экран; у страниц для поисковиков (без #view) — когда страница загрузилась
+          await page.waitForFunction(() => { const v = document.querySelector("#view"); return v ? v.firstElementChild && !v.querySelector(".boot") : document.readyState === "complete"; }, null, { timeout: 20000 });
           await settle(600);
         }
         else if (s.verb === "коснуться") { const [x, y] = s.arg.split(",").map(Number); await page.mouse.click(x, y); await settle(450); }
