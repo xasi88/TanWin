@@ -10,6 +10,7 @@ import { store, surahDone, readTick, readPage, readGoalDone } from "../store.js"
 import { go } from "../app.js";
 import { wakeWhile } from "../wake.js";
 import { marks, addMark, marksSheet, planText, doneToday, setMark } from "./bookmarks.js";
+import { quranInstallCard, quranFoot } from "./qapp.js";
 import { enterFullscreen, exitFullscreen, isFullscreen, wantFullscreen, onFullscreenChange } from "../fullscreen.js";
 
 export const arNum = (n) => String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[d]);
@@ -77,13 +78,15 @@ export async function MyQuran() {
     } else {
       const surahs = h("div.surah-list", null, ...list.map((s) => row(s)));
       body.replaceChildren(
+        quranInstallCard() || "",
         continueReading() || "",
         h("button.card.pages-card.mq-juz", { type: "button", onclick: () => open(-1) },
           h("span.rc-ic", null, icon("page", { size: 24 })),
           h("div", null, h("b", null, "30 джузов"), h("div.muted", null, "Прочесть джуз целиком или выбрать суру внутри джуза")),
           icon("right")),
         h("h2.mq-h", null, "Все суры"),
-        surahs);
+        surahs,
+        quranFoot() || "");
       scrub = surahScrub(surahs, list);
     }
   };

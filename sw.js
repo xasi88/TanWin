@@ -1,8 +1,11 @@
 // Service worker TanWin: офлайн-режим. Список файлов и версия обновляются командой: node tools/build.mjs
-const VERSION = "025842a56f";
+const VERSION = "ff12d6344f";
 const CORE = `tanwin-core-${VERSION}`;
 const AUDIO = "tanwin-audio";
 const ROOT = new URL("./", self.location).pathname;
+// Страницы самого приложения: TanWin и «Мой Коран» (/quran/ — тот же код отдельным значком)
+const APP_PAGES = [ROOT, ROOT + "index.html", ROOT + "quran/", ROOT + "quran/index.html"];
+const isQuran = (path) => path.startsWith(ROOT + "quran/");
 /*FILES*/
 const FILES = [
   "./",
@@ -176,6 +179,10 @@ const FILES = [
   "icons/icon-512.png",
   "icons/icon-maskable-512.png",
   "icons/icon.svg",
+  "icons/quran-192.png",
+  "icons/quran-512.png",
+  "icons/quran-maskable-512.png",
+  "icons/quran.svg",
   "index.html",
   "js/app.js",
   "js/arabic.js",
@@ -184,6 +191,7 @@ const FILES = [
   "js/data.js",
   "js/diagram.js",
   "js/donors.js",
+  "js/env.js",
   "js/exercises.js",
   "js/feedback.js",
   "js/fullscreen.js",
@@ -206,6 +214,7 @@ const FILES = [
   "js/views/more.js",
   "js/views/onboard.js",
   "js/views/progress.js",
+  "js/views/qapp.js",
   "js/views/quran.js",
   "js/views/reference.js",
   "js/views/review.js",
@@ -213,6 +222,8 @@ const FILES = [
   "js/views/thanks.js",
   "js/wake.js",
   "manifest.webmanifest",
+  "quran/index.html",
+  "quran/manifest.webmanifest",
 ];
 /*END*/
 const AUDIO_HOSTS = ["audio.qurancdn.com", "everyayah.com", "verses.quran.com", "mirrors.quranicaudio.com"];
@@ -241,7 +252,7 @@ self.addEventListener("install", (e) => {
     for (let i = 0; i < FILES.length; i += 8) await Promise.all(FILES.slice(i, i + 8).map((f) => grab(c, f)));
     // приложение нигде не открыто (открыта только страница для поисковиков или вообще ничего) — прерывать нечего, включаемся сразу
     const wins = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-    if (!wins.some((w) => [ROOT, ROOT + "index.html"].includes(new URL(w.url).pathname))) self.skipWaiting();
+    if (!wins.some((w) => APP_PAGES.includes(new URL(w.url).pathname))) self.skipWaiting();
   })());
 });
 self.addEventListener("activate", (e) => {
@@ -297,7 +308,7 @@ self.addEventListener("fetch", (e) => {
     return;
   }
   // Страницы для поисковиков (/alfavit/…) — не часть приложения: берём из сети, без связи отправляем в приложение
-  if (req.mode === "navigate" && url.pathname !== ROOT && url.pathname !== ROOT + "index.html") {
+  if (req.mode === "navigate" && !APP_PAGES.includes(url.pathname)) {
     e.respondWith(fetch(req).catch(() => Response.redirect(ROOT)));
     return;
   }
@@ -306,11 +317,11 @@ self.addEventListener("fetch", (e) => {
   if (!DEV) {
     e.respondWith((async () => {
       const c = await caches.open(CORE);
-      const hit = (await c.match(req, { ignoreSearch: true })) || (req.mode === "navigate" ? await c.match("./") : null);
+      const hit = (await c.match(req, { ignoreSearch: true })) || (req.mode === "navigate" ? await c.match(isQuran(url.pathname) ? "quran/index.html" : "./") : null);
       return hit || fetch(req);
     })());
     return;
   }
   e.respondWith(fetch(req).then((r) => { if (r.ok) { const cp = r.clone(); caches.open(CORE).then((c) => c.put(req, cp)); } return r; })
-    .catch(() => caches.match(req, { ignoreSearch: true }).then((hit) => hit || (req.mode === "navigate" ? caches.match("index.html") : Response.error()))));
+    .catch(() => caches.match(req, { ignoreSearch: true }).then((hit) => hit || (req.mode === "navigate" ? caches.match(isQuran(url.pathname) ? "quran/index.html" : "index.html") : Response.error()))));
 });
