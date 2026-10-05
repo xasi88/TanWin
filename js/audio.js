@@ -20,7 +20,13 @@ document.addEventListener("pointerdown", unlock, { once: true, capture: true });
 document.addEventListener("keydown", unlock, { once: true, capture: true });
 
 el.addEventListener("ended", () => { const c = current; current = null; emit(); c?.onEnd?.(); });
-el.addEventListener("error", () => { const c = current; current = null; emit(); c?.onError?.(); });
+// У части записей чтеца битый хвост: новый декодер Chromium на последних долях секунды даёт ошибку вместо «ended».
+// Запись при этом прозвучала целиком — считаем её доигранной, иначе чтец встаёт на последнем аяте суры.
+el.addEventListener("error", () => {
+  const c = current, tail = el.error?.code === 3 && el.duration > 0 && el.duration - el.currentTime < 0.6;
+  current = null; emit();
+  if (tail) c?.onEnd?.(); else c?.onError?.();
+});
 el.addEventListener("timeupdate", () => current?.onTime?.(el.currentTime * 1000));
 
 let seq = null; // отмена цепочки записей (playSeq)
