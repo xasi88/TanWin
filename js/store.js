@@ -49,13 +49,34 @@ const DEFAULT = () => ({
   readGoal: null, // до 1.18 — общая цель чтения; теперь цели живут в закладках (upgradeGoals)
 });
 
-let state = load();
+// TanWin и «Мой Коран» — два окна с одним хранилищем (как и две вкладки одного приложения). Каждое держит прогресс в памяти
+// и записывает его целиком, поэтому перед любым изменением окно берёт из хранилища то, что успело записать другое (pull), —
+// иначе его запись стёрла бы чужую работу: закладку, место чтения, пройденный урок. По той же причине каждое изменение
+// записывается сразу: несохранённое в памяти пропало бы при следующем pull.
+let seen = null; // строка из хранилища, по которой построено то, что сейчас в памяти
+const stored = () => { try { return localStorage.getItem(KEY); } catch { return null; } };
+const parse = (raw) => upgradeGoals(merge(DEFAULT(), migrate(JSON.parse(raw))));
+const state = load();
 function load() {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) return upgradeGoals(merge(DEFAULT(), migrate(JSON.parse(raw))));
-  } catch {}
+  const raw = stored();
+  try { if (raw) { const s = parse(raw); seen = raw; return s; } } catch {}
   return DEFAULT();
+}
+const isMap = (x) => !!x && typeof x === "object" && !Array.isArray(x);
+/** Переносит в target всё из src, не подменяя сами объекты: экраны держат ссылки на state и его части. */
+function adopt(target, src) {
+  for (const k of Object.keys(target)) if (!(k in src)) delete target[k];
+  for (const [k, v] of Object.entries(src)) { if (isMap(target[k]) && isMap(v)) adopt(target[k], v); else target[k] = v; }
+}
+/** Берёт из хранилища запись другого окна. Возвращает true, если данные в памяти обновились. */
+function pull() {
+  const raw = stored();
+  if (!raw || raw === seen) return false; // пусто — хранилище очистили: в памяти осталась единственная копия, её и запишем
+  let fresh;
+  try { fresh = parse(raw); } catch { return false; }
+  adopt(state, fresh);
+  seen = raw;
+  return true;
 }
 /**
  * 1.18: цели живут в закладках (mark.plan). Старая цель закладки (goal: N страниц за раз) становится планом
@@ -91,21 +112,30 @@ function merge(base, x) {
   return base;
 }
 function save() {
-  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {}
+  const raw = JSON.stringify(state);
+  try { localStorage.setItem(KEY, raw); seen = raw; } catch {} // не записалось — seen прежний: следующий pull не вернёт старое поверх нового
   listeners.forEach((f) => f(state));
 }
+/** Другое окно записало прогресс — подхватываем сразу (тема, размер текста, закладки), не дожидаясь своей записи. */
+function sync() { if (pull()) listeners.forEach((f) => f(state)); }
+globalThis.addEventListener?.("storage", (e) => { if (e.key === KEY || e.key === null) sync(); });
+// окно могло «спать» в памяти телефона и пропустить это событие — сверяемся, когда к нему возвращаются
+globalThis.addEventListener?.("pageshow", sync);
+globalThis.document?.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") sync(); });
 
 export const store = {
   get: () => state,
   on: (f) => { listeners.add(f); return () => listeners.delete(f); },
-  set(fn) { fn(state); save(); },
-  reset() { state = DEFAULT(); save(); },
-  export: () => JSON.stringify({ app: "TanWin", exported: new Date().toISOString(), state }, null, 1),
+  /** Изменить прогресс: fn получает данные с учётом записей другого окна, результат сразу записывается. */
+  set(fn) { pull(); fn(state); save(); },
+  sync,
+  reset() { adopt(state, DEFAULT()); save(); },
+  export: () => { pull(); return JSON.stringify({ app: "TanWin", exported: new Date().toISOString(), state }, null, 1); },
   import(text) {
     const j = JSON.parse(text);
     const s = j.state || j;
     if (!s || typeof s !== "object" || !("lessons" in s)) throw new Error("Это не файл прогресса TanWin");
-    state = upgradeGoals(merge(DEFAULT(), migrate(s))); save();
+    adopt(state, upgradeGoals(merge(DEFAULT(), migrate(s)))); save();
   },
 };
 
@@ -122,8 +152,8 @@ export function backupDue(now = Date.now()) {
   if (Object.keys(state.lessons).length + Object.keys(state.surahs).length < 3) return false;
   return now - (p.lastBackup || p.created || 0) > WEEK && now > (p.backupSnooze || 0);
 }
-export function backupDone() { state.profile.lastBackup = Date.now(); save(); }
-export function backupLater() { state.profile.backupSnooze = Date.now() + WEEK; save(); }
+export function backupDone() { pull(); state.profile.lastBackup = Date.now(); save(); }
+export function backupLater() { pull(); state.profile.backupSnooze = Date.now() + WEEK; save(); }
 
 // ---------- Опыт, цель дня, серия ----------
 export const LEVEL_XP = (n) => 40 * n * (n - 1); // уровень 1 = 0, 2 = 80, 3 = 240, 4 = 480…
@@ -137,6 +167,7 @@ export const todayXp = () => state.days[today()] || 0;
 
 /** Добавляет опыт; возвращает события (цель дня выполнена, новый уровень). */
 export function addXp(n) {
+  pull();
   const ev = [];
   const d = today();
   const before = state.days[d] || 0;
@@ -179,12 +210,14 @@ export function lastDays(n = 14) {
 /** Засчитывает за сегодня время чтения (мс) и прочитанные страницы. */
 export function readTick(ms, pages = 0) {
   if (!ms && !pages) return;
+  pull();
   const d = today(), x = state.qread.days[d] || (state.qread.days[d] = { ms: 0, pages: 0 });
   x.ms += ms; x.pages += pages;
   save();
 }
 /** Страница p мусхафа прочитана сегодня. Каждая страница за день считается один раз — и после перезапуска приложения тоже. */
 export function readPage(p) {
+  pull();
   const d = today(), x = state.qread.days[d] || (state.qread.days[d] = { ms: 0, pages: 0 });
   if (x.pp?.includes(p)) return;
   for (const k of Object.keys(state.qread.days)) if (k !== d) delete state.qread.days[k].pp; // список страниц нужен только за сегодня
@@ -192,7 +225,7 @@ export function readPage(p) {
   x.pages++;
   save();
 }
-export function readGoalDone() { state.qread.goals++; save(); }
+export function readGoalDone() { pull(); state.qread.goals++; save(); }
 /** Сводка чтения. День засчитан, если читали хотя бы минуту или прочли страницу. */
 export function readStats() {
   const all = Object.entries(state.qread.days);
@@ -210,12 +243,14 @@ export function readStats() {
 // Коробка 0…7; интервал в днях растёт вдвое. Ошибка возвращает элемент в коробку 1.
 const INTERVAL = [0, 1, 2, 4, 8, 16, 32, 64];
 export function srsSeen(key, ok) {
+  pull();
   const now = Date.now();
   const it = state.srs[key] || { box: 0, due: now, ok: 0, bad: 0 };
   if (ok) { it.box = Math.min(7, it.box + 1); it.ok++; } else { it.box = 1; it.bad++; }
   it.due = now + INTERVAL[it.box] * 86400000 - 3600000; // на час раньше, чтобы попасть в «завтра»
   it.last = now;
   state.srs[key] = it;
+  save();
 }
 export const srsDue = (now = Date.now()) => Object.entries(state.srs).filter(([, v]) => v.due <= now).map(([k]) => k);
 export function mastery(key) {
@@ -226,6 +261,7 @@ export function mastery(key) {
 
 // ---------- Уроки ----------
 export function finishLesson(id, { pct, ms, answers, correct, isSurah = false }) {
+  pull();
   const map = isSurah ? state.surahs : state.lessons;
   const prev = map[id] || { stars: 0, best: 0, n: 0 };
   const stars = pct >= 95 ? 3 : pct >= 80 ? 2 : 1;
@@ -243,14 +279,17 @@ export const surahDone = (n) => !!state.surahs[n]?.done;
 // ---------- Трудные слова ----------
 // Слово, в котором ошиблись, попадает в тренировку «Трудные слова» и уходит из неё после двух верных ответов подряд.
 export function hardSeen(key, ok) {
+  pull();
   const it = state.hard[key];
   if (ok) { if (!it) return; it.ok++; if (it.ok >= 2) delete state.hard[key]; }
   else state.hard[key] = { bad: (it?.bad || 0) + 1, ok: 0, last: Date.now() };
+  save();
 }
 /** Ключи трудных слов: сначала самые «ошибочные» и недавние. */
 export const hardWords = () => Object.entries(state.hard).sort((a, b) => b[1].bad - a[1].bad || b[1].last - a[1].last).map(([k]) => k);
 
 export function award(id) {
+  pull();
   if (state.badges[id]) return false;
   state.badges[id] = Date.now();
   save();

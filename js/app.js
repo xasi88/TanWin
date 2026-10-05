@@ -119,6 +119,7 @@ let routing = 0;
 async function route() {
   const my = ++routing;
   stop();
+  store.sync(); // другое окно (TanWin или «Мой Коран») могло что-то записать — новый экран рисуем по свежим данным
   const path = location.hash.replace(/^#/, "") || "/";
   // «Мой Коран»: знакомства с курсом нет, остальные разделы TanWin ведут к списку сур
   if (QURAN_APP) { if (!QURAN_PATHS.test(path)) { location.replace("#/quran"); return; } }

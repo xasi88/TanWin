@@ -176,7 +176,7 @@ function groupEditor(id, onChange) {
     const save = () => {
       const t = name.value.trim();
       if (!t) return toast("Напишите название группы.");
-      if (g) store.set((st) => { st.markGroups.find((x) => x.id === id).name = t; }); else addGroup(t);
+      if (g) store.set((st) => { const x = st.markGroups.find((y) => y.id === id); if (x) x.name = t; }); else addGroup(t); // группу могли удалить в другом окне
       close(); onChange?.();
     };
     name.addEventListener("keydown", (e) => e.key === "Enter" && save());
