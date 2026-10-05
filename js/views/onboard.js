@@ -2,7 +2,7 @@
 import { h, ar, icon, keep } from "../ui.js";
 import { store } from "../store.js";
 import { logo, go } from "../app.js";
-import { track } from "../metrika.js";
+import { track, user, whoParams } from "../metrika.js";
 import { fill } from "../tutor.js";
 
 export function Onboarding() {
@@ -51,7 +51,7 @@ export function Onboarding() {
   function pt(ic, t, s) { return h("div.ob-pt", null, h("span.ob-pt-ic", null, icon(ic, { size: 22 })), h("div", null, h("b", null, t), h("small", null, s))); }
   // обращение и род действуют сразу — уже на следующих экранах знакомства
   const saveProfile = () => store.set((st) => { st.profile.name = data.name; st.profile.goal = data.goal; st.profile.form = data.form; st.profile.gender = data.gender; });
-  function next(label) { return h("button.btn.primary.wide.big", { type: "button", onclick: () => { saveProfile(); step++; draw(); } }, label, icon("right", { size: 20 })); }
+  function next(label) { return h("button.btn.primary.wide.big", { type: "button", onclick: () => { saveProfile(); if (!step) track("onboard_started"); step++; draw(); } }, label, icon("right", { size: 20 })); }
   function choice(key, options) {
     const box = h("div.seg", { role: "radiogroup" });
     options.forEach(([v, t]) => {
@@ -67,7 +67,8 @@ export function Onboarding() {
       saveProfile();
       store.set((st) => { st.profile.onboarded = true; });
       try { sessionStorage.setItem("tanwin.fromWelcome", "1"); } catch {} // в первом уроке будет кнопка «на главную»
-      track("onboarded", { Старт: t });
+      track("onboarded", { Старт: t, ...whoParams() });
+      user(whoParams());
       go(path === "/learn/1.1" ? "/" : path);
       if (path === "/learn/1.1") setTimeout(() => go(path), 50);
     });
@@ -75,7 +76,7 @@ export function Onboarding() {
   }
   const draw = () => { root.replaceChildren(h("div.ob-top", null, step ? h("button.icon-btn", { type: "button", "aria-label": "Назад", onclick: () => { step--; draw(); } }, icon("left")) : h("span"), dots(),
     // «Пропустить» — для тех, кто уже знаком с приложением: без вопросов сразу к выбору, с чего начать
-    step < screens.length - 1 ? h("button.link.ob-skip", { type: "button", onclick: () => { saveProfile(); step = screens.length - 1; draw(); } }, "Пропустить") : h("span")), screens[step]()); };
+    step < screens.length - 1 ? h("button.link.ob-skip", { type: "button", onclick: () => { saveProfile(); track("onboard_skipped", { Шаг: step + 1 }); step = screens.length - 1; draw(); } }, "Пропустить") : h("span")), screens[step]()); };
   draw();
   return root;
 }
