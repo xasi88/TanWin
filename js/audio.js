@@ -2,6 +2,7 @@
 import { wordAudioUrl, RECITERS } from "./data.js";
 import { store } from "./store.js";
 import { track } from "./metrika.js";
+import { ROOT } from "./env.js";
 
 const el = new Audio();
 el.preload = "auto";
@@ -20,7 +21,13 @@ document.addEventListener("pointerdown", unlock, { once: true, capture: true });
 document.addEventListener("keydown", unlock, { once: true, capture: true });
 
 el.addEventListener("ended", () => { const c = current; current = null; emit(); c?.onEnd?.(); });
-el.addEventListener("error", () => { const c = current; current = null; emit(); c?.onError?.(); });
+// У части записей чтеца битый хвост: новый декодер Chromium на последних долях секунды даёт ошибку вместо «ended».
+// Запись при этом прозвучала целиком — считаем её доигранной, иначе чтец встаёт на последнем аяте суры.
+el.addEventListener("error", () => {
+  const c = current, tail = el.error?.code === 3 && el.duration > 0 && el.duration - el.currentTime < 0.6;
+  current = null; emit();
+  if (tail) c?.onEnd?.(); else c?.onError?.();
+});
 el.addEventListener("timeupdate", () => current?.onTime?.(el.currentTime * 1000));
 
 let seq = null; // отмена цепочки записей (playSeq)
@@ -34,7 +41,7 @@ export const playingId = () => current?.id || null;
 export async function playUrl(url, { id = url, rate = 1, onEnd, onTime, onError, onStop } = {}) {
   stop();
   current = { id, onEnd, onTime, onError, onStop };
-  el.src = url;
+  el.src = new URL(url, ROOT).href; // свои записи лежат в корне сайта, а «Мой Коран» открыт из папки /quran/
   el.playbackRate = rate;
   emit();
   try { await el.play(); return true; }
@@ -79,7 +86,7 @@ export function playSeq(items, { gap = 220, onStep, onEnd } = {}) {
 }
 export const syllItem = (id, v) => ({ url: letterAudioUrl(id, v), id: `s:${id}:${v}` });
 export const wordItem = (key) => ({ url: wordAudioUrl(key), id: "w:" + key });
-export function preloadLetter(id, v = null) { const u = letterAudioUrl(id, v); if (u) { const a = new Audio(); a.preload = "auto"; a.src = u; } }
+export function preloadLetter(id, v = null) { const u = letterAudioUrl(id, v); if (u) { const a = new Audio(); a.preload = "auto"; a.src = new URL(u, ROOT).href; } }
 
 /** Предзагрузка слова (браузер положит его в кэш). */
 export function preloadWord(key) { const a = new Audio(); a.preload = "auto"; a.src = wordAudioUrl(key); }
@@ -140,7 +147,7 @@ export const isRecording = () => !!rec;
 /** Огибающая громкости записи — для отрисовки «волны» (n столбиков от 0 до 1). */
 export async function envelope(src, n = 64) {
   const c = ac(); if (!c) return null;
-  const buf = src instanceof Blob ? await src.arrayBuffer() : await (await fetch(src)).arrayBuffer();
+  const buf = src instanceof Blob ? await src.arrayBuffer() : await (await fetch(new URL(src, ROOT))).arrayBuffer();
   const audio = await c.decodeAudioData(buf);
   const d = audio.getChannelData(0);
   const step = Math.floor(d.length / n);

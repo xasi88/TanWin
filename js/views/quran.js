@@ -10,6 +10,7 @@ import { store, surahDone, readTick, readPage, readGoalDone } from "../store.js"
 import { go } from "../app.js";
 import { wakeWhile } from "../wake.js";
 import { marks, addMark, marksSheet, planText, doneToday, setMark } from "./bookmarks.js";
+import { quranInstallCard, quranFoot } from "./qapp.js";
 import { enterFullscreen, exitFullscreen, isFullscreen, wantFullscreen, onFullscreenChange } from "../fullscreen.js";
 
 export const arNum = (n) => String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[d]);
@@ -77,13 +78,15 @@ export async function MyQuran() {
     } else {
       const surahs = h("div.surah-list", null, ...list.map((s) => row(s)));
       body.replaceChildren(
+        quranInstallCard() || "",
         continueReading() || "",
         h("button.card.pages-card.mq-juz", { type: "button", onclick: () => open(-1) },
           h("span.rc-ic", null, icon("page", { size: 24 })),
           h("div", null, h("b", null, "30 джузов"), h("div.muted", null, "Прочесть джуз целиком или выбрать суру внутри джуза")),
           icon("right")),
         h("h2.mq-h", null, "Все суры"),
-        surahs);
+        surahs,
+        quranFoot() || "");
       scrub = surahScrub(surahs, list);
     }
   };
@@ -537,7 +540,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
   // --- текст: его можно перерисовать на ходу (вид, заучивание) — flat всегда описывает текущий ---
   const textBox = h("div.focus-body");
   let flat = []; // все аяты подряд: { p — часть, a — номер аята, el }
-  let sel = null; // аят, отмеченный нажатием на его номер: { s, a } — с него чтец продолжит по кнопке «Слушать»
+  let sel = null; // аят, на котором чтец сейчас или на котором его остановили: { s, a } — с него он продолжит по кнопке в меню
   const build = () => {
     const mode = kind !== "page" && readView() === "ayat" ? "ayat" : "mushaf";
     let prev = null;
@@ -665,9 +668,10 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
     val.textContent = speed; slower.disabled = speed <= SPEED.min; faster.disabled = speed >= SPEED.max;
   };
 
-  // --- чтец. Нажатие на номер аята — читает один этот аят и отмечает его; «Слушать» в меню — читает подряд:
-  // с отмеченного аята, а если ничего не отмечено — с начала суры. «Бисмиллях» — сура с самого начала. ---
-  let pi = -1, reps = 0, repeatN = 1, single = false;
+  // --- чтец. Нажатие на номер аята — читает подряд с него до конца открытого текста (суры, джуза, страницы, аятов цели).
+  // Отметка идёт за чтецом: остановили — плитка в меню продолжит с того же аята; ничего не слушали — с начала суры.
+  // «Бисмиллях» — сура с самого начала. ---
+  let pi = -1, reps = 0, repeatN = 1;
   const setSel = (x) => {
     textBox.querySelector(".sel")?.classList.remove("sel");
     sel = x ? { s: x.p.s, a: x.a } : null;
@@ -675,6 +679,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
   };
   const play = () => {
     const x = flat[pi];
+    setSel(x);
     x.p.view.scrollTo(x.a);
     playAyah(x.p.s, x.a, {
       onTime: (ms) => x.p.view.highlight(x.a, ms),
@@ -682,9 +687,8 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
         x.p.view.highlight(x.a, -1);
         if (++reps < repeatN) return play();
         reps = 0;
-        if (single) { pi = -1; return; }
         if (pi < flat.length - 1) { pi++; play(); }
-        else { pi = -1; toast("Прослушано. Теперь прочитайте сами — вслух!"); }
+        else { pi = -1; setSel(null); syncListen(); toast("Прослушано. Теперь прочитайте сами — вслух!"); }
       },
       onError: () => toast("Не удалось загрузить аудио. Проверьте интернет."),
       onStop: () => x.p.view.highlight(x.a, -1),
@@ -693,20 +697,17 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
   /** Читать подряд с аята x. bism — начать с «Бисмилляхи-р-рахмани-р-рахим» (запись первого аята Аль-Фатихи), если x — первый аят суры. */
   const listenFrom = (x, bism = false) => {
     setRunning(false);
-    single = false; pi = flat.indexOf(x); reps = 0;
+    pi = flat.indexOf(x); reps = 0;
     if (!bism || x.a !== 1 || x.p.s === 1 || x.p.s === 9) return play();
     if (x === flat[0]) scroller.scrollTo({ top: 0, behavior: "smooth" });
     playAyah(1, 1, { onEnd: play, onError: () => toast("Не удалось загрузить аудио. Проверьте интернет.") });
   };
-  /** Прочитать один аят x и остановиться; аят остаётся отмеченным. */
-  const listenOne = (x) => {
-    setRunning(false);
-    setSel(x);
-    single = true; pi = flat.indexOf(x); reps = 0;
-    play();
-    try { if (!localStorage.getItem("tanwin.ayahHint")) { localStorage.setItem("tanwin.ayahHint", "1"); toast("Чтец прочтёт один этот аят. Чтобы он читал дальше без остановки, нажмите на экран и выберите «Слушать с аята».", 6500); } } catch {}
+  /** Нажатие на номер аята: читать подряд с него. */
+  const listenHere = (x) => {
+    listenFrom(x);
+    try { if (!localStorage.getItem("tanwin.ayahHint2")) { localStorage.setItem("tanwin.ayahHint2", "1"); toast("Чтец читает с этого аята и дальше. Чтобы остановить, нажмите на экран и выберите «Остановить чтеца» — потом он продолжит с того же места.", 7000); } } catch {}
   };
-  /** Плитка «Слушать»: с отмеченного аята, иначе — с начала суры, которая сейчас на экране. */
+  /** Плитка «Слушать»: с аята, на котором чтеца остановили, иначе — с начала суры, которая сейчас на экране. */
   const listenAll = () => {
     const x = sel && find(sel.s, sel.a);
     if (x) return listenFrom(x);
@@ -769,7 +770,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
     tiles.replaceChildren(...[
       tile("left", "Назад в «Мой Коран»", () => close()),
       listening ? tile("stop", "Остановить чтеца", () => stop(), true, { fill: true, sw: 1 }, "fm-go")
-        : tile("play", sel ? `Слушать с аята ${sel.a}` : "Слушать суру", () => { listenAll(); hide(); }, false, { fill: true, sw: 1.5 }, "fm-go"),
+        : tile("play", sel ? `Продолжить с аята ${sel.a}` : "Слушать суру", () => { listenAll(); hide(); }, false, { fill: true, sw: 1.5 }, "fm-go"),
       tile("list", "Суры", () => surahPicker(list, here().p.s, (id) => go(`/read/${id}`))),
       tile("more", "Страница, джуз", () => pagePicker(shownPage(), openPage)),
       last.s > 1 ? tile("left", "Пред. сура", () => { const s = here().p.s; if (s > 1) go(`/read/${s - 1}`); }) : null,
@@ -858,7 +859,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
     if (hid) { hid.classList.add("shown"); return; }
     const am = e.target.closest(".ayah-mark");
     const x = am && ayahAt(am);
-    if (x) { if (listening && flat[pi] === x) stop(); else listenOne(x); return; }
+    if (x) { if (listening && flat[pi] === x) stop(); else listenHere(x); return; }
     const bs = e.target.closest(".bismillah"); // «Бисмиллях» — чтец читает суру с самого начала
     const x1 = bs && find(+bs.closest("[data-s]").dataset.s, 1);
     if (x1) { if (listening && flat[pi] === x1) stop(); else { setSel(null); listenFrom(x1, true); } return; }

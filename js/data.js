@@ -2,12 +2,13 @@
 import { clusters } from "./arabic.js";
 import { byChar, byId, SOUND_PAIRS } from "./letters.js";
 import { rulesIn } from "./rules.js";
+import { ROOT } from "./env.js";
 
 const pad = (n) => String(n).padStart(3, "0");
 const cache = new Map();
 async function json(url) {
   if (cache.has(url)) return cache.get(url);
-  const p = fetch(url).then((r) => { if (!r.ok) throw new Error(r.status + " " + url); return r.json(); });
+  const p = fetch(new URL(url, ROOT)).then((r) => { if (!r.ok) throw new Error(r.status + " " + url); return r.json(); });
   cache.set(url, p);
   p.catch(() => cache.delete(url));
   return p;

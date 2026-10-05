@@ -2,8 +2,9 @@
 import { h, ar, icon, toast, confirmBox, SIZES, AR_FONTS, arFont, keep } from "../ui.js";
 import { store, backupDone } from "../store.js";
 import { RECITERS } from "../data.js";
-import { go, installApp } from "../app.js";
-import { isInstalled, onInstallChange } from "../install.js";
+import { go, installApp, checkUpdate } from "../app.js";
+import { isInstalled, onInstallChange, quranInstalled } from "../install.js";
+import { sharedShort } from "./qapp.js";
 import { canFullscreen, wantFullscreen, setFullscreen } from "../fullscreen.js";
 import { APP_VERSION, CHANGELOG, CONTACT } from "../version.js";
 import { devBanner, feedbackButton, openFeedback } from "../feedback.js";
@@ -46,6 +47,12 @@ function installLink() {
   return b;
 }
 
+/** «Мой Коран» отдельным приложением: установка идёт со страницы /quran/ — у неё свой значок и своё название. */
+function quranAppLink() {
+  if (quranInstalled()) return null;
+  return h("a.more-link.install", { href: "quran/?install=1" }, h("span.ml-ic", null, icon("book", { size: 22 })), h("div", null, h("b", null, keep("Установить «Мой Коран» отдельно")), h("small.muted", null, "Второй значок: только чтение Корана, закладки и цели — без уроков. " + sharedShort())), icon("right", { size: 18 }));
+}
+
 export function MoreView() {
   const s = store.get();
   const preview = ar("بِسۡمِ [wٱ]للَّهِ", { cls: "size-preview" });
@@ -69,6 +76,7 @@ export function MoreView() {
     h("header.page-head", null, h("h1", null, "Ещё")),
     h("a.more-link.author-link", { href: "#/author" }, h("span.ml-ic", null, icon("chat", { size: 22 })), h("div", null, h("b", null, "Послание от разработчика"), h("small.muted", null, "Как и зачем появился TanWin — слово автора")), icon("right", { size: 18 })),
     installLink(),
+    quranAppLink(),
     h("a.more-link.thanks-link", { href: "#/thanks" }, h("span.ml-ic", null, icon("heart", { size: 22, fill: true, sw: 1 })), h("div", null, h("b", null, "Благодарности"), h("small.muted", null, "Люди, благодаря пожертвованиям которых состоялся проект")), icon("right", { size: 18 })),
     CONTACT.whatsapp ? h("button.more-link.contact-link", { type: "button", onclick: openFeedback }, h("span.ml-ic", null, icon("chat", { size: 22 })), h("div", null, h("b", null, "Написать автору в WhatsApp"), h("small.muted", null, "Нашли ошибку или неточность? Есть идея? Напишите — версия и экран подставятся сами")), icon("right", { size: 18 })) : null,
     h("div.more-links", null,
@@ -79,6 +87,7 @@ export function MoreView() {
     h("section.card.settings.about-app", null,
       h("h3", null, "О приложении"),
       h("div.set-row", null, h("div", null, h("span.set-label", null, `Версия ${APP_VERSION}`), h("small.muted", null, `${CHANGELOG[0].title} · приложение в активной разработке`)), h("a.btn.secondary", { href: "#/changelog" }, icon("list", { size: 18 }), "Версии")),
+      h("div.set-row", null, h("div", null, h("span.set-label", null, "Обновления приходят сами"), h("small.muted", null, "Если приложение зависает или что-то не открывается — включите или выключите VPN и проверьте обновление")), h("button.btn.secondary", { type: "button", onclick: checkUpdate }, icon("repeat", { size: 18 }), "Проверить")),
       h("div.set-row", null, h("div", null, h("span.set-label", null, "Нашли ошибку?"), h("small.muted", null, "Напишите автору — укажем версию и экран автоматически")), feedbackButton())),
     h("section.card.settings", null,
       h("h3", null, "Профиль и цель"),
