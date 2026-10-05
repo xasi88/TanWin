@@ -29,7 +29,9 @@ section { margin-top: 30px; }
 .lead { font-size: 1.12rem; color: var(--ink-2); }
 .muted { color: var(--ink-2); font-size: .92rem; }
 .ar { font-family: "TW Hafs", "Amiri Quran", "Scheherazade New", "Noto Naskh Arabic", serif; font-size: 1.5em; line-height: 1.6; font-weight: 400; unicode-bidi: isolate; }
-p .ar, li .ar, .name .ar { font-size: 1.35em; line-height: 1; }
+/* арабская вставка в русском тексте: строка с ней становится выше, но буквы не задевают соседние строки (как .ar.inline в приложении) */
+p .ar, li .ar, summary .ar { font-size: 1.4em; line-height: 1.9; padding: 0 .1em; }
+.name .ar { font-size: 1.35em; line-height: 1; }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); padding: 18px; }
 .hero { display: flex; align-items: center; gap: 18px; }
 .glyph { flex: none; display: grid; place-items: center; width: 116px; height: 116px; border-radius: 24px; background: var(--gold-soft); color: var(--gold); }
@@ -68,3 +70,43 @@ p .ar, li .ar, .name .ar { font-size: 1.35em; line-height: 1; }
 .foot { margin-top: 36px; padding-top: 18px; padding-bottom: calc(28px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); color: var(--ink-2); font-size: .92rem; }
 @media (max-width: 400px) { .hero { gap: 14px; } .glyph { width: 92px; height: 92px; } .glyph .ar { font-size: 3.4rem; } .btn.small { padding: 6px 10px; } }
 @media (max-width: 360px) { .btn.small { font-size: .8rem; padding: 6px 8px; } .brand { font-size: 1.05rem; gap: 6px; } .brand .logo { width: 28px; height: 28px; } }
+
+/* ---------- Правила чтения и таджвид (/tajvid) ---------- */
+:root {
+  --r-w: #8a8799; --r-l: #8a8799; --r-s: #8a8799; --r-n: #b8730a; --r-p: #e46c0a; --r-o: #d21f3c; --r-u: #e0445f; --r-x: #8a0f2a;
+  --r-q: #1e6fd9; --r-g: #0f9d58; --r-f: #7b3ae6; --r-F: #c02bbf; --r-i: #0892b3; --r-d: #068a5d; --r-D: #7a8f1c; --r-h: #4d9a10; --r-j: #6b7a90; --r-k: #6b7a90;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --r-w: #7d84a3; --r-l: #7d84a3; --r-s: #7d84a3; --r-n: #f2b640; --r-p: #ff9a3d; --r-o: #ff5c6c; --r-u: #ff7f94; --r-x: #ff3d7a;
+    --r-q: #5aa9ff; --r-g: #3ddc84; --r-f: #b38cff; --r-F: #f070e8; --r-i: #37d0f0; --r-d: #2fd3a2; --r-D: #c2d64a; --r-h: #8fe04a; --r-j: #9aa6c0; --r-k: #9aa6c0;
+  }
+}
+.r-w { color: var(--r-w); } .r-l { color: var(--r-l); } .r-s { color: var(--r-s); } .r-n { color: var(--r-n); } .r-p { color: var(--r-p); } .r-o { color: var(--r-o); }
+.r-u { color: var(--r-u); } .r-x { color: var(--r-x); } .r-q { color: var(--r-q); } .r-g { color: var(--r-g); } .r-f { color: var(--r-f); } .r-F { color: var(--r-F); }
+.r-i { color: var(--r-i); } .r-d { color: var(--r-d); } .r-D { color: var(--r-D); } .r-h { color: var(--r-h); } .r-j { color: var(--r-j); } .r-k { color: var(--r-k); }
+h1 .ar, h2 .ar, .lead .ar, .topics .ar, .pager .ar { font-size: 1.25em; line-height: 1.7; padding: 0 .1em; }
+section.card { margin-top: 18px; }
+.theory > :last-child, .rule > :last-child { margin-bottom: 0; }
+.big { text-align: center; color: var(--gold); margin: 6px 0; }
+.big .ar { font-size: 3rem; line-height: 1.7; }
+.label { font-size: .85rem; font-weight: 800; color: var(--ink-2); margin: 14px 0 8px; }
+.rule { border-left: 6px solid var(--rc); }
+.rule-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.rule-head i { flex: none; width: 18px; height: 18px; border-radius: 50%; background: var(--rc); }
+.rule-head h2 { margin: 0; }
+.words .word .ar, .verse .word .ar { line-height: 1.9; }
+.verse { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 6px; }
+.wheel, .stops { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+.wheel div, .stops div { display: grid; justify-items: center; text-align: center; padding: 10px 8px; border-radius: 16px; background: var(--card-3); }
+.wheel div { border-top: 5px solid var(--rc); }
+.wheel b { color: var(--rc); }
+.wheel small, .stops small { color: var(--ink-2); font-size: .85rem; }
+.stops .ar { font-size: 2.2rem; color: var(--gold); }
+details { border: 1px solid var(--line); border-radius: 16px; background: var(--card); padding: 12px 16px; margin-top: 10px; }
+summary { font-weight: 700; cursor: pointer; }
+details p { margin: 10px 0 0; }
+.topics { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
+.topics a { display: grid; padding: 12px 16px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); color: var(--ink); text-decoration: none; }
+.topics span { color: var(--ink-2); font-size: .92rem; }
+@media (min-width: 560px) { .wheel, .stops { grid-template-columns: repeat(4, 1fr); } .stops { grid-template-columns: repeat(3, 1fr); } }
