@@ -804,29 +804,48 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
 
   // нажатие на текст показывает или прячет панели; на номер аята — чтец читает с него
   // долгое нажатие на слово — карточка слова: его читает чтец, видны транскрипция и правила таджвида
-  let pressTm = 0, pressAt = null, pressed = false;
-  const pressOff = () => { clearTimeout(pressTm); pressAt = null; };
+  let pressTm = 0, pressAt = null, pressT = 0, pressW = null, pressed = false, byTouch = false;
+  const pressOff = () => { clearTimeout(pressTm); pressAt = null; pressW = null; };
   const ayahAt = (el) => { const a = +el.closest("[data-a]")?.dataset.a, s = +el.closest("[data-s]")?.dataset.s; return a && s ? find(s, a) : null; };
+  // палец ещё на экране, когда карточка уже открыта: на Android его отпускание приходит нажатием по затемнению
+  // вокруг карточки и тут же её закрывает — такие нажатия гасим, пока палец не поднят
+  const eat = (e) => { e.stopPropagation(); e.preventDefault(); };
+  const eatClicks = () => {
+    document.addEventListener("click", eat, true);
+    const off = () => setTimeout(() => document.removeEventListener("click", eat, true), 400);
+    for (const ev of ["pointerup", "touchend", "touchcancel"]) addEventListener(ev, off, { once: true, capture: true });
+    setTimeout(off, 5000);
+  };
+  const openWord = (w) => {
+    pressOff();
+    const x = ayahAt(w), wi = +w.dataset.wi;
+    if (!x || !root.isConnected || pressed) return;
+    pressed = true; // отпускание пальца после этого не должно прятать или показывать панели
+    if (running) setRunning(false);
+    if (listening) stop();
+    navigator.vibrate?.(12);
+    eatClicks();
+    wordPop(x.p.s, x.a, wi, x.p.data.v[x.a - 1][0][wi], x.p.meta, pageOf(x));
+  };
   scroller.addEventListener("pointerdown", (e) => {
     const w = e.target.closest?.(".qw");
-    pressOff(); pressed = false;
+    pressOff(); pressed = false; byTouch = e.pointerType !== "mouse";
     if (!w || (e.pointerType === "mouse" && e.button !== 0)) return;
-    pressAt = [e.clientX, e.clientY];
-    pressTm = setTimeout(() => {
-      pressAt = null;
-      const x = ayahAt(w), wi = +w.dataset.wi;
-      if (!x || !root.isConnected) return;
-      pressed = true; // отпускание пальца после этого не должно прятать или показывать панели
-      if (running) setRunning(false);
-      if (listening) stop();
-      navigator.vibrate?.(12);
-      wordPop(x.p.s, x.a, wi, x.p.data.v[x.a - 1][0][wi], x.p.meta, pageOf(x));
-    }, 480);
+    pressAt = [e.clientX, e.clientY]; pressT = performance.now(); pressW = w;
+    pressTm = setTimeout(() => openWord(w), 480);
   });
   scroller.addEventListener("pointermove", (e) => { if (pressAt && Math.hypot(e.clientX - pressAt[0], e.clientY - pressAt[1]) > 9) pressOff(); });
-  for (const ev of ["pointerup", "pointercancel", "pointerleave"]) scroller.addEventListener(ev, pressOff);
+  for (const ev of ["pointerup", "pointerleave", "touchend"]) scroller.addEventListener(ev, pressOff);
+  // Android на долгом нажатии сам отменяет касание (pointercancel) раньше нашего отсчёта: если палец уже держали, отсчёт идёт дальше
+  scroller.addEventListener("pointercancel", () => { if (performance.now() - pressT < 300) pressOff(); });
   scroller.addEventListener("scroll", pressOff, { passive: true });
-  scroller.addEventListener("contextmenu", (e) => { if (e.target.closest?.(".qw")) e.preventDefault(); }); // на телефоне долгое нажатие иначе открывает меню браузера
+  // на телефоне долгое нажатие иначе открывает меню браузера; для Android это ещё и сигнал «слово держат»
+  scroller.addEventListener("contextmenu", (e) => {
+    const w = e.target.closest?.(".qw");
+    if (!w) return;
+    e.preventDefault();
+    if (byTouch && !pressed) openWord(pressW || w);
+  });
   scroller.addEventListener("click", (e) => {
     if (e.target.closest(".focus-end")) return;
     e.preventDefault(); e.stopPropagation();
