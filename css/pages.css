@@ -106,6 +106,8 @@ section.card { margin-top: 18px; }
 details { border: 1px solid var(--line); border-radius: 16px; background: var(--card); padding: 12px 16px; margin-top: 10px; }
 summary { font-weight: 700; cursor: pointer; }
 details p { margin: 10px 0 0; }
+.tips { padding-left: 1.2em; }
+.tips li { margin: .5em 0; }
 .topics { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
 .topics a { display: grid; padding: 12px 16px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); color: var(--ink); text-decoration: none; }
 .topics span { color: var(--ink-2); font-size: .92rem; }

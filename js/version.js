@@ -2,7 +2,7 @@
 // При выпуске новой версии: поднимите APP_VERSION, добавьте запись В НАЧАЛО CHANGELOG,
 // затем `node tools/build.mjs`, commit и push.
 
-export const APP_VERSION = "1.20.0";
+export const APP_VERSION = "1.21.0";
 
 // Контакт автора для сообщений об ошибках. Номер — только цифры, с кодом страны (например, 79001234567).
 export const CONTACT = {
@@ -18,6 +18,13 @@ export const METRIKA_ID = 113307386;
 export const NEWS = { id: "1.18", since: Date.parse("2026-10-06") };
 
 export const CHANGELOG = [
+  {
+    v: "1.21.0", date: "2026-10-05", title: "Как научиться читать Коран с нуля",
+    items: [
+      "Новая страница для начинающих: семь шагов от первой буквы до чтения сур, со ссылками на буквы и правила — tanwin.xasi88.ru/kak-nauchitsya-chitat-koran/",
+      "Её удобно отправлять тем, кто только думает начать",
+    ],
+  },
   {
     v: "1.20.0", date: "2026-10-05", title: "Правила чтения и таджвид — отдельными страницами",
     items: [
