@@ -32,7 +32,7 @@ const flag = (k) => args.includes(k);
 const files = [];
 (function walk(dir) {
   for (const name of readdirSync(dir)) {
-    if (name.startsWith(".")) continue;
+    if (name.startsWith(".") || name === "Мои мысли") continue; // «Мои мысли» — личные записи автора, не заметки карты
     const p = join(dir, name);
     if (statSync(p).isDirectory()) walk(p); else if (name.endsWith(".md")) files.push(p);
   }

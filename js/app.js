@@ -2,7 +2,7 @@
 import { h, $, icon, toast, modal, checkShaping, queueFit, AR_FONTS, arFont } from "./ui.js";
 import { store, streakNow, levelInfo, todayXp, protectStorage } from "./store.js";
 import { loadBank, loadSurahs } from "./data.js";
-import { stop } from "./audio.js";
+import { stop, onFail } from "./audio.js";
 import { checkBadges, courseProgress, nextTarget, lessonById } from "./path.js";
 import { APP_VERSION } from "./version.js";
 import { canPrompt, install, isInstalled, isStandalone, manualHint } from "./install.js";
@@ -159,6 +159,8 @@ async function start() {
   initFullscreen();
   initWake();
   initFeedback();
+  // запись не загрузилась — одна подсказка на всё приложение: уроки, карточки слов, чтец
+  onFail(() => toast("Звук не загружается. Проверьте интернет. Не помогло — включите или выключите VPN.", 6000));
   startMetrika();
   // на странице уже стоит заставка с описанием сайта (index.html) — оставляем её до первого экрана
   if (!view.querySelector(".boot")) view.replaceChildren(h("div.boot", null, logo(72), h("div.spinner")));

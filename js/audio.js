@@ -10,6 +10,12 @@ let current = null; // { id, onEnd, onTime }
 const listeners = new Set();
 export const onPlay = (f) => { listeners.add(f); return () => listeners.delete(f); };
 const emit = () => listeners.forEach((f) => f(current?.id || null));
+// Запись не пришла (нет сети, сервер закрыт) или не начинается дольше SLOW мс — приложение показывает подсказку (app.js).
+// Одна запись — одна подсказка; прерванное и запрещённое браузером воспроизведение сбоем связи не считается.
+const SLOW = 8000;
+const failListeners = new Set();
+export const onFail = (f) => { failListeners.add(f); return () => failListeners.delete(f); };
+const fail = (c) => { if (c.failed) return; c.failed = true; failListeners.forEach((f) => f()); };
 
 // iOS разрешает автопроигрывание только элементу, который уже звучал после касания пользователя
 const SILENT = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
@@ -26,7 +32,7 @@ el.addEventListener("ended", () => { const c = current; current = null; emit(); 
 el.addEventListener("error", () => {
   const c = current, tail = el.error?.code === 3 && el.duration > 0 && el.duration - el.currentTime < 0.6;
   current = null; emit();
-  if (tail) c?.onEnd?.(); else c?.onError?.();
+  if (tail) c?.onEnd?.(); else { c?.onError?.(); if (c) fail(c); }
 });
 el.addEventListener("timeupdate", () => current?.onTime?.(el.currentTime * 1000));
 
@@ -40,12 +46,18 @@ export const playingId = () => current?.id || null;
 
 export async function playUrl(url, { id = url, rate = 1, onEnd, onTime, onError, onStop } = {}) {
   stop();
-  current = { id, onEnd, onTime, onError, onStop };
+  if (!url) { onError?.(); return false; } // записи нет (алиф с огласовкой) — это не сбой связи
+  const me = current = { id, onEnd, onTime, onError, onStop };
   el.src = new URL(url, ROOT).href; // свои записи лежат в корне сайта
   el.playbackRate = rate;
   emit();
+  setTimeout(() => { if (current === me && !el.currentTime) fail(me); }, SLOW);
   try { await el.play(); return true; }
-  catch (e) { if (current?.id === id) { current = null; emit(); } onError?.(e); return false; }
+  catch (e) {
+    if (current === me) { current = null; emit(); }
+    if (e?.name === "NotSupportedError") fail(me);
+    onError?.(e); return false;
+  }
 }
 export const playWord = (key, o = {}) => playUrl(wordAudioUrl(key), { id: "w:" + key, ...o });
 export function playAyah(s, a, o = {}) {
