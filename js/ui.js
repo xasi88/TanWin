@@ -324,6 +324,7 @@ export function toast(msg, ms = 2600) {
   const t = $("#toast");
   t.replaceChildren(msg instanceof Node ? msg : document.createTextNode(you(msg)));
   t.classList.add("show");
+  t.onclick = (e) => { if (!e.target.closest("button, a")) t.classList.remove("show"); }; // нажатие убирает сообщение: оно не должно закрывать кнопки под собой
   clearTimeout(t._tm);
   t._tm = setTimeout(() => t.classList.remove("show"), ms);
 }

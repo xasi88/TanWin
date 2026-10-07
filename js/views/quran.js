@@ -243,7 +243,7 @@ export function surahPlayer(s, data, view, { from = 1, to = data.v.length, onFin
         if (cur < to) { cur++; view.scrollTo(cur); run(); }
         else { playing = false; cur = null; sync(); onFinish?.(); }
       },
-      onError: () => { playing = false; sync(); toast("Не удалось загрузить аудио. Проверьте интернет."); },
+      onError: () => { playing = false; sync(); }, // подсказку «Звук не загружается» показывает само приложение (app.js)
       onStop: () => { if (cur) view.highlight(cur, -1); playing = false; sync(); },
     });
     run();
@@ -687,7 +687,6 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
         if (pi < flat.length - 1) { pi++; play(); }
         else { pi = -1; setSel(null); syncListen(); toast("Прослушано. Теперь прочитайте сами — вслух!"); }
       },
-      onError: () => toast("Не удалось загрузить аудио. Проверьте интернет."),
       onStop: () => x.p.view.highlight(x.a, -1),
     });
   };
@@ -697,7 +696,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
     pi = flat.indexOf(x); reps = 0;
     if (!bism || x.a !== 1 || x.p.s === 1 || x.p.s === 9) return play();
     if (x === flat[0]) scroller.scrollTo({ top: 0, behavior: "smooth" });
-    playAyah(1, 1, { onEnd: play, onError: () => toast("Не удалось загрузить аудио. Проверьте интернет.") });
+    playAyah(1, 1, { onEnd: play });
   };
   /** Нажатие на номер аята: читать подряд с него. */
   const listenHere = (x) => {
