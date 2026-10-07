@@ -12,3 +12,5 @@ Thumbs.db
 tools/promo/out/
 tools/promo/shots/
 tools/promo/audio/
+# Личные записи автора в папке карты — только на его компьютере
+docs/Карта TanWin/Мои мысли/
