@@ -261,21 +261,23 @@ G.syllableRev = (o) => Array.from({ length: o.n }, () => {
   const id = pick(SYL_LETTERS), v = pick(vs);
   // неверные варианты — только с уже пройденными огласовками; не хватает — похожие буквы
   const others = vs.filter((x) => x !== v).map((x) => sylText(id, x));
-  const sim = similarLetters(id, 3 - others.length, SYL_LETTERS).map((x) => sylText(x, v));
+  // буквы с такой же подписью (ث и س — обе «с») в варианты не идут: иначе верных ответов два
+  const sim = similarLetters(id, 28, SYL_LETTERS).filter((x) => sylTr(x, v) !== sylTr(id, v)).slice(0, 3 - others.length).map((x) => sylText(x, v));
   return withOpts({ kind: "syllableRev", key: "V:" + v, layout: "grid4",
     prompt: () => h("div.q-center", null, promptText("Найдите слог"), h("div.q-tr", null, tr(sylTr(id, v)))),
   }, [arOpt(sylText(id, v), true, "opt-letter"), ...[...others, ...sim].map((t) => arOpt(t, false, "opt-letter"))]);
 });
 
 // Неверные варианты чтения: меняем гласную, долготу, удвоение, танвин
-// Какие гласные бывают после согласной, на которую кончается s: после тяжёлых — «о ы у», после «р» — «о и у», иначе «а и у»
-const vowelsAfter = (s) => (/(с̣|д̣|тӀ|зӀ|гӀ|къ|х)[аиуоы]*$/.test(s) ? ["о", "ы", "у"] : /р[аиуоы]*$/.test(s) ? ["о", "и", "у"] : ["а", "и", "у"]);
+// Какие гласные бывают на месте гласной v после начала слова s: после тяжёлых — «о ы у», после «р» — «о и у», иначе «а и у».
+// «с», «д», «з» бывают и лёгкими, и тяжёлыми (ص ض ظ пишутся так же): тяжёлую выдаёт сама гласная — «о» или «ы».
+const vowelsAfter = (s, v = "") => (/р[аиуоы]*$/.test(s) ? ["о", "и", "у"] : "оы".includes(v || "-") || /(тӀ|гӀ|къ|х)[аиуоы]*$/.test(s) ? ["о", "ы", "у"] : ["а", "и", "у"]);
 function mutateTr(t) {
   const out = new Set();
   const chars = [...t];
   for (let i = 0; i < chars.length; i++) {
     if (!"аиуоы".includes(chars[i])) continue;
-    const V = vowelsAfter(chars.slice(0, i).join(""));
+    const V = vowelsAfter(chars.slice(0, i).join(""), chars[i]);
     const long = chars[i + 1] === chars[i] || chars[i - 1] === chars[i];
     for (const v of V) if (v !== chars[i] && !long) { const c = [...chars]; c[i] = v; out.add(c.join("")); }
     if (long && chars[i + 1] === chars[i]) { const c = [...chars]; c.splice(i, 1); out.add(c.join("")); }
@@ -283,7 +285,7 @@ function mutateTr(t) {
   }
   const dbl = t.match(/([бвгджзйклмнрстфхшӀ])\1/);
   if (dbl) out.add(t.replace(dbl[0], dbl[1]));
-  if (/[аиуоы]н$/.test(t)) { const V = vowelsAfter(t.slice(0, -2)); out.add(t.slice(0, -1)); out.add(t.slice(0, -2) + V[(V.indexOf(t.at(-2)) + 1) % 3] + "н"); }
+  if (/[аиуоы]н$/.test(t)) { const V = vowelsAfter(t.slice(0, -2), t.at(-2)); out.add(t.slice(0, -1)); out.add(t.slice(0, -2) + V[(V.indexOf(t.at(-2)) + 1) % 3] + "н"); }
   out.delete(t);
   return [...out];
 }
@@ -339,8 +341,9 @@ G.listenWord = (o) => {
 G.match = (o) => {
   let pairs;
   if (o.mode === "syllable") {
-    const ids = sample(SYL_LETTERS, 5);
-    pairs = ids.map((id) => { const v = pick(["fatha", "kasra", "damma"]); return [sylText(id, v), sylTr(id, v)]; });
+    // пять слогов с разными подписями: ث и س пишутся одинаково, вместе они в пары не идут
+    const seen = new Set();
+    pairs = shuffle(SYL_LETTERS).map((id) => { const v = pick(["fatha", "kasra", "damma"]); return [sylText(id, v), sylTr(id, v)]; }).filter((p) => !seen.has(p[1]) && seen.add(p[1])).slice(0, 5);
   } else {
     const pool = lessonWords({ level: o.level || "damma", maxLen: 5 }, 5);
     const seen = new Set();

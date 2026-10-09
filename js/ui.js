@@ -137,12 +137,11 @@ export function rich(text) {
   return frag;
 }
 
-// Транскрипция: особые знаки выделяются цветом (тяжёлые, межзубные, горловые)
+// Транскрипция: особые звуки выделяются цветом (хь и тӀ — одним, остальные горловые — другим)
 export function tr(text, { hidden = false } = {}) {
   const el = h("span.tr", { class: hidden ? "hid" : "" });
-  for (const ch of text.match(/хь|хӀ|тӀ|зӀ|гӀ|къ|тс|.[̀-ͯ]*/gu) || []) {
-    if (/̣/.test(ch) || ["хь", "тӀ", "зӀ"].includes(ch)) el.append(h("span.tr-heavy", null, ch));
-    else if (/̱/.test(ch) || ch === "тс") el.append(h("span.tr-inter", null, ch));
+  for (const ch of text.match(/хь|хӀ|тӀ|гӀ|къ|.[̀-ͯ]*/gu) || []) {
+    if (["хь", "тӀ"].includes(ch)) el.append(h("span.tr-heavy", null, ch));
     else if (["ʼ", "Ӏ", "х", "хӀ", "гӀ", "къ"].includes(ch)) el.append(h("span.tr-throat", null, ch));
     else el.append(ch);
   }

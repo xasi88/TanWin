@@ -3,7 +3,7 @@ import { h, ar, icon, ring, modal, plural, mixed, keep } from "../ui.js";
 import { UNITS, SURAH_PATH, SURAH_UNIT, lessonById } from "../course.js";
 import { store, streakNow, levelInfo, todayXp, srsDue, lessonDone, surahDone, backupDue, backupLater } from "../store.js";
 import { saveProgressFile } from "./more.js";
-import { lessonUnlocked, surahUnlocked, surahsOpen, unitProgress, nextTarget, courseProgress, allOpen } from "../path.js";
+import { lessonUnlocked, surahUnlocked, surahsOpen, unitProgress, nextTarget, courseProgress, allOpen, lastOpen, setLastOpen } from "../path.js";
 import { surahMeta } from "../data.js";
 import { playLesson } from "../lesson.js";
 import { go, celebrate, installApp } from "../app.js";
@@ -97,12 +97,15 @@ function newsCard() {
   const hide = () => { try { localStorage.setItem("tanwin.news", NEWS.id); } catch {} card.remove(); };
   const card = h("div.card.news-card", null,
     h("b.news-h", null, icon("sparkle", { size: 20 }), "TanWin обновился"),
-    h("p", null, "Ассаляму алейкум! За первые дни к нам присоединились больше 200 человек из 18 стран. Спасибо, что учитесь читать Коран вместе с нами."),
-    h("p", null, "Что изменилось: разделы «Чтение» и «Коран» объединились в «Мой Коран» — там 30 джузов и все суры. У закладок появились цели: страницы на каждый день, любимая сура или отдельные аяты. А каждая прочитанная страница попадает в «Прогресс»."),
-    h("p", null, "Если что-то неудобно или не работает — напишите мне: кнопка «Написать разработчику» есть на каждом экране."),
+    h("p", null, "Ассаляму алейкум! В приложении изменились подписи и голос букв. Не пугайтесь: ваш прогресс на месте, ничего учить заново не нужно."),
+    h("p", null, "Что изменилось. После тяжёлых букв подпись пишется через «о» и «ы»: «къо», «къы», «ро». Так эти буквы и читаются в Коране. Названия букв и знаки теперь такие, как принято в Чечне: «Хьа», «Хо», «ТӀо», «Къоф». Буквы и слоги читает другой голос — по букварю «Каида Нурания». Как читать новые подписи, написано в «Алфавите»."),
+    h("p", null, "На неточность указал Абдуллах Маматиев. Мы исправили её для всех. Спасибо ему — пусть и ему будет за это награда."),
+    h("p", null, "TanWin бесплатный, и делаем мы его вместе. Нашли ошибку или неточность — напишите: кнопка «Написать разработчику» есть на каждом экране. Мы исправим её для всех и поблагодарим вас в списке версий."),
+    h("p", null, "Лучше всего учиться с преподавателем. Нет преподавателя или времени — занимайтесь по приложению сами."),
     h("p.news-sign", null, keep("Хаси Абдуллах, сын Алама")),
     h("div.row.gap.wrap", null,
-      h("a.btn.primary.small-btn", { href: "#/changelog", onclick: hide }, "Все изменения"),
+      h("a.btn.primary.small-btn", { href: "#/letters", onclick: hide }, "Как читать подписи"),
+      h("a.btn.ghost.small-btn", { href: "#/changelog", onclick: hide }, "Все изменения"),
       h("button.btn.ghost.small-btn", { type: "button", onclick: hide }, "Понятно")));
   return card;
 }
@@ -124,7 +127,7 @@ function lessonNode(l, i, u, target) {
   const cur = open && !done && (!allOpen() || (target?.type === "lesson" && target.id === l.id));
   const st = store.get().lessons[l.id];
   const node = h("button.node", {
-    type: "button",
+    type: "button", "data-lesson": l.id,
     class: [done ? "done" : "", cur ? "current" : "", !open ? "locked" : "", l.test ? "test" : ""].join(" "),
     style: { "--off": OFFS[i % OFFS.length] + "px", "--hc": hue(u) },
     "aria-label": `${l.title}${done ? ", пройден" : !open ? ", закрыт" : ""}`,
@@ -162,7 +165,7 @@ function surahNode(n, i, target) {
   const done = surahDone(n), open = surahUnlocked(n);
   const cur = open && !done && (!allOpen() || (target?.type === "surah" && target.n === n));
   const node = h("button.node.surah", {
-    type: "button", class: [done ? "done" : "", cur ? "current" : "", !open ? "locked" : ""].join(" "),
+    type: "button", "data-surah": n, class: [done ? "done" : "", cur ? "current" : "", !open ? "locked" : ""].join(" "),
     style: { "--off": OFFS[i % OFFS.length] + "px", "--hc": "var(--c-gold)" }, "aria-label": `Сура ${m.ru}`,
   },
     h("span.node-disc", null, !open ? icon("lock", { size: 22 }) : done ? icon("check", { size: 28, sw: 3 }) : h("span.node-num", null, n)),
@@ -178,7 +181,10 @@ function surahNode(n, i, target) {
 }
 
 // Этапы свёрнуты, кроме текущего. Что пользователь развернул или свернул сам — помним до перезагрузки.
-const unitOpen = new Map();
+// Открыт всегда один этап. Какой — выбрал сам ученик (помнится до перезапуска или до входа в урок), иначе этап урока,
+// который открывали последним, иначе этап следующего шага пути.
+let pickedUnit; // undefined — ученик ещё не выбирал; null — свернул открытый этап
+const unitOfLast = () => { const x = lastOpen(); return !x ? null : x.t === "surah" ? SURAH_UNIT : unitOfLesson(x.id); };
 function unitBlock(u, target) {
   const p = unitProgress(u);
   const isSurah = u.id === SURAH_UNIT.id;
@@ -195,12 +201,15 @@ function unitBlock(u, target) {
     toggle);
   const sec = h("section.unit", { id: `unit-${u.id}`, class: current ? "current" : "" }, head, nodes);
   const set = (open) => { sec.classList.toggle("open", open); toggle.setAttribute("aria-expanded", open ? "true" : "false"); };
-  set(unitOpen.has(u.id) ? unitOpen.get(u.id) : !!current);
+  sec.setOpen = set;
+  set(pickedUnit !== undefined ? pickedUnit === u.id : (unitOfLast() || (current ? u : null)) === u);
   toggle.addEventListener("click", () => {
     const open = !sec.classList.contains("open");
-    unitOpen.set(u.id, open);
+    pickedUnit = open ? u.id : null;
+    // открыли этап — остальные закрываются
+    if (open) for (const other of sec.parentNode.querySelectorAll(".unit.open")) other.setOpen(false);
     set(open);
-    if (!open && sec.getBoundingClientRect().top < 0) sec.scrollIntoView({ block: "start" });
+    if (sec.getBoundingClientRect().top < 0) sec.scrollIntoView({ block: "start" }); // закрылся этап выше — заголовок не должен уехать за край
   });
   return sec;
 }
@@ -223,7 +232,9 @@ export function HomeView() {
       h("div.path.home-main", null, ...[...UNITS, SURAH_UNIT].map((u) => unitBlock(u, target)))));
   // прокрутка к текущему узлу
   requestAnimationFrame(() => {
-    const cur = page.querySelector(".unit.open .node.current");
+    // встаём на урок, который открывали последним; его нет в открытом этапе — на следующий шаг пути
+    const x = pickedUnit === undefined ? lastOpen() : null;
+    const cur = (x && page.querySelector(x.t === "surah" ? `.unit.open .node[data-surah="${x.n}"]` : `.unit.open .node[data-lesson="${x.id}"]`)) || page.querySelector(".unit.open .node.current");
     if (cur && Object.keys(store.get().lessons).length > 2) cur.scrollIntoView({ block: "center", behavior: "instant" in document.documentElement.style ? "instant" : "auto" });
   });
   return page;
@@ -235,6 +246,8 @@ export function LessonRoute(id) {
   const root = h("div.lesson-root");
   if (!l) { go("/"); return root; }
   if (!lessonUnlocked(id) && !l.test) { go("/"); return root; }
+  setLastOpen({ t: "lesson", id });
+  pickedUnit = undefined; // после урока «Путь» открывает его этап
   playLesson(root, {
     id, title: l.title, steps: l.steps, isTest: !!l.test, lesson: l,
     onExit: (res) => {
