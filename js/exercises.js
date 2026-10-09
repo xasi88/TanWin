@@ -1,7 +1,7 @@
 // Генераторы упражнений. Каждое упражнение — объект вопроса, который показывает плеер урока (lesson.js):
 // { kind, key, prompt(): Node, options?: [{node(), correct, label}], layout, play?(), explain?, after?(): Node, custom?(api): Node }
 import { LETTERS, byId, byChar, SHAPE_FAMILIES, SOUND_PAIRS, HEAVY, forms, ZONES, POINTS } from "./letters.js";
-import { CONS, clusters, M, translit, analyze, stripStops } from "./arabic.js";
+import { syllRu, clusters, M, translit, analyze, stripStops } from "./arabic.js";
 import { words, lessonWords, letterExamples, minimalPairs, loadSurah, bank, rareExamples } from "./data.js";
 import { RULES, parseMarkup, plain, rulesIn } from "./rules.js";
 import { SURAH_PATH, knownLetters } from "./course.js";
@@ -234,10 +234,10 @@ G.hasLetter = (o) => sample(words({ level: "shadda", minLen: 3, maxLen: 6 }), o.
 });
 
 // ================= Огласовки =================
-const VOW = { fatha: [M.FATHA, "а"], kasra: [M.KASRA, "и"], damma: [M.DAMMA, "у"], fathatan: [M.FATHATAN, "ан"], kasratan: [M.KASRATAN, "ин"], dammatan: [M.DAMMATAN, "ун"] };
+const VOW = { fatha: [M.FATHA, "a"], kasra: [M.KASRA, "i"], damma: [M.DAMMA, "u"], fathatan: [M.FATHATAN, "a", "н"], kasratan: [M.KASRATAN, "i", "н"], dammatan: [M.DAMMATAN, "u", "н"] };
 const SYL_LETTERS = L_ALL.filter((x) => !["alif", "hamza"].includes(x));
 const sylText = (id, v) => { const ch = byId[id].ch; return v === "fathatan" ? ch + M.FATHATAN + (id === "ta" ? "" : "ا") : ch + VOW[v][0]; };
-const sylTr = (id, v) => (CONS[byId[id].ch] || "") + VOW[v][1];
+const sylTr = (id, v) => syllRu(byId[id].ch, VOW[v][1]) + (VOW[v][2] || ""); // гласная зависит от буквы: после тяжёлых — «о» и «ы»
 G.syllable = (o, lesson) => {
   const vs = o.vowels || ["fatha"];
   const own = o.own && Array.isArray(lesson?.letters) ? lesson.letters.filter((x) => SYL_LETTERS.includes(x)) : null;
@@ -261,27 +261,31 @@ G.syllableRev = (o) => Array.from({ length: o.n }, () => {
   const id = pick(SYL_LETTERS), v = pick(vs);
   // неверные варианты — только с уже пройденными огласовками; не хватает — похожие буквы
   const others = vs.filter((x) => x !== v).map((x) => sylText(id, x));
-  const sim = similarLetters(id, 3 - others.length, SYL_LETTERS).map((x) => sylText(x, v));
+  // буквы с такой же подписью (ث и س — обе «с») в варианты не идут: иначе верных ответов два
+  const sim = similarLetters(id, 28, SYL_LETTERS).filter((x) => sylTr(x, v) !== sylTr(id, v)).slice(0, 3 - others.length).map((x) => sylText(x, v));
   return withOpts({ kind: "syllableRev", key: "V:" + v, layout: "grid4",
     prompt: () => h("div.q-center", null, promptText("Найдите слог"), h("div.q-tr", null, tr(sylTr(id, v)))),
   }, [arOpt(sylText(id, v), true, "opt-letter"), ...[...others, ...sim].map((t) => arOpt(t, false, "opt-letter"))]);
 });
 
 // Неверные варианты чтения: меняем гласную, долготу, удвоение, танвин
+// Какие гласные бывают на месте гласной v после начала слова s: после тяжёлых — «о ы у», после «р» — «о и у», иначе «а и у».
+// «с», «д», «з» бывают и лёгкими, и тяжёлыми (ص ض ظ пишутся так же): тяжёлую выдаёт сама гласная — «о» или «ы».
+const vowelsAfter = (s, v = "") => (/р[аиуоы]*$/.test(s) ? ["о", "и", "у"] : "оы".includes(v || "-") || /(тӀ|гӀ|къ|х)[аиуоы]*$/.test(s) ? ["о", "ы", "у"] : ["а", "и", "у"]);
 function mutateTr(t) {
   const out = new Set();
-  const V = ["а", "и", "у"];
   const chars = [...t];
   for (let i = 0; i < chars.length; i++) {
-    if (!V.includes(chars[i])) continue;
+    if (!"аиуоы".includes(chars[i])) continue;
+    const V = vowelsAfter(chars.slice(0, i).join(""), chars[i]);
     const long = chars[i + 1] === chars[i] || chars[i - 1] === chars[i];
     for (const v of V) if (v !== chars[i] && !long) { const c = [...chars]; c[i] = v; out.add(c.join("")); }
     if (long && chars[i + 1] === chars[i]) { const c = [...chars]; c.splice(i, 1); out.add(c.join("")); }
     if (!long) { const c = [...chars]; c.splice(i, 0, chars[i]); out.add(c.join("")); }
   }
-  const dbl = t.match(/([бтджзклмнрсфшўйһ])\1/);
+  const dbl = t.match(/([бвгджзйклмнрстфхшӀ])\1/);
   if (dbl) out.add(t.replace(dbl[0], dbl[1]));
-  if (/ун$|ин$|ан$/.test(t)) { out.add(t.slice(0, -1)); out.add(t.replace(/.н$/, (m) => ({ "ун": "ан", "ан": "ин", "ин": "ун" })[m])); }
+  if (/[аиуоы]н$/.test(t)) { const V = vowelsAfter(t.slice(0, -2), t.at(-2)); out.add(t.slice(0, -1)); out.add(t.slice(0, -2) + V[(V.indexOf(t.at(-2)) + 1) % 3] + "н"); }
   out.delete(t);
   return [...out];
 }
@@ -337,8 +341,9 @@ G.listenWord = (o) => {
 G.match = (o) => {
   let pairs;
   if (o.mode === "syllable") {
-    const ids = sample(SYL_LETTERS, 5);
-    pairs = ids.map((id) => { const v = pick(["fatha", "kasra", "damma"]); return [sylText(id, v), sylTr(id, v)]; });
+    // пять слогов с разными подписями: ث и س пишутся одинаково, вместе они в пары не идут
+    const seen = new Set();
+    pairs = shuffle(SYL_LETTERS).map((id) => { const v = pick(["fatha", "kasra", "damma"]); return [sylText(id, v), sylTr(id, v)]; }).filter((p) => !seen.has(p[1]) && seen.add(p[1])).slice(0, 5);
   } else {
     const pool = lessonWords({ level: o.level || "damma", maxLen: 5 }, 5);
     const seen = new Set();
@@ -582,11 +587,11 @@ G.raRule = (o) => {
     const cs = clusters(w.d);
     const view = () => arParts(h("span.ar.q-word", { dir: "rtl", lang: "ar" }), cs.map((c, j) => [c.b + c.m, j === ri ? "hl" : ""]));
     const c = cs[ri];
-    const why = /[ًٌَُ]/.test(c.m) ? "Ра с фатхой или даммой — тяжёлая."
-      : /[ٍِ]/.test(c.m) ? "Ра с касрой — лёгкая."
-      : v === "heavy" ? "Ра с сукуном после фатхи/даммы, после хамзат-уль-васль или перед тяжёлой буквой — тяжёлая." : "Ра с сукуном после касры — лёгкая.";
+    const why = /[ًٌَُ]/.test(c.m) ? "Ро с фатхой или даммой — тяжёлая."
+      : /[ٍِ]/.test(c.m) ? "Ро с касрой — лёгкая."
+      : v === "heavy" ? "Ро с сукуном после фатхи/даммы, после хамзат-уль-васль или перед тяжёлой буквой — тяжёлая." : "Ро с сукуном после касры — лёгкая.";
     return withOpts({ kind: "raRule", key: "R:ra", layout: "grid2",
-      prompt: () => h("div.q-center", null, promptText("Выделенная ра — тяжёлая или лёгкая?"), view()),
+      prompt: () => h("div.q-center", null, promptText("Выделенная ро — тяжёлая или лёгкая?"), view()),
       explain: why, after: () => wordChip(w, { showTr: true }),
     }, [textOpt("Тяжёлая", v === "heavy"), textOpt("Лёгкая", v === "light")]);
   });
@@ -597,20 +602,20 @@ function waqfTr(w) {
   const cs = clusters(w.d);
   const last = [...cs].reverse().find((c) => c.b !== "ا" || c.m);
   if (!last) return null;
-  if (last.b === "ة") return t.replace(/т[аиу]н?$/, "һ");
-  if (last.m.includes(M.FATHATAN)) return t.replace(/ан$/, "аа");
-  if (/[ٌٍ]/.test(last.m)) return t.replace(/[уи]н$/, "");
-  if (/[َُِ]/.test(last.m) && !last.m.includes(M.SHADDA)) return t.replace(/[аиу]$/, "");
+  if (last.b === "ة") return t.replace(/т[аиу]н?$/, "хӀ");
+  if (last.m.includes(M.FATHATAN)) return t.replace(/([ао])н$/, "$1$1");
+  if (/[ٌٍ]/.test(last.m)) return t.replace(/[уиы]н$/, "");
+  if (/[َُِ]/.test(last.m) && !last.m.includes(M.SHADDA)) return t.replace(/[аиуоы]$/, "");
   return null;
 }
 G.waqfForm = (o) => {
   const pool = words({ level: "shadda", minLen: 3, maxLen: 6, filter: (w) => { const s = waqfTr(w); return s && s !== w.tr; } });
   return sample(pool.slice(0, 600), o.n).map((w) => {
     const stop = waqfTr(w);
-    const wrong = uniq([w.tr, stop.endsWith("һ") ? w.tr.replace(/н$/, "") : stop + (stop.endsWith("аа") ? "н" : "у"), w.tr.replace(/[аиу]н$/, "а")]).filter((x) => x !== stop).slice(0, 2);
+    const wrong = uniq([w.tr, stop.endsWith("хӀ") ? w.tr.replace(/н$/, "") : stop + (/(аа|оо)$/.test(stop) ? "н" : "у"), w.tr.replace(/[аиуоы]н$/, (m) => ("оы".includes(m[0]) ? "о" : "а"))]).filter((x) => x !== stop).slice(0, 2);
     return withOpts({ kind: "waqfForm", key: "S:waqf", layout: "list",
       prompt: () => h("div.q-center", null, promptText("Как прочитать слово, **остановившись** на нём?"), ar(w.d, { cls: "q-word" })),
-      explain: "На остановке последняя огласовка уходит: фатхатан → «аа», та марбута → «һ», остальное → сукун.",
+      explain: "На остановке последняя огласовка уходит: фатхатан → «аа», та марбута → «хӀ», остальное → сукун.",
     }, [trOpt(stop, true), ...wrong.map((t) => trOpt(t, false))]);
   });
 };

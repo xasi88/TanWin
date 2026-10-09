@@ -5,7 +5,7 @@ import { loadSurah, loadSurahs, wordKey } from "../data.js";
 import { RULES, LEGEND, rulesIn, plain } from "../rules.js";
 import { playAyah, playWord, stop, canRecord, startRecording, stopRecording, playUrl } from "../audio.js";
 import { store } from "../store.js";
-import { surahUnlocked } from "../path.js";
+import { surahUnlocked, setLastOpen } from "../path.js";
 import { playLesson } from "../lesson.js";
 import { renderVerses, surahPlayer, arNum, BISMILLAH, legendModal } from "./quran.js";
 import { go, celebrate } from "../app.js";
@@ -116,6 +116,7 @@ function readAlongStep(n, meta, data) {
 export async function SurahLesson(n) {
   const root = h("div.lesson-root");
   if (!surahUnlocked(n)) { go(`/read/${n}`); return root; }
+  setLastOpen({ t: "surah", n });
   const [list, data] = await Promise.all([loadSurahs(), loadSurah(n)]);
   const meta = list[n - 1];
   // правила, встречающиеся в суре (для упражнений «найди правило»)

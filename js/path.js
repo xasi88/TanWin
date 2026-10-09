@@ -8,6 +8,19 @@ const SURAH_GATE = "8.7"; // суры открываются после этап
 /** Настройка «Открыть все уроки»: например, если прогресс потерялся вместе с данными браузера. */
 export const allOpen = () => !!store.get().settings.unlockAll;
 
+// ---------- Какой урок открывали последним ----------
+// «Путь» открывает этап этого урока и встаёт на его узел: человек возвращается туда, где занимался, а не к самому дальнему уроку.
+// Хранится на устройстве отдельно от прогресса: { t: "lesson", id } или { t: "surah", n }.
+export function setLastOpen(x) { try { localStorage.setItem("tanwin.lastOpen", JSON.stringify(x)); } catch {} }
+export function lastOpen() {
+  try {
+    const x = JSON.parse(localStorage.getItem("tanwin.lastOpen") || "null");
+    if (x?.t === "lesson" && lessonById[x.id]) return x;
+    if (x?.t === "surah" && SURAH_PATH.includes(x.n)) return x;
+  } catch {}
+  return null;
+}
+
 export function lessonUnlocked(id) {
   if (allOpen()) return true;
   const i = ORDER.indexOf(id);

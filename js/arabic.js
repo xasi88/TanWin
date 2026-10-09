@@ -18,14 +18,26 @@ export const stripStops = (s) => s.replace(STOP_MARKS, "").trim();
 
 const isMark = (c) => (c >= "ً" && c <= "ٟ") || c === "ٰ" || (c >= "ۖ" && c <= "ۭ" && c !== "ۥ" && c !== "ۦ") || c === "ۥ" || c === "ۦ";
 
-// 28 букв (+ хамза) — базовые формы и их «семья» для транскрипции
+// 28 букв (+ хамза) — базовые формы и их «семья» для транскрипции.
+// Запись — как принято в Чечне (образец утвердил автор): без точек и чёрточек под буквами, с палочкой «Ӏ».
+// Поэтому ث и س пишутся одинаково «с», ذ и ز — «з»; ص ض ظ отличает от них гласная: «со», «до», «зо».
 export const CONS = {
   "ء": "ʼ", "أ": "ʼ", "إ": "ʼ", "ؤ": "ʼ", "ئ": "ʼ", "آ": "ʼ",
-  "ب": "б", "ٮ": "б", "ت": "т", "ث": "с̱", "ج": "дж", "ح": "хь", "خ": "х", "د": "д", "ذ": "з̱",
-  "ر": "р", "ز": "з", "س": "с", "ش": "ш", "ص": "с̣", "ض": "д̣", "ط": "т̣", "ظ": "з̣",
-  "ع": "ʿ", "غ": "ғ", "ف": "ф", "ق": "ҡ", "ك": "к", "ل": "л", "م": "м", "ن": "н", "ه": "һ",
-  "و": "ў", "ي": "й", "ى": "й", "ة": "т",
+  "ب": "б", "ٮ": "б", "ت": "т", "ث": "с", "ج": "дж", "ح": "хь", "خ": "х", "د": "д", "ذ": "з",
+  "ر": "р", "ز": "з", "س": "с", "ش": "ш", "ص": "с", "ض": "д", "ط": "тӀ", "ظ": "з",
+  "ع": "Ӏ", "غ": "гӀ", "ف": "ф", "ق": "къ", "ك": "к", "ل": "л", "م": "м", "ن": "н", "ه": "хӀ",
+  "و": "в", "ي": "й", "ى": "й", "ة": "т",
 };
+// Гласная в транскрипции зависит от буквы. После семи тяжёлых букв (исти'ля) фатха пишется «о», касра — «ы»;
+// после ر с фатхой — тоже «о» (с касрой ر лёгкая: «ри»). Дамма везде «у».
+const HEAVY7 = new Set([..."خصضطظغق"]);
+const VOWEL_KEY = { a: "a", i: "i", u: "u", fatha: "a", kasra: "i", damma: "u" };
+/** Гласная после буквы b; v — a | i | u или fatha | kasra | damma. */
+export const vowelRu = (b, v) => { const k = VOWEL_KEY[v]; return k === "a" ? (HEAVY7.has(b) || b === "ر" ? "о" : "а") : k === "i" ? (HEAVY7.has(b) ? "ы" : "и") : "у"; };
+/** Слог русскими буквами: буква b с огласовкой v (хамза — одна гласная). */
+export const syllRu = (b, v) => (HAMZAS.has(b) ? "" : CONS[b] ?? "") + vowelRu(b, v);
+// Удвоение (шадда): у звука из двух знаков удваивается первый — «ттӀ», «ккъ», «ххь»
+const GEM = { "дж": "д", "хь": "х", "хӀ": "х", "тӀ": "т", "гӀ": "г", "къ": "к" };
 const HAMZAS = new Set(["ء", "أ", "إ", "ؤ", "ئ", "آ"]);
 // Какой букве алфавита соответствует символ (для статистики «какие буквы в слове»)
 export const BASE_LETTER = { "أ": "ء", "إ": "ء", "ؤ": "ء", "ئ": "ء", "آ": "ء", "ٱ": "ا", "ى": "ا", "ة": "ت", "ٮ": "ب" };
@@ -115,7 +127,6 @@ export function analyze(word) {
 }
 
 // ---------- Транскрипция ----------
-const V = { a: "а", i: "и", u: "у" };
 const LONG = { a: "аа", i: "ии", u: "уу" };
 
 /** Русская транскрипция отдельно прочитанного слова. Особые звуки — особыми знаками (см. легенду в приложении). */
@@ -139,28 +150,29 @@ export function translit(word) {
       else out += n2 && shortV(n2) === "u" ? "у" : "и";
       continue;
     }
-    if (r === "long") { out = lengthen(out, cs[i].b === "و" ? "u" : (cs[i].b === "ي" || (cs[i].b === "ى" && lastVowel(out) === "и")) ? "i" : "a"); continue; }
+    if (r === "long") { out = lengthen(out, cs[i].b === "و" ? "u" : (cs[i].b === "ي" || (cs[i].b === "ى" && /[иы]/.test(lastVowel(out)))) ? "i" : "a"); continue; }
     if (r === "consonant" && b === "ا") { out += "а"; continue; }
     // согласный
     let cons = b === M.TATWEEL || b === "" ? "ʼ" : CONS[b] ?? "";
     if (HAMZAS.has(b) || (b === M.TATWEEL && has(c, M.HAMZA_A, M.HAMZA_B))) cons = out === "" ? "" : "ʼ";
-    if (b === "ة" && !shortV(c)) cons = "һ";
+    if (b === "ة" && !shortV(c)) cons = "хӀ";
     if (has(c, M.MEEM_HI) && b === "ن" && !shortV(c)) cons = "м"; // икляб внутри слова: نۢب → «мб»
     const shadda = has(c, M.SHADDA);
     const vv = shortV(c);
-    if (shadda && cons && out) out += cons === "дж" ? "д" : cons === "хь" ? "х" : cons;
+    if (shadda && cons && out) out += GEM[cons] ?? cons;
     out += cons;
-    if (isTanween(c)) { out += V[vv] + "н"; continue; }
-    if (vv) out += V[vv];
+    if (isTanween(c)) { out += vowelRu(b, vv) + "н"; continue; }
+    if (vv) out += vowelRu(b, vv);
     if (has(c, M.DAGGER)) out = lengthen(out, "a");
     if (has(c, M.SMALL_WAW)) out = lengthen(out, "u");
     if (has(c, M.SMALL_YA, M.SMALL_YA2)) out = lengthen(out, "i");
     if (b === "ۥ") out = lengthen(out, "u");
   }
-  if (allah) out = out.replace(/лл(а)һ/, "лл$1аһ");
+  // имя Аллаха: «а» долгая; лям тяжёлая («о») везде, кроме места после касры
+  if (allah) out = out.replace(/(.?)лла+хӀ/, (m, p) => p + (p === "и" ? "ллаахӀ" : "ллоохӀ"));
   return out;
 }
-const lastVowel = (s) => { const m = s.match(/[аиу]$/); return m ? m[0] : ""; };
+const lastVowel = (s) => { const m = s.match(/[аиуоы]$/); return m ? m[0] : ""; };
 function lengthen(s, v) {
   const lv = lastVowel(s);
   if (lv && lv.repeat(2) === s.slice(-2)) return s; // уже долгая
