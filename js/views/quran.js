@@ -674,12 +674,32 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
     sel = x ? { s: x.p.s, a: x.a } : null;
     x?.el.classList.add("sel");
   };
+  // Чтец ведёт текст: аят встаёт началом у верха экрана — под дорожной картой, а при открытом меню — под ним.
+  // Длинный аят, который не помещается в экран, подтягивается вверх за словом, которое звучит.
+  let ledAt = 0;
+  const topLine = () => {
+    const pad = parseFloat(getComputedStyle(scroller).paddingTop) || 0;
+    return root.classList.contains("quiet") ? pad : Math.min(Math.max(pad, head.offsetHeight + 8), scroller.clientHeight * 0.6);
+  };
+  /** Строка слова w встаёт у верха экрана; lines — сколько строк над ней остаётся на виду. */
+  const lead = (w, lines = 0) => {
+    const r = w.getBoundingClientRect(), lh = parseFloat(getComputedStyle(w).lineHeight) || r.height * 2;
+    const d = r.top - (lh - r.height) / 2 - lines * lh - scroller.getBoundingClientRect().top - topLine();
+    ledAt = performance.now();
+    if (Math.abs(d) > 4) scroller.scrollTo({ top: scroller.scrollTop + d, behavior: "smooth" });
+  };
+  const followWord = (x) => {
+    const now = performance.now();
+    if (touching || now < holdUntil || now - ledAt < 700) return; // читатель листает сам или текст ещё едет
+    const w = x.el.querySelector(".qw.now");
+    if (w && w.getBoundingClientRect().bottom - scroller.getBoundingClientRect().top > scroller.clientHeight * 0.62) lead(w, 1);
+  };
   const play = () => {
     const x = flat[pi];
     setSel(x);
-    x.p.view.scrollTo(x.a);
+    lead(x.el.querySelector(".qw") || x.el);
     playAyah(x.p.s, x.a, {
-      onTime: (ms) => x.p.view.highlight(x.a, ms),
+      onTime: (ms) => { x.p.view.highlight(x.a, ms); followWord(x); },
       onEnd: () => {
         x.p.view.highlight(x.a, -1);
         if (++reps < repeatN) return play();
