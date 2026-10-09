@@ -170,7 +170,7 @@ function wordPop(s, a, wi, w, meta, page) {
 /**
  * Рисует аяты суры. mode: "mushaf" (сплошным текстом) или "ayat" (по аятам с переводом).
  * pages — отметки страниц мусхафа Мадины; hifz — заучивание: 0 все слова видны, 1…3 — скрыта треть / две трети / все;
- * bare — без рамки (для страницы мусхафа). Возвращает { el, highlight(a, ms), scrollTo(a) }.
+ * bare — без рамки (для страницы мусхафа). Возвращает { el, highlight(a, ms), ayahEls }.
  */
 export function renderVerses(s, data, meta, { mode = "mushaf", colors = true, translation = true, from = 1, to = data.v.length, onAyah, pages = false, prevPage = null, hifz = 0, bare = false } = {}) {
   const el = h("div.verses", { class: `${mode}${bare ? " bare" : ""}${hifz ? " hifz" : ""}`, dir: "rtl" });
@@ -214,7 +214,6 @@ export function renderVerses(s, data, meta, { mode = "mushaf", colors = true, tr
       const seg = data.v[a - 1][segIdx()] || [];
       ae.querySelectorAll(".qw").forEach((w, i) => w.classList.toggle("now", ms >= 0 && seg[i * 2] >= 0 && ms >= seg[i * 2] && ms < seg[i * 2 + 1] + 80));
     },
-    scrollTo(a, behavior = "smooth") { ayahEls[a]?.scrollIntoView({ block: "center", behavior }); },
     ayahEls,
   };
 }
@@ -225,27 +224,60 @@ function pageMark(p, juz, s, a) {
     h("span", null, `страница ${p}`), juz ? h("span", null, `джуз ${juz}`) : null);
 }
 
+// ---------- Чтец ведёт текст ----------
+/**
+ * Аят, который начинает чтец, встаёт первой строкой у верха экрана; аят длиннее экрана подтягивается вверх за словом, которое звучит.
+ * box — блок с прокруткой (нет — прокручивается страница); topLine() — где верх текста, считая от верха box;
+ * busy() — читатель листает сам: за словом текст не тянем.
+ */
+function reciterScroll({ box = null, topLine, busy = () => false }) {
+  let ledAt = 0;
+  const top = () => (box ? box.getBoundingClientRect().top : 0);
+  /** Строка слова w встаёт у верха экрана; lines — сколько строк над ней остаётся на виду. */
+  const lead = (w, lines = 0) => {
+    const r = w.getBoundingClientRect(), lh = parseFloat(getComputedStyle(w).lineHeight) || r.height * 2;
+    const d = r.top - (lh - r.height) / 2 - lines * lh - top() - topLine();
+    ledAt = performance.now();
+    if (Math.abs(d) > 4) (box || window).scrollBy({ top: d, behavior: "smooth" });
+  };
+  return {
+    start(ayahEl) { if (ayahEl) lead(ayahEl.querySelector(".qw") || ayahEl); },
+    follow(ayahEl) {
+      if (busy() || performance.now() - ledAt < 700) return; // текст ещё едет
+      const w = ayahEl?.querySelector(".qw.now");
+      if (w && w.getBoundingClientRect().bottom - top() > (box ? box.clientHeight : innerHeight) * 0.62) lead(w, 1);
+    },
+  };
+}
+
 // ---------- Проигрыватель суры ----------
 export function surahPlayer(s, data, view, { from = 1, to = data.v.length, onFinish } = {}) {
   let cur = null, playing = false, reps = 0;
   const settings = () => store.get().settings;
   const repeat = { n: 1 };
+  // верх текста — под верхней строкой урока и под кнопками «Слушать» и повтора, которые прилипают к верху экрана
+  const guide = reciterScroll({ topLine: () => {
+    const tools = btn.closest(".reader-tools");
+    return Math.max(document.querySelector(".lp-top")?.getBoundingClientRect().bottom || 0, tools ? (parseFloat(getComputedStyle(tools).top) || 0) + tools.offsetHeight : 0) + 8;
+  } });
   const playFrom = (a) => {
     cur = a; playing = true; reps = 0; sync();
-    view.scrollTo(a);
-    const run = () => playAyah(s, cur, {
-      onTime: (ms) => view.highlight(cur, ms),
-      onEnd: () => {
-        view.highlight(cur, -1);
-        reps++;
-        if (reps < repeat.n) return run();
-        reps = 0;
-        if (cur < to) { cur++; view.scrollTo(cur); run(); }
-        else { playing = false; cur = null; sync(); onFinish?.(); }
-      },
-      onError: () => { playing = false; sync(); }, // подсказку «Звук не загружается» показывает само приложение (app.js)
-      onStop: () => { if (cur) view.highlight(cur, -1); playing = false; sync(); },
-    });
+    const run = () => {
+      guide.start(view.ayahEls[cur]);
+      playAyah(s, cur, {
+        onTime: (ms) => { view.highlight(cur, ms); guide.follow(view.ayahEls[cur]); },
+        onEnd: () => {
+          view.highlight(cur, -1);
+          reps++;
+          if (reps < repeat.n) return run();
+          reps = 0;
+          if (cur < to) { cur++; run(); }
+          else { playing = false; cur = null; sync(); onFinish?.(); }
+        },
+        onError: () => { playing = false; sync(); }, // подсказку «Звук не загружается» показывает само приложение (app.js)
+        onStop: () => { if (cur) view.highlight(cur, -1); playing = false; sync(); },
+      });
+    };
     run();
   };
   const btn = h("button.btn.primary.play-all", { type: "button" });
@@ -676,30 +708,17 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
   };
   // Чтец ведёт текст: аят встаёт началом у верха экрана — под дорожной картой, а при открытом меню — под ним.
   // Длинный аят, который не помещается в экран, подтягивается вверх за словом, которое звучит.
-  let ledAt = 0;
   const topLine = () => {
     const pad = parseFloat(getComputedStyle(scroller).paddingTop) || 0;
     return root.classList.contains("quiet") ? pad : Math.min(Math.max(pad, head.offsetHeight + 8), scroller.clientHeight * 0.6);
   };
-  /** Строка слова w встаёт у верха экрана; lines — сколько строк над ней остаётся на виду. */
-  const lead = (w, lines = 0) => {
-    const r = w.getBoundingClientRect(), lh = parseFloat(getComputedStyle(w).lineHeight) || r.height * 2;
-    const d = r.top - (lh - r.height) / 2 - lines * lh - scroller.getBoundingClientRect().top - topLine();
-    ledAt = performance.now();
-    if (Math.abs(d) > 4) scroller.scrollTo({ top: scroller.scrollTop + d, behavior: "smooth" });
-  };
-  const followWord = (x) => {
-    const now = performance.now();
-    if (touching || now < holdUntil || now - ledAt < 700) return; // читатель листает сам или текст ещё едет
-    const w = x.el.querySelector(".qw.now");
-    if (w && w.getBoundingClientRect().bottom - scroller.getBoundingClientRect().top > scroller.clientHeight * 0.62) lead(w, 1);
-  };
+  const guide = reciterScroll({ box: scroller, topLine, busy: () => touching || performance.now() < holdUntil });
   const play = () => {
     const x = flat[pi];
     setSel(x);
-    lead(x.el.querySelector(".qw") || x.el);
+    guide.start(x.el);
     playAyah(x.p.s, x.a, {
-      onTime: (ms) => { x.p.view.highlight(x.a, ms); followWord(x); },
+      onTime: (ms) => { x.p.view.highlight(x.a, ms); guide.follow(x.el); },
       onEnd: () => {
         x.p.view.highlight(x.a, -1);
         if (++reps < repeatN) return play();
