@@ -35,13 +35,15 @@ for (const [id, names] of Object.entries(NAMES)) {
 }
 for (const [k, v] of Object.entries(VOW)) jobs.push([`hamza-${k}`, [`alif-${v}`]]);
 jobs.push(["hamza", []]); // название хамзы есть только в «Каиде Нурании»
+// короткие записи слогов (один слог без проговаривания по складам) — их готовит fetch-qaida.mjs
+for (const [name] of [...jobs]) if (name.includes("-")) jobs.push([name + ".s", []]);
 
 const ff = (args) => execFileSync("ffmpeg", ["-hide_banner", "-nostdin", ...args], { stdio: ["ignore", "pipe", "pipe"], encoding: "utf8" });
 const TRIM = "silenceremove=start_periods=1:start_threshold=-42dB:start_silence=0.03,areverse,silenceremove=start_periods=1:start_threshold=-42dB:start_silence=0.08,areverse";
 let n = 0, bytes = 0;
 for (const [name, cands] of jobs) {
   const file = [name, ...cands].map((c) => join(src, c + ".mp3")).find(existsSync); // сначала — запись, уже названная по-нашему
-  if (!file) { console.warn("нет записи:", name, cands.join(" | ")); continue; }
+  if (!file) { if (!name.endsWith(".s")) console.warn("нет записи:", name, cands.join(" | ")); continue; }
   // громкость после обрезки → усиление до среднего −19 дБ, но пик не выше −1 дБ
   const log = spawnSync("ffmpeg", ["-hide_banner", "-nostdin", "-i", file, "-af", `${TRIM},volumedetect`, "-f", "null", "-"], { encoding: "utf8" }).stderr;
   const num = (re) => parseFloat((re.exec(log) || [])[1] ?? "NaN");

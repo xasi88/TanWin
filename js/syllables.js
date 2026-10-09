@@ -174,7 +174,7 @@ export const blendTr = (b) => b.sylls.map((x) => syllTr(x.id, x.v)).join("-");
 
 /** Проиграть пример: слоги по одному, затем слитно (слово Корана — голосом чтеца). onStep(i): i — слог, sylls.length — всё слово. */
 export function playBlend(b, { onStep, onEnd } = {}) {
-  const parts = b.sylls.map((x) => syllItem(x.id, x.v));
+  const parts = b.sylls.map((x) => syllItem(x.id, x.v, true)); // слоги подряд — короткие записи, без проговаривания по складам
   const whole = b.word ? [wordItem(b.word.a)] : [];
   const n = parts.length;
   if (whole.length) return playSeq([...parts, ...whole], { gap: 380, onStep, onEnd });
