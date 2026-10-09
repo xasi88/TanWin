@@ -44,6 +44,23 @@ await page.waitForTimeout(500);
 await openMenu();
 ok("дослушали до конца — отметка снята, снова «Слушать суру»", (await selA()) === 0 && (await goTile()) === "Слушать суру", [await selA(), await goTile()]);
 
+// длинный аят (2:282 выше экрана): начало встаёт у верха, дальше текст идёт за словом, которое звучит
+await page.goto(`${BASE}/#/read/2/282`);
+await page.waitForSelector('.focus [data-s="2"] [data-a="282"] .ayah-mark, .focus [data-a="282"] .ayah-mark', { state: "attached" });
+await page.waitForTimeout(1500);
+await page.evaluate(() => document.querySelector('.focus [data-a="282"] .ayah-mark').click());
+await page.waitForFunction(() => document.querySelector('.focus [data-a="282"] .qw.now'), null, { timeout: 20000 }).catch(() => {});
+const long = () => page.evaluate(() => {
+  const sc = document.querySelector(".focus-scroll"), top = sc.getBoundingClientRect().top, el = document.querySelector('.focus [data-a="282"]'), w = el.querySelector(".qw.now");
+  return { first: Math.round(el.querySelector(".qw").getBoundingClientRect().top - top), now: w ? Math.round(w.getBoundingClientRect().bottom - top) : null, h: sc.clientHeight };
+});
+let at = await long();
+ok("длинный аят: начало у верха экрана", at.first > 0 && at.first < at.h * 0.2, at);
+await page.waitForFunction(() => document.querySelector('.focus [data-a="282"] .qw').getBoundingClientRect().top < 0, null, { timeout: 150000 }).catch(() => {});
+await page.waitForTimeout(1500);
+at = await long();
+ok("длинный аят: текст ушёл вверх за чтецом, слово на виду", at.first < 0 && at.now > 0 && at.now < at.h * 0.7, at);
+
 ok("ошибок на странице нет", !errors.length, errors);
 await browser.close();
 process.exit(fails.length ? 1 : 0);
