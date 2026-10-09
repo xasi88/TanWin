@@ -1,5 +1,6 @@
 // Скачивает записи букв и слогов «Каиды Нурании» из репозитория github.com/ibr7h/al-qaida-nooraniyya
-// и кладёт их в папку под именами TanWin: <id>.mp3 — название буквы, <id>-a|i|u.mp3 — буква с фатхой, касрой, даммой.
+// и кладёт их в папку под именами TanWin: <id>.mp3 — название буквы, <id>-a|i|u.mp3 — буква с фатхой, касрой, даммой
+// (чтец читает слог по складам: «ба — фатха — ба»), <id>-a|i|u.s.mp3 — один этот слог, вырезанный из той же записи.
 // Запуск:  node tools/audio/fetch-qaida.mjs <папка для исходных записей>
 // Потом:   node tools/audio/build.mjs <та же папка>
 // Какая запись к какой букве относится, берётся из описаний уроков самого источника (урок 1 — буквы, урок 4 — слоги).
@@ -23,10 +24,22 @@ for (const it of (await lesson("01")).items) {
   const id = idOf(it.text);
   if (id && !jobs.has(id)) jobs.set(id, it.audio); // ي встречается дважды (вторая — форма ى): берём первую
 }
-for (const it of (await lesson("04")).items) {
+const l4 = (await lesson("04")).items;
+const uses = {}; // сколько записей урока ссылается на файл
+for (const it of l4) uses[it.audio] = (uses[it.audio] || 0) + 1;
+for (const it of l4) {
   if (it.type !== "custom") continue;
   const v = VOW[it.text.at(-1)], id = idOf(it.text.slice(0, -1));
-  if (id && v) jobs.set(`${id}-${v}`, it.audio);
+  if (!id || !v) continue;
+  let file = it.audio;
+  // Ошибка в описании источника: у بَ указан файл f4-131 — это запись «وَ وِ وُ» предыдущей буквы, а f4-132 не указан нигде.
+  // Правило: файл слога занят ещё одной записью, а следующий по номеру свободен — берём следующий.
+  if (uses[file] > 1) {
+    const next = file.replace(/(\d+)(?=\.mp3$)/, (n) => String(+n + 1).padStart(n.length, "0"));
+    if (!uses[next]) { console.log(`${id}-${v}: в источнике указан ${file}, он занят другой записью — берём ${next}`); file = next; }
+    else { console.error(`${id}-${v}: файл ${file} указан дважды, какой верный — неясно`); process.exit(1); }
+  }
+  jobs.set(`${id}-${v}`, file);
 }
 const need = LETTERS.flatMap((l) => (l.id === "alif" ? ["alif"] : [l.id, `${l.id}-a`, `${l.id}-i`, `${l.id}-u`]));
 const missing = need.filter((x) => !jobs.has(x));
@@ -40,7 +53,6 @@ console.log(`Скачано записей: ${need.length}`);
 // Ищем на записи последний всплеск громкости (гласный слога) и провал перед ним (граница со словом «фатха»),
 // режем чуть раньше провала — там, где затих предыдущий гласный: так согласный слога остаётся целым.
 import { spawnSync } from "node:child_process";
-import { renameSync } from "node:fs";
 const RATE = 22050, WIN = 220; // окно 10 мс
 const pcmOf = (file) => { const r = spawnSync("ffmpeg", ["-hide_banner", "-nostdin", "-i", file, "-ac", "1", "-ar", String(RATE), "-f", "s16le", "-"], { maxBuffer: 1e8 }); return new Int16Array(r.stdout.buffer, r.stdout.byteOffset, r.stdout.length >> 1); };
 export function cutPoint(file) {
@@ -62,8 +74,7 @@ export function cutPoint(file) {
 }
 const BARS = " ▁▂▃▄▅▆▇█";
 for (const name of need.filter((n) => n.includes("-"))) {
-  const file = join(out, name + ".mp3"), full = join(out, name + ".full.mp3");
-  renameSync(file, full);
+  const full = join(out, name + ".mp3"), file = join(out, name + ".s.mp3");
   const { cut, env, marks } = cutPoint(full);
   spawnSync("ffmpeg", ["-hide_banner", "-nostdin", "-y", "-ss", cut.toFixed(3), "-i", full, "-af", "afade=t=in:d=0.012", "-c:a", "libmp3lame", "-b:a", "192k", file]);
   const max = Math.max(...env); let line = "";
