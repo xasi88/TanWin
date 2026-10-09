@@ -5,7 +5,7 @@ import { g, you } from "./speech.js";
 import { byId, forms, POINTS, ZONES, LETTERS } from "./letters.js";
 import { letterExamples, lessonWords, words, minimalPairs, loadSurah, wordKey, rareExamples } from "./data.js";
 import { RULES, parseMarkup, plain, rulesIn } from "./rules.js";
-import { M, CONS, stripStops } from "./arabic.js";
+import { M, syllRu, stripStops } from "./arabic.js";
 import { diagram } from "./diagram.js";
 import { playWord, playAyah, stop, sfx, canRecord, startRecording, stopRecording, envelope, playUrl, playLetter, playSyll } from "./audio.js";
 import { letterIntro, letterForms, harakatTiles, syllTile, blendCard, blendsFor, playAllVowels, V3, SYLL_IDS } from "./syllables.js";
@@ -95,8 +95,8 @@ function ruleCard(code) {
 }
 const onlyRuleColored = (w, code) => parseMarkup(w).map(([t, c]) => (c === code ? `[${c}${t}]` : t)).join("");
 
-const MUQ = [["ا[xلٓمٓ]", "002_001_001", "алиф-ляям-миим"], ["ا[xلٓ]ر", "010_001_001", "алиф-ляям-раа"], ["[xكٓ]هي[xعٓصٓ]", "019_001_001", "кааф-һаа-йаа-ʿайн-с̣аад"], ["طه", "020_001_001", "т̣аа-һаа"], ["ط[xسٓمٓ]", "026_001_001", "т̣аа-сиин-миим"], ["ي[xسٓ]", "036_001_001", "йаа-сиин"], ["[xصٓ]", "038_001_001", "с̣аад"], ["ح[xمٓ]", "040_001_001", "хьаа-миим"], ["[xعٓسٓقٓ]", "042_002_001", "ʿайн-сиин-ҡааф"], ["[xقٓ]", "050_001_001", "ҡааф"], ["[xنٓ]", "068_001_001", "нуун"]];
-const STOP_SIGNS = [["ۘ", "мим", "обязательная остановка"], ["ۙ", "ля", "не останавливаться"], ["ۚ", "джим", "равнозначно"], ["ۖ", "сыля", "лучше продолжить"], ["ۗ", "кыля", "лучше остановиться"], ["ۛ", "муʿанака", "на одном из двух мест"]];
+const MUQ = [["ا[xلٓمٓ]", "002_001_001", "алиф-ляям-миим"], ["ا[xلٓ]ر", "010_001_001", "алиф-ляям-роо"], ["[xكٓ]هي[xعٓصٓ]", "019_001_001", "кааф-хӀаа-йаа-Ӏайн-с̣оод"], ["طه", "020_001_001", "тӀоо-хӀаа"], ["ط[xسٓمٓ]", "026_001_001", "тӀоо-сиин-миим"], ["ي[xسٓ]", "036_001_001", "йаа-сиин"], ["[xصٓ]", "038_001_001", "с̣оод"], ["ح[xمٓ]", "040_001_001", "хьаа-миим"], ["[xعٓسٓقٓ]", "042_002_001", "Ӏайн-сиин-къооф"], ["[xقٓ]", "050_001_001", "къооф"], ["[xنٓ]", "068_001_001", "нуун"]];
+const STOP_SIGNS = [["ۘ", "мим", "обязательная остановка"], ["ۙ", "ля", "не останавливаться"], ["ۚ", "джим", "равнозначно"], ["ۖ", "сыля", "лучше продолжить"], ["ۗ", "кыля", "лучше остановиться"], ["ۛ", "муӀанака", "на одном из двух мест"]];
 
 function syllRow(v) {
   return h("div.syll-grid", null, ...SYLL_IDS.map((id) => syllTile(id, v, { cls: "syll" })));
@@ -106,9 +106,8 @@ function syllTable() {
   const t = h("div.syll-table");
   for (const id of ids) {
     const row = h("div.st-row", null, h("span.st-name", null, byId[id].name));
-    for (const [m, v] of [[M.FATHA, "а"], [M.KASRA, "и"], [M.DAMMA, "у"]]) {
-      const c = h("button.st-cell", { type: "button" }, ar(byId[id].ch + m), tr(CONS[byId[id].ch] + v, { hidden: true }));
-      const vk = v === "а" ? "fatha" : v === "и" ? "kasra" : "damma";
+    for (const [m, vk] of [[M.FATHA, "fatha"], [M.KASRA, "kasra"], [M.DAMMA, "damma"]]) {
+      const c = h("button.st-cell", { type: "button" }, ar(byId[id].ch + m), tr(syllRu(byId[id].ch, vk), { hidden: true }));
       c.addEventListener("click", () => { c.querySelector(".tr").classList.remove("hid"); playSyll(id, vk); });
       row.append(c);
     }

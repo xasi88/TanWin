@@ -3,7 +3,8 @@
 // Нужен ffmpeg в PATH. Каждая запись обрезается по тишине, выравнивается по громкости и сжимается (моно, 64 кбит/с).
 //
 // Имена на выходе: <id>.mp3 — название буквы, <id>-a|i|u.mp3 — буква с фатхой, касрой, даммой (id — как в js/letters.js).
-// Исходный набор — репозиторий github.com/bubblesinarabic/alphabets-audio (см. audio/letters/SOURCE.md).
+// Исходный набор — «Каида Нурания», его скачивает tools/audio/fetch-qaida.mjs уже под именами TanWin (см. audio/letters/SOURCE.md).
+// Старый набор (github.com/bubblesinarabic/alphabets-audio) тоже подходит: его имена перечислены в NAMES.
 // Чтобы заменить озвучку своей, достаточно положить в audio/letters файлы с теми же именами.
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, statSync } from "node:fs";
@@ -33,12 +34,13 @@ for (const [id, names] of Object.entries(NAMES)) {
   for (const [k, v] of Object.entries(VOW)) jobs.push([`${id}-${k}`, [SPECIAL[`${id}-${k}`], ...names.map((n) => `${n}-${v}`)].filter(Boolean)]);
 }
 for (const [k, v] of Object.entries(VOW)) jobs.push([`hamza-${k}`, [`alif-${v}`]]);
+jobs.push(["hamza", []]); // название хамзы есть только в «Каиде Нурании»
 
 const ff = (args) => execFileSync("ffmpeg", ["-hide_banner", "-nostdin", ...args], { stdio: ["ignore", "pipe", "pipe"], encoding: "utf8" });
 const TRIM = "silenceremove=start_periods=1:start_threshold=-42dB:start_silence=0.03,areverse,silenceremove=start_periods=1:start_threshold=-42dB:start_silence=0.08,areverse";
 let n = 0, bytes = 0;
 for (const [name, cands] of jobs) {
-  const file = cands.map((c) => join(src, c + ".mp3")).find(existsSync);
+  const file = [name, ...cands].map((c) => join(src, c + ".mp3")).find(existsSync); // сначала — запись, уже названная по-нашему
   if (!file) { console.warn("нет записи:", name, cands.join(" | ")); continue; }
   // громкость после обрезки → усиление до среднего −19 дБ, но пик не выше −1 дБ
   const log = spawnSync("ffmpeg", ["-hide_banner", "-nostdin", "-i", file, "-af", `${TRIM},volumedetect`, "-f", "null", "-"], { encoding: "utf8" }).stderr;

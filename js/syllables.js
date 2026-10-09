@@ -3,7 +3,7 @@
 // потом слоги складываются в слово. Звук — записи букв и слогов (audio/letters), слова — чтец Корана.
 import { h, ar, tr, icon, rich, modal, gone, shuffle } from "./ui.js";
 import { byId, byChar, forms, LETTERS } from "./letters.js";
-import { M, CONS, clusters } from "./arabic.js";
+import { M, syllRu, clusters } from "./arabic.js";
 import { words } from "./data.js";
 import { playLetter, playSyll, playSeq, syllItem, wordItem, letterAudioUrl, onPlay, playingId, stop } from "./audio.js";
 
@@ -19,7 +19,7 @@ const markToVowel = { [M.FATHA]: "fatha", [M.KASRA]: "kasra", [M.DAMMA]: "damma"
 /** Буквы, у которых есть слоги (у алифа своего согласного звука нет). */
 export const SYLL_IDS = LETTERS.filter((l) => l.id !== "alif").map((l) => l.id);
 export const syllText = (id, v) => (id === "hamza" ? HAMZA_SEAT[v] : byId[id].ch + VOWELS[v].mark);
-export const syllTr = (id, v) => (id === "hamza" ? "" : CONS[byId[id].ch] || "") + VOWELS[v].ru;
+export const syllTr = (id, v) => syllRu(byId[id].ch, v); // гласная зависит от буквы: после тяжёлых — «о» и «ы»
 
 /** Форма буквы (ini | med | fin | iso) с огласовкой. */
 export function formWith(id, form, v) {

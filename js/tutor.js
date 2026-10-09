@@ -149,7 +149,7 @@ export function lessonVoice({ id, isTest = false, isSurah = false, title = "" } 
 }
 
 const VOWEL_RU = { fatha: "слоги с фатхой", kasra: "слоги с касрой", damma: "слоги с даммой", mix: "слоги с разными огласовками" };
-const RULE_RU = { izhar: "изхар", allah: "лям в слове «Аллах»", ra: "твёрдая и мягкая ра" };
+const RULE_RU = { izhar: "изхар", allah: "лям в слове «Аллах»", ra: "твёрдая и мягкая ро" };
 /** Ключи ошибок (как в интервальном повторении) → понятные слова: «буквы ت и ث», «слоги с касрой». */
 export function weakSpots(keys) {
   const letters = [], other = [];
