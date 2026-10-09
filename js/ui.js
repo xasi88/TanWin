@@ -140,10 +140,10 @@ export function rich(text) {
 // Транскрипция: особые знаки выделяются цветом (тяжёлые, межзубные, горловые)
 export function tr(text, { hidden = false } = {}) {
   const el = h("span.tr", { class: hidden ? "hid" : "" });
-  for (const ch of text.match(/.[̀-ͯ]*/gu) || []) {
-    if (/̣/.test(ch)) el.append(h("span.tr-heavy", null, ch));
+  for (const ch of text.match(/хь|.[̀-ͯ]*/gu) || []) {
+    if (/̣/.test(ch) || ch === "хь") el.append(h("span.tr-heavy", null, ch));
     else if (/̱/.test(ch)) el.append(h("span.tr-inter", null, ch));
-    else if (/[ʿʼх̣һғҡ]/.test(ch)) el.append(h("span.tr-throat", null, ch));
+    else if (/[ʿʼхһғҡ]/.test(ch)) el.append(h("span.tr-throat", null, ch));
     else el.append(ch);
   }
   return el;
