@@ -1,25 +1,35 @@
-// Анонимная статистика посещений: Яндекс.Метрика.
-// Номер счётчика — METRIKA_ID в version.js (0 — статистика выключена). Ученик может отключить её в «Ещё → Данные».
+// Анонимная статистика посещений: Яндекс.Метрика и PostHog (одни и те же события уходят в обе системы).
+// Номер счётчика — METRIKA_ID, ключ PostHog — POSTHOG_KEY в version.js (0 или пусто — выключено). Ученик может отключить статистику в «Ещё → Данные».
 // Никаких имён и прогресса по отдельным людям: только просмотры экранов, цели (урок пройден, сура выучена…)
-// и обобщённые параметры (сколько уроков пройдено, на каком этапе, ученик или ученица). Вебвизор выключен.
+// и обобщённые параметры (сколько уроков пройдено, на каком этапе, ученик или ученица). Вебвизор, запись сеансов и автосбор нажатий выключены.
 // На localhost и из файла ничего не отправляется — события пишутся в консоль (удобно проверять).
 import { store } from "./store.js";
-import { METRIKA_ID, APP_VERSION } from "./version.js";
+import { METRIKA_ID, POSTHOG_KEY, POSTHOG_HOST, APP_VERSION } from "./version.js";
+import "./posthog-loader.js";
 
 const LOCAL = location.protocol === "file:" || /^(localhost|127\.\d+\.\d+\.\d+|\[::1\])$|\.(localhost|test)$/.test(location.hostname);
 let started = false;
 let opts = null;
 let lastUrl = document.referrer;
 
-export const metrikaAvailable = () => !!METRIKA_ID;
-const allowed = () => !!METRIKA_ID && store.get().settings.analytics !== false;
+export const metrikaAvailable = () => !!METRIKA_ID || !!POSTHOG_KEY;
+const allowed = () => metrikaAvailable() && store.get().settings.analytics !== false;
 
 // статистика никогда не должна мешать учёбе: любые ошибки здесь глушим
 function send(method, ...args) {
   try {
     if (!started || !allowed()) return;
-    if (LOCAL) { console.debug("[Метрика]", method, ...args); return; }
-    window.ym?.(METRIKA_ID, method, ...args);
+    if (LOCAL) { console.debug("[Статистика]", method, ...args); return; }
+    if (METRIKA_ID) window.ym?.(METRIKA_ID, method, ...args);
+  } catch {}
+  try {
+    if (!started || !allowed() || LOCAL || !POSTHOG_KEY) return;
+    const ph = window.posthog;
+    if (!ph) return;
+    if (method === "init") ph.register(args[0].params);
+    else if (method === "userParams") ph.register(args[0]);
+    else if (method === "hit") ph.capture("$pageview", { $current_url: args[0], title: args[1].title, $referrer: args[1].referer });
+    else if (method === "reachGoal") ph.capture(args[0], args[1]);
   } catch {}
 }
 
@@ -43,6 +53,9 @@ function start() {
     s.async = true;
     s.src = "https://mc.yandex.ru/metrika/tag.js";
     document.head.append(s);
+    // PostHog: без автосбора нажатий (в них мог бы попасть текст с именем), без записи сеансов и опросов;
+    // просмотры экранов отправляем сами. Данные хранятся в localStorage, без cookie.
+    if (POSTHOG_KEY) window.posthog?.init(POSTHOG_KEY, { api_host: POSTHOG_HOST, defaults: "2026-05-30", person_profiles: "identified_only", autocapture: false, capture_pageview: false, capture_pageleave: false, disable_session_recording: true, disable_surveys: true, capture_dead_clicks: false, persistence: "localStorage" });
   }
   // defer: просмотры отправляем сами при смене экрана (адреса вида #/learn/3.2)
   send("init", { defer: true, clickmap: true, trackLinks: true, accurateTrackBounce: true, webvisor: false, params: { Версия: APP_VERSION, ...params } });
