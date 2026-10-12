@@ -7,7 +7,9 @@ import { LETTERS, POINTS, ZONES, byId, forms, SHAPE_FAMILIES, SOUND_PAIRS } from
 import { BASE_LETTER, LEVELS, glue, isMarkCh, stripStops } from "../js/arabic.js";
 import { RULES, parseMarkup, plain as rulesPlain } from "../js/rules.js";
 import { UNITS } from "../js/course.js";
-import { METRIKA_ID } from "../js/version.js";
+import { METRIKA_ID, POSTHOG_KEY, POSTHOG_HOST } from "../js/version.js";
+
+const PH_LOADER = readFileSync(new URL("../js/posthog-loader.js", import.meta.url), "utf8").split(/\r?\n/).filter((l) => !l.startsWith("//")).join(" ").trim();
 
 const SITE = "https://tanwin.xasi88.ru";
 const DIR = "alfavit";
@@ -52,11 +54,18 @@ const SCRIPT = `<script>
   document.addEventListener("click", function (e) {
     var b = e.target.closest("[data-play]");
     if (b) { a.src = b.getAttribute("data-play"); a.play().catch(function () {}); }
-    if (e.target.closest("[data-app]") && window.ym) ym(${METRIKA_ID}, "reachGoal", "page_to_app", { "Страница": location.pathname });
+    if (e.target.closest("[data-app]")) {
+      if (window.ym) ym(${METRIKA_ID}, "reachGoal", "page_to_app", { "Страница": location.pathname });
+      if (window.posthog) posthog.capture("page_to_app", { "Страница": location.pathname });
+    }
   });
   var off = false;
   try { off = JSON.parse(localStorage.getItem("tanwin.v2")).settings.analytics === false; } catch (e) {}
-  if (off || !${METRIKA_ID} || /^(localhost|127\\.)/.test(location.hostname)) return;
+  if (off || /^(localhost|127\\.)/.test(location.hostname)) return;
+  ${POSTHOG_KEY ? `${PH_LOADER}
+  posthog.init(${JSON.stringify(POSTHOG_KEY)}, { api_host: ${JSON.stringify(POSTHOG_HOST)}, defaults: "2026-05-30", person_profiles: "identified_only", autocapture: false, capture_pageview: false, capture_pageleave: false, disable_session_recording: true, disable_surveys: true, capture_dead_clicks: false, persistence: "localStorage" });
+  posthog.capture("$pageview", { title: document.title });` : ""}
+  if (!${METRIKA_ID}) return;
   window.ym = window.ym || function () { (ym.a = ym.a || []).push(arguments); }; ym.l = Date.now();
   var s = document.createElement("script"); s.async = true; s.src = "https://mc.yandex.ru/metrika/tag.js"; document.head.appendChild(s);
   ym(${METRIKA_ID}, "init", { clickmap: true, trackLinks: true, accurateTrackBounce: true, webvisor: false });
