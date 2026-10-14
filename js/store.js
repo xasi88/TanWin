@@ -47,7 +47,6 @@ const DEFAULT = () => ({
   stats: { answers: 0, correct: 0, ms: 0, lessons: 0 },
   badges: {},
   hard: {},
-  guides: {}, // слово учителя: сколько раз ученик видел объяснение к виду шага { card: 2, listen: 1… } (tutor.js)
   marks: [], // закладки в Коране: [{ id, s, a, p, at, name, g, plan, done, cur }] — план и его выполнение описаны в views/bookmarks.js
   markGroups: [], // группы закладок: [{ id, name, closed }]
   qread: { days: {}, goals: 0 }, // чтение Корана: по дням { ms, pages, pp — страницы, прочитанные сегодня } и число выполненных целей

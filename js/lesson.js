@@ -311,7 +311,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
   const mistakes = [];
   const voice = lessonVoice({ id, isTest, isSurah, title });
   const tutorNote = () => h("p.tutor-note", null, icon("sparkle", { size: 16 }), h("span", null, mixed(voice.intro({ warm: warmLabel }))));
-  // слово учителя перед новым видом шага: раз за урок, первые два раза (в проверках и уроках сур не нужно)
+  // слово учителя: над первым шагом каждого вида в уроке (в проверках и уроках сур не нужно)
   const told = new Set();
   const guideNote = (s) => {
     if (isTest || isSurah) return null;

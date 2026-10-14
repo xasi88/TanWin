@@ -186,7 +186,7 @@ export function homeLine() {
 }
 
 // ---------- Слово учителя перед новым видом шага ----------
-// Ученик впервые видит новый вид шага: учитель объясняет, что на экране и что делать. Каждое объяснение звучит два раза, потом не мешает.
+// Учитель объясняет, что на экране и что делать: в каждом уроке, над первым шагом каждого вида (решение автора от 14 октября 2026).
 // Тексты без длинного тире (правило автора). Упражнения одного рода объединены: все «послушайте и выберите» объясняются одинаково.
 const GUIDE = {
   card: "{n}, это карточка с объяснением. Прочитайте текст сверху вниз. Арабские слова и плитки со значком звука можно нажимать: их прочитает чтец. Всё понятно? Нажмите «Далее» внизу.",
@@ -206,13 +206,10 @@ const GUIDE = {
   ruleSpot: "{n}, здесь несколько слов. Найдите слово, где есть названное правило, и нажмите на него.",
 };
 const GUIDE_KIND = { letterListen: "listen", sylListen: "listen", listenWord: "listen", listenFirst: "listen", pairListen: "listen", blend: "blendBoard", match: "match", pointPick: "pointPick", ruleSpot: "ruleSpot" };
-const GUIDE_TIMES = 2;
 /** Вид шага для слова учителя: экран урока (card, letterIntro…) или упражнение (по его kind). */
 export const guideKind = (screen) => (screen.type === "q" ? GUIDE_KIND[screen.q.kind] || "q" : screen.type);
-/** Слово учителя к виду шага, пока ученик видел его меньше двух раз (и отмечает показ). named: false — без имени. */
+/** Слово учителя к виду шага или null. named: false, без имени. */
 export function guideFor(kind, { named = true } = {}) {
   const t = GUIDE[kind];
-  if (!t || (store.get().guides?.[kind] || 0) >= GUIDE_TIMES) return null;
-  store.set((s) => { s.guides = s.guides || {}; s.guides[kind] = (s.guides[kind] || 0) + 1; });
-  return fill(t, named ? studentName() : "");
+  return t ? fill(t, named ? studentName() : "") : null;
 }
