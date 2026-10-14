@@ -4,7 +4,7 @@
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { LETTERS, POINTS, ZONES, byId, forms, SHAPE_FAMILIES, SOUND_PAIRS } from "../js/letters.js";
-import { BASE_LETTER, LEVELS, glue, isMarkCh, stripStops } from "../js/arabic.js";
+import { BASE_LETTER, LEVELS, glue, isMarkCh, stripStops, syllRu } from "../js/arabic.js";
 import { RULES, parseMarkup, plain as rulesPlain } from "../js/rules.js";
 import { UNITS } from "../js/course.js";
 import { METRIKA_ID, POSTHOG_KEY, POSTHOG_HOST } from "../js/version.js";
@@ -14,7 +14,9 @@ const PH_LOADER = readFileSync(new URL("../js/posthog-loader.js", import.meta.ur
 const SITE = "https://tanwin.xasi88.ru";
 const DIR = "alfavit";
 const FORM_NAMES = [["iso", "отдельно"], ["ini", "в начале"], ["med", "в середине"], ["fin", "в конце"]];
-const HARAKAT = [["a", "َ", "с фатхой"], ["i", "ِ", "с касрой"], ["u", "ُ", "с даммой"]];
+const HARAKAT = [["a", "َ", "с фатхой", "fatha", "фатха"], ["i", "ِ", "с касрой", "kasra", "касра"], ["u", "ُ", "с даммой", "damma", "дамма"]];
+// запись слога по складам, как в приложении: имя буквы, имя огласовки, слог (хамзу букварь называет «Алиф»)
+const spell = (l, vk, vname) => `${l.id === "hamza" ? "Алиф" : l.name}, ${vname}, <b>${esc(syllRu(l.ch, vk))}</b>`;
 
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 /** Арабский текст. Разметка таджвида «[код текст]» становится цветной; only — раскрасить только одно правило.
@@ -147,7 +149,7 @@ function letterPage(root, l, i) {
   const chips = [l.heavy && "тяжёлая", l.q && "калькаля", l.nc && "не соединяется дальше", l.dots].filter(Boolean);
   const plays = [
     has(`${l.id}.mp3`) && `<button class="play" type="button" data-play="/audio/letters/${l.id}.mp3">${PLAY}<span>Название: «${esc(l.name)}»</span></button>`,
-    ...HARAKAT.map(([k, mark, label]) => has(`${l.id}-${k}.mp3`) && `<button class="play" type="button" data-play="/audio/letters/${l.id}-${k}.mp3" aria-label="${esc(l.name)} ${label}">${PLAY}${ar((l.id === "hamza" ? (k === "i" ? "إ" : "أ") : l.ch) + mark)}<small>${label}</small></button>`),
+    ...HARAKAT.map(([k, mark, label, vk, vname]) => has(`${l.id}-${k}.mp3`) && `<button class="play" type="button" data-play="/audio/letters/${l.id}-${k}.mp3" aria-label="${esc(l.name)} ${label}">${PLAY}${ar((l.id === "hamza" ? (k === "i" ? "إ" : "أ") : l.ch) + mark)}<small>${spell(l, vk, vname)}</small></button>`),
   ].filter(Boolean);
   const pairs = SOUND_PAIRS.filter((p) => p.slice(0, 2).includes(l.id)).map(([a, b, note]) => ({ o: byId[a === l.id ? b : a], note }));
   const family = (SHAPE_FAMILIES.find((g) => g.includes(l.id)) || []).filter((x) => x !== l.id).map((x) => byId[x]);
@@ -168,7 +170,7 @@ function letterPage(root, l, i) {
       <section>
         <h2>Как произносится буква ${esc(l.name)}</h2>
         <p>${rich(l.sound)}</p>
-        ${plays.length ? `<div class="plays">${plays.join("")}</div>` : ""}
+        ${plays.length ? `<div class="plays">${plays.join("")}</div>` : ""}${plays.length > 1 ? SPELL_NOTE : ""}
         ${l.tip ? `<p class="tip">${rich(l.tip)}</p>` : ""}
       </section>
       <section>
@@ -277,14 +279,18 @@ function ruleExamples(root, code, n = 4) {
 }
 
 const playTile = (file, label, body) => `<button class="play" type="button" data-play="/audio/letters/${file}.mp3" aria-label="${esc(label)}">${PLAY}${body}</button>`;
+const VNAME = { a: ["fatha", "фатха"], i: ["kasra", "касра"], u: ["damma", "дамма"] };
+/** Плитка слога с подписью записи: имя буквы, имя огласовки, слог. */
+const syllPlay = (id, k, mark) => { const l = byId[id], [vk, vn] = VNAME[k]; return playTile(`${id}-${k}`, l.name, `${ar(l.ch + mark)}<small>${spell(l, vk, vn)}</small>`); };
+const SPELL_NOTE = '<p class="muted">Чтец говорит три слова: имя буквы, имя огласовки, потом слог. Повторяйте за ним последнее слово.</p>';
 const wordBtn = (html, audio, small) => `<button class="word" type="button" data-play="${audio}">${html}${small ? `<small>${esc(small)}</small>` : ""}</button>`;
 
 function cardHtml(root, st) {
   const x = [];
   if (st.big) x.push(`<div class="big">${ar(st.big)}</div>`);
   if (st.caption) x.push(`<p class="muted">${rich(st.caption)}</p>`);
-  if (st.sounds) x.push(`<div class="plays">${Object.values(VOWEL).map(([k, mark]) => playTile(`${st.sounds}-${k}`, byId[st.sounds].name, ar(byId[st.sounds].ch + mark))).join("")}</div>`);
-  if (st.sounds1 && VOWEL[st.vowel]) x.push(`<div class="plays">${st.sounds1.map((id) => playTile(`${id}-${VOWEL[st.vowel][0]}`, byId[id].name, ar(byId[id].ch + VOWEL[st.vowel][1]))).join("")}</div>`);
+  if (st.sounds) x.push(`<div class="plays">${Object.values(VOWEL).map(([k, mark]) => syllPlay(st.sounds, k, mark)).join("")}</div>${SPELL_NOTE}`);
+  if (st.sounds1 && VOWEL[st.vowel]) x.push(`<div class="plays">${st.sounds1.map((id) => syllPlay(id, VOWEL[st.vowel][0], VOWEL[st.vowel][1])).join("")}</div>${SPELL_NOTE}`);
   if (st.ruleWheel) x.push(`<div class="wheel">${[["Изхар", "ء ه ع ح غ خ", "ясно", ""], ["Идгам", "ي ر م ل و ن", "слияние", "d"], ["Икляб", "ب", "н → м", "i"], ["Ихфа", "15 букв", "скрыто", "f"]]
     .map(([n, l, s, c]) => `<div style="--rc:${c ? `var(--r-${c})` : "var(--ink-2)"}"><b>${n}</b><span>${mixed(l)}</span><small>${s}</small></div>`).join("")}</div>`);
   if (st.stopSigns) x.push(`<div class="stops">${lessonConst(root, "STOP_SIGNS").map(([s, n, m]) => `<div>${ar("ـ" + s + "ـ")}<b>${esc(n)}</b><small>${esc(m)}</small></div>`).join("")}</div>`);

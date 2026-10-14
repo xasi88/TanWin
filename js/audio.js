@@ -69,11 +69,11 @@ export function playAyah(s, a, o = {}) {
 const VOWEL_KEY = { fatha: "a", kasra: "i", damma: "u" };
 /**
  * Адрес записи: название буквы (v не задан) или буква с огласовкой fatha | kasra | damma. У алифа с огласовкой записи нет.
- * Слог записан двумя способами. Обычная запись — чтец читает его по складам, как в букваре: «ба — фатха — ба»; её слышно ясно.
- * Короткая (short) — один слог, вырезанный из этой записи: для сложения слогов в слово, где слоги идут подряд.
+ * Запись слога по складам, как в букваре: чтец называет букву, огласовку и читает слог («Ба, фатха, ба»).
+ * Только эта запись: слог, вырезанный из неё, звучал местами неверно (решение автора, 1.26.0).
  */
-export function letterAudioUrl(id, v = null, short = false) {
-  if (v) return id === "alif" || !VOWEL_KEY[v] ? null : `audio/letters/${id}-${VOWEL_KEY[v]}${short ? ".s" : ""}.mp3`;
+export function letterAudioUrl(id, v = null) {
+  if (v) return id === "alif" || !VOWEL_KEY[v] ? null : `audio/letters/${id}-${VOWEL_KEY[v]}.mp3`;
   return `audio/letters/${id}.mp3`;
 }
 export const hasSyllAudio = (id, v) => !!letterAudioUrl(id, v);
@@ -100,7 +100,7 @@ export function playSeq(items, { gap = 220, onStep, onEnd } = {}) {
   next();
   return end;
 }
-export const syllItem = (id, v, short = false) => ({ url: letterAudioUrl(id, v, short), id: `s:${id}:${v}` });
+export const syllItem = (id, v) => ({ url: letterAudioUrl(id, v), id: `s:${id}:${v}` });
 export const wordItem = (key) => ({ url: wordAudioUrl(key), id: "w:" + key });
 export function preloadLetter(id, v = null) { const u = letterAudioUrl(id, v); if (u) { const a = new Audio(); a.preload = "auto"; a.src = new URL(u, ROOT).href; } }
 

@@ -1,5 +1,5 @@
 // «Версии»: история изменений приложения.
-import { h, icon } from "../ui.js";
+import { h, icon, mixed } from "../ui.js";
 import { APP_VERSION, CHANGELOG } from "../version.js";
 import { devBanner } from "../feedback.js";
 import { checkUpdate } from "../app.js";
@@ -14,6 +14,6 @@ export function ChangelogView() {
       h("button.btn.secondary", { type: "button", onclick: checkUpdate }, icon("repeat", { size: 18 }), "Проверить обновление")),
     devBanner({ dismissible: false }),
     h("ol.versions", null, ...CHANGELOG.map((r, i) => h("li.version", { class: i === 0 ? "latest" : "" },
-      h("div.v-head", null, h("span.v-num", null, r.v), h("div", null, h("b", null, r.title), h("small.muted", null, fmtDate(r.date))), i === 0 ? h("span.v-cur", null, "текущая") : null),
-      h("ul", null, ...r.items.map((t) => h("li", null, t)))))));
+      h("div.v-head", null, h("span.v-num", null, r.v), h("div", null, h("b", null, mixed(r.title)), h("small.muted", null, fmtDate(r.date))), i === 0 ? h("span.v-cur", null, "текущая") : null),
+      h("ul", null, ...r.items.map((t) => h("li", null, mixed(t))))))));
 }
