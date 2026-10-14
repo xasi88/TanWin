@@ -8,11 +8,11 @@ import { RULES, parseMarkup, plain, rulesIn } from "./rules.js";
 import { M, syllRu, stripStops } from "./arabic.js";
 import { diagram } from "./diagram.js";
 import { playWord, playAyah, stop, sfx, canRecord, startRecording, stopRecording, envelope, playUrl, playLetter, playSyll } from "./audio.js";
-import { letterIntro, letterForms, harakatTiles, syllTile, blendCard, blendsFor, playAllVowels, V3, SYLL_IDS } from "./syllables.js";
+import { letterIntro, letterForms, harakatTiles, syllTile, blendCard, blendsFor, playAllVowels, spellNote, V3, SYLL_IDS } from "./syllables.js";
 import { knownLetters } from "./course.js";
 import { store, addXp, srsSeen, finishLesson, todayXp, hardSeen } from "./store.js";
 import { track } from "./metrika.js";
-import { lessonVoice, weakSpots } from "./tutor.js";
+import { lessonVoice, weakSpots, guideFor, guideKind } from "./tutor.js";
 import { applySkip } from "./path.js";
 
 const FORM_NAMES = [["fin", "в конце"], ["med", "в середине"], ["ini", "в начале"], ["iso", "отдельно"]];
@@ -55,7 +55,7 @@ export function letterCard(id, { mini = false } = {}) {
     h("p.lc-text", null, rich(l.sound)),
     h("div.lc-listen", null,
       id === "hamza" ? null : h("button.btn.secondary.listen-btn", { type: "button", onclick: () => playLetter(id) }, icon("vol", { size: 20 }), `Послушать: «${l.name}»`),
-      id === "alif" ? null : harakatTiles(id, { hints: false })),
+      id === "alif" ? null : harakatTiles(id)),
     l.tip ? h("p.lc-tip", null, icon("sparkle", { size: 16 }), h("span", null, rich(l.tip))) : null,
     mini ? null : formsRow(id),
     h("div.lc-bottom", null,
@@ -99,7 +99,7 @@ const MUQ = [["ا[xلٓمٓ]", "002_001_001", "алиф-ляям-миим"], ["�
 const STOP_SIGNS = [["ۘ", "мим", "обязательная остановка"], ["ۙ", "ля", "не останавливаться"], ["ۚ", "джим", "равнозначно"], ["ۖ", "сыля", "лучше продолжить"], ["ۗ", "кыля", "лучше остановиться"], ["ۛ", "муӀанака", "на одном из двух мест"]];
 
 function syllRow(v) {
-  return h("div.syll-grid", null, ...SYLL_IDS.map((id) => syllTile(id, v, { cls: "syll" })));
+  return h("div", null, spellNote(), h("div.syll-grid", null, ...SYLL_IDS.map((id) => syllTile(id, v, { cls: "syll" }))));
 }
 function syllTable() {
   const ids = LETTERS.filter((l) => !["alif", "hamza"].includes(l.id)).map((l) => l.id);
@@ -113,7 +113,7 @@ function syllTable() {
     }
     t.append(row);
   }
-  return h("div", null, h("p.muted.center", null, "Прочитайте слог вслух, потом нажмите — услышите его и увидите чтение"), t);
+  return h("div", null, h("p.muted.center", null, "Прочитайте слог вслух. Потом нажмите на него: увидите чтение и услышите запись."), spellNote(), t);
 }
 
 async function verseBlock(key, { tapWords = false } = {}) {
@@ -159,8 +159,8 @@ async function renderCard(step) {
   if (step.caption) extras.append(h("p.caption", null, step.caption));
   if (step.forms) extras.append(formsRow(step.forms));
   if (step.forms2) extras.append(formsRow(step.forms2));
-  if (step.sounds) { const row = harakatTiles(step.sounds); extras.append(row); el.autoplay = () => playAllVowels(step.sounds, row); }
-  if (step.sounds1) extras.append(h("div.snd-row", { dir: "rtl" }, ...step.sounds1.map((id) => syllTile(id, step.vowel, { cls: "big v-" + step.vowel }))));
+  if (step.sounds) { const row = harakatTiles(step.sounds); extras.append(row, spellNote()); el.autoplay = () => playAllVowels(step.sounds, row); }
+  if (step.sounds1) extras.append(h("div.snd-row", { dir: "rtl" }, ...step.sounds1.map((id) => syllTile(id, step.vowel, { cls: "big v-" + step.vowel, spell: true }))), spellNote());
   if (step.syll) extras.append(syllRow(step.syll));
   if (step.syllTable) extras.append(syllTable());
   if (step.diagram) extras.append(diagram({ highlight: step.diagram }));
@@ -311,6 +311,17 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
   const mistakes = [];
   const voice = lessonVoice({ id, isTest, isSurah, title });
   const tutorNote = () => h("p.tutor-note", null, icon("sparkle", { size: 16 }), h("span", null, mixed(voice.intro({ warm: warmLabel }))));
+  // слово учителя перед новым видом шага: раз за урок, первые два раза (в проверках и уроках сур не нужно)
+  const told = new Set();
+  const guideNote = (s) => {
+    if (isTest || isSurah) return null;
+    const kind = guideKind(s);
+    if (told.has(kind)) return null;
+    const t = guideFor(kind, { named: idx !== 0 }); // на первом экране имя уже прозвучало во вступлении
+    if (!t) return null;
+    told.add(kind);
+    return h("p.tutor-note.guide", null, icon("info", { size: 16 }), h("span", null, mixed(t)));
+  };
 
   const bar = h("div.lp-bar-fill");
   const xpEl = h("span.lp-xp", null, icon("nur", { size: 16, fill: true, sw: 1 }), h("b", null, "0"));
@@ -379,7 +390,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
     else if (s.type === "speak") body = speakStep(s.st, { addXp: gain, done: () => go() });
     else if (s.type === "custom") body = await s.st.render({ addXp: gain, done: () => go() });
     const needsNext = !["read", "speak"].includes(s.type) && !(s.type === "custom" && s.st.selfNext);
-    stage.replaceChildren(h("div.lp-content", null, idx === 0 ? tutorNote() : null, body, needsNext ? h("div.lp-actions", null, nextBtn(idx === 0 ? "Начнём" : "Далее")) : null));
+    stage.replaceChildren(h("div.lp-content", null, idx === 0 ? tutorNote() : null, guideNote(s), body, needsNext ? h("div.lp-actions", null, nextBtn(idx === 0 ? "Начнём" : "Далее")) : null));
     // звук сразу: название буквы, три слога или первый пример сложения (а не слово, начинающееся с буквы)
     const here = idx;
     const auto = (fn, ms) => setTimeout(() => stage.isConnected && idx === here && fn(), ms);
@@ -392,6 +403,8 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
     let locked = false;
     const content = h("div.lp-content.q");
     if (idx === 0) content.append(tutorNote());
+    const guide = guideNote(s);
+    if (guide) content.append(guide);
     if (isTest) content.append(h("div.test-badge", null, icon("target", { size: 14 }), "Проверка"));
     content.append(q.prompt());
     if (q.play) {

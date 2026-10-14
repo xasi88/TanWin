@@ -629,6 +629,7 @@ body.fullscreen #toast { bottom: 24px; }
 /* слова преподавателя: в начале урока и на итоговом экране */
 .tutor-note { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 10px 14px; border-radius: 16px; background: var(--accent-soft); color: var(--ink); font-weight: 700; }
 .tutor-note .ic { flex: none; margin-top: 3px; color: var(--accent-2); }
+.tutor-note.guide { margin-top: 8px; background: var(--card-2); border: 1px solid var(--line); font-weight: 600; color: var(--ink-2); }
 .tutor-weak { display: flex; align-items: flex-start; gap: 10px; margin: 0; max-width: 34em; padding: 12px 16px; border-radius: 16px; background: var(--gold-soft); color: var(--ink); font-weight: 700; text-align: left; }
 .tutor-weak .ic { flex: none; margin-top: 2px; color: var(--gold-text); }
 .showcase { display: grid; gap: 10px; justify-items: center; width: 100%; max-width: 34em; padding: 16px; border-radius: 20px; background: var(--card); border: 2px solid var(--gold-2); box-shadow: var(--shadow); }
@@ -1055,6 +1056,12 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .snd-tile.big .ar { --s: 3.4rem; line-height: 1.95; }
 .snd-tile .tr { font-size: 1.05rem; color: var(--ink); }
 .snd-tile.big .tr { font-size: 1.35rem; }
+/* подпись к записи слога по складам: имя буквы, имя огласовки, слог */
+.snd-tile .spell { display: grid; justify-items: center; gap: 0; line-height: 1.2; font-size: .8rem; font-weight: 700; color: var(--ink-3); }
+.snd-tile .spell b { margin-top: 2px; font-size: 1.05rem; font-weight: 800; color: var(--vc, var(--ink)); }
+.snd-tile.big .spell b { font-size: 1.3rem; }
+.spell-note { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 0; padding: 10px 12px; border-radius: 14px; background: var(--card-2); border: 1px solid var(--line); color: var(--ink-2); font-size: .9rem; line-height: 1.4; text-align: left; }
+.spell-note svg { flex: none; margin-top: 2px; color: var(--accent); }
 .snd-tile small { color: var(--ink-3); font-weight: 800; font-size: .78rem; text-align: center; line-height: 1.25; }
 .snd-ico { position: absolute; top: 7px; right: 9px; color: var(--ink-3); display: grid; }
 .snd-tile.playing, .snd-tile.now { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 4px 0 var(--accent); }

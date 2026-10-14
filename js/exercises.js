@@ -97,7 +97,7 @@ G.sylListen = (o, lesson) => {
     const wrong = uniq(vs.length > 1 ? [sameLetter[0], ...sameVowel.slice(0, 2), sameLetter[1], ...sameVowel.slice(2)] : sameVowel).filter((t) => t && t !== sylAr(id, v)).slice(0, 3);
     return withOpts({ kind: "sylListen", key: "V:" + v, layout: "grid4",
       play: () => playSyll(id, v),
-      prompt: () => promptText("Какой слог вы слышите?", "Смотрите и на букву, и на огласовку."),
+      prompt: () => promptText("Какой слог вы слышите?", "Чтец называет букву и огласовку, потом читает слог. Найдите этот слог: смотрите и на букву, и на огласовку."),
       explain: `${byId[id].name} + ${VOWELS[v].name} = «${sylRu(id, v)}».`,
     }, [arOpt(sylAr(id, v), true, "opt-letter"), ...wrong.map((t) => arOpt(t, false, "opt-letter"))]);
   });

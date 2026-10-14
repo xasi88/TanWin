@@ -20,6 +20,14 @@ const markToVowel = { [M.FATHA]: "fatha", [M.KASRA]: "kasra", [M.DAMMA]: "damma"
 export const SYLL_IDS = LETTERS.filter((l) => l.id !== "alif").map((l) => l.id);
 export const syllText = (id, v) => (id === "hamza" ? HAMZA_SEAT[v] : byId[id].ch + VOWELS[v].mark);
 export const syllTr = (id, v) => syllRu(byId[id].ch, v); // гласная зависит от буквы: после тяжёлых — «о» и «ы»
+// Запись слога звучит по складам, как в «Каиде Нурании»: имя буквы, имя огласовки, потом сам слог («Ба, фатха, ба»).
+// Слог с хамзой чтец называет по подставке: «Алиф, фатха, а».
+const SPELL_NAME = { hamza: "Алиф" };
+/** Три слова записи слога: [имя буквы, имя огласовки, слог]. */
+export const syllSpell = (id, v) => [SPELL_NAME[id] || byId[id].name, VOWELS[v].name, syllTr(id, v)];
+/** Пояснение над плитками и таблицами слогов: что звучит в записи. */
+export const spellNote = () => h("p.spell-note", null, icon("vol", { size: 16 }),
+  h("span", null, rich("Чтец говорит три слова: **имя буквы**, **имя огласовки**, потом **слог**. Пример: «Ба, фатха, ба». Повторяйте за ним последнее слово: это и есть слог.")));
 
 /** Форма буквы (ini | med | fin | iso) с огласовкой. */
 export function formWith(id, form, v) {
@@ -30,14 +38,16 @@ export function formWith(id, form, v) {
 
 // ---------- Плитка со звуком ----------
 /** Кнопка-плитка: арабский текст + чтение; по нажатию звучит. play() запускает звук, audioId — id записи (для подсветки). */
-export function soundTile(text, trText, { play, audioId, cls = "", label = null, hint = null } = {}) {
-  const b = h("button.snd-tile", { type: "button", class: cls, "aria-label": label || `Послушать: ${trText || text}` },
-    ar(text), trText ? tr(trText) : null, hint ? h("small", null, hint) : null, h("span.snd-ico", null, icon("vol", { size: 14 })));
+export function soundTile(text, trText, { play, audioId, cls = "", label = null, hint = null, spell = null } = {}) {
+  // spell: [буква, огласовка, слог] — подпись к записи по складам вместо одного чтения
+  const sp = spell && h("span.spell", null, h("span", null, spell[0]), h("span", null, spell[1]), h("b", null, spell[2]));
+  const b = h("button.snd-tile", { type: "button", class: cls, "aria-label": label || `Послушать: ${spell ? spell.join(", ") : trText || text}` },
+    ar(text), sp || (trText ? tr(trText) : null), hint ? h("small", null, hint) : null, h("span.snd-ico", null, icon("vol", { size: 14 })));
   b.addEventListener("click", () => play?.());
   if (audioId) { const sync = () => { if (gone(b, off)) return; b.classList.toggle("playing", playingId() === audioId); }; const off = onPlay(sync); }
   return b;
 }
-export const syllTile = (id, v, o = {}) => soundTile(o.text || syllText(id, v), syllTr(id, v), { play: () => playSyll(id, v), audioId: `s:${id}:${v}`, ...o });
+export const syllTile = (id, v, o = {}) => soundTile(o.text || syllText(id, v), syllTr(id, v), { play: () => playSyll(id, v), audioId: `s:${id}:${v}`, ...o, spell: o.spell ? syllSpell(id, v) : null });
 
 function listenBtn(label, fn, audioId) {
   const b = h("button.btn.secondary.listen-btn", { type: "button" }, icon("vol", { size: 20 }), label);
@@ -99,9 +109,9 @@ export function letterForms(id) {
 }
 
 // ---------- Буква с тремя огласовками ----------
-/** Три плитки: буква + фатха / касра / дамма, со звуком и подписью, какой значок что значит. */
-export function harakatTiles(id, { hints = true } = {}) {
-  return h("div.snd-row", { dir: "rtl" }, ...V3.map((v) => syllTile(id, v, { cls: "big v-" + v, hint: hints ? `${VOWELS[v].name} — «${VOWELS[v].ru}»` : null })));
+/** Три плитки: буква + фатха / касра / дамма, со звуком и подписью: что чтец говорит в записи. */
+export function harakatTiles(id) {
+  return h("div.snd-row", { dir: "rtl" }, ...V3.map((v) => syllTile(id, v, { cls: "big v-" + v, spell: true })));
 }
 export function playAllVowels(id, row) {
   const tiles = row ? [...row.children] : [];
@@ -122,6 +132,7 @@ export function letterSounds(id) {
       ? "Огласовка — маленький значок над или под буквой. Он даёт гласный звук. Подставка-алиф не читается — звучит только хамза."
       : `Сама буква — согласный «${l.t}». Маленький значок над или под ней добавляет гласный: получается слог. Нажимайте на плитки и повторяйте вслух.`)),
     row,
+    spellNote(),
     listenBtn("Послушать все три", () => playAllVowels(id, row)),
     inWord);
 }
@@ -174,21 +185,22 @@ export const blendTr = (b) => b.sylls.map((x) => syllTr(x.id, x.v)).join("-");
 
 /** Проиграть пример: слоги по одному, затем слитно (слово Корана — голосом чтеца). onStep(i): i — слог, sylls.length — всё слово. */
 export function playBlend(b, { onStep, onEnd } = {}) {
-  const parts = b.sylls.map((x) => syllItem(x.id, x.v, true)); // слоги подряд — короткие записи, без проговаривания по складам
-  const whole = b.word ? [wordItem(b.word.a)] : [];
+  const parts = b.sylls.map((x) => syllItem(x.id, x.v)); // каждый слог по складам: «Ба, фатха, ба»
   const n = parts.length;
-  if (whole.length) return playSeq([...parts, ...whole], { gap: 380, onStep, onEnd });
-  // нет записи слова: второй раз — те же слоги подряд, без пауз
-  return playSeq(parts, { gap: 380, onStep, onEnd: (done) => {
-    if (!done) return onEnd?.(false);
+  if (b.word) return playSeq([...parts, wordItem(b.word.a)], { gap: 380, onStep, onEnd });
+  // нет записи слова: слоги по одному, потом плитка слитного чтения светится, а читает её сам ученик
+  let t = 0;
+  const stopSeq = playSeq(parts, { gap: 380, onStep: (i) => { if (i >= 0) onStep?.(i); }, onEnd: (done) => {
+    if (!done) { onStep?.(-1); return onEnd?.(false); }
     onStep?.(n);
-    playSeq(parts, { gap: 0, onStep: (i) => { if (i < 0) onStep?.(-1); }, onEnd });
+    t = setTimeout(() => { onStep?.(-1); onEnd?.(true); }, 2200);
   } });
+  return () => { clearTimeout(t); stopSeq(); };
 }
 
 /** Строка «слог + слог = слово»: плитки справа налево, слитное слово слева; кнопка проигрывает по слогам и целиком. */
 export function blendRow(b) {
-  const tiles = b.sylls.map((x) => syllTile(x.id, x.v, { text: x.text }));
+  const tiles = b.sylls.map((x) => syllTile(x.id, x.v, { text: x.text, spell: true }));
   const whole = soundTile(b.text, b.tr, { cls: "whole", play: () => run(), label: `Послушать: ${b.tr}` });
   const parts = h("div.bl-parts", { dir: "rtl" });
   tiles.forEach((t, i) => { if (i) parts.append(h("span.bl-op", null, "+")); parts.append(t); });
@@ -208,7 +220,8 @@ export function blendCard(blends, { title = null, text = null } = {}) {
     h("h2", null, title || (real ? "Слоги складываются в слово" : "Читаем слоги слитно")),
     h("p", null, rich(text || "Читаем справа налево: первый слог, второй — и сразу вместе, без паузы. Буквы при этом соединяются и меняют форму, а звуки остаются теми же.")),
     h("div.blend-list", null, ...rows),
-    h("p.muted.small.center", null, real ? "Нажмите на слово — прозвучат слоги по одному, а потом слово целиком голосом чтеца Корана." : "Нажмите на плитку слева — прозвучат слоги по одному, а потом вместе."));
+    spellNote(),
+    h("p.muted.small.center", null, real ? "Нажмите на слово. Сначала прозвучит каждый слог по складам, потом всё слово голосом чтеца Корана." : "Нажмите на большую плитку. Прозвучит каждый слог по складам. Потом прочитайте слоги вместе, без паузы."));
   card.autoplay = () => rows[0]?.play();
   return card;
 }
