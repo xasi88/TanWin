@@ -1,0 +1,215 @@
+// Голос преподавателя: обращение по имени, похвала, поддержка при ошибке, слова о продвижении.
+// В шаблонах {n} — имя ученика; если имя не указано, обращение убирается и фраза остаётся цельной.
+import { store, streakNow, todayXp, goalDoneToday, today } from "./store.js";
+import { UNITS, SURAH_PATH, ALL_LESSONS } from "./course.js";
+import { courseProgress, unitProgress } from "./path.js";
+import { plural } from "./ui.js";
+import { g } from "./speech.js";
+import { byId } from "./letters.js";
+import { RULES } from "./rules.js";
+
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+export const studentName = () => { const n = (store.get().profile.name || "").trim(); return n ? cap(n) : ""; };
+
+/** Подставляет имя в шаблон: «Верно, {n}!» → «Верно, Али!» или «Верно!». */
+export function fill(t, n = studentName()) {
+  if (n) return t.replaceAll("{n}", cap(n.trim()));
+  return cap(t.replace(/, \{n\}/g, "").replace(/\{n\}, /g, "").replace(/ ?\{n\}/g, ""));
+}
+
+const PRAISE = ["Верно!", "Отлично!", "Правильно!", "Так держать!", "Машаллах!", "Здорово!"];
+const PRAISE_N = ["Верно, {n}!", "Отлично, {n}!", "{n}, так держать!", "Машаллах, {n}!", "Молодец, {n}!", "Здорово получается, {n}!"];
+const PRAISE_COMBO = ["{n}, {c} подряд без ошибок!", "{c} подряд — блестяще, {n}!"];
+const PRAISE_RETRY = ["Вот теперь верно, {n}!", "{n}, теперь получилось!", "Разобрались, {n}!"];
+const PRAISE_BACK = ["Вот так, {n}!", "{n}, снова верно!", "Хорошо, {n}, идём дальше!"];
+const MISS = ["Не совсем", "Почти", "Чуть иначе"];
+const SUPPORT = [
+  "{n}, ничего страшного: этот вопрос вернётся в конце урока, и вы ответите верно.",
+  "{n}, ошибаться — нормально: так запоминается крепче. К этому вопросу мы ещё вернёмся.",
+  "{n}, посмотрите на верный ответ — в конце урока попробуем ещё раз.",
+];
+const SUPPORT_AGAIN = ["{n}, не спешите — здесь важнее точность, чем скорость.", "{n}, сделайте вдох и посмотрите на объяснение. У вас получится."];
+const SUPPORT_RETRY = ["{n}, это трудное место — оно ещё встретится в «Практике», и мы его закрепим.", "{n}, запомним это место: вернёмся к нему в «Практике»."];
+const SUPPORT_TEST = ["{n}, запомните верный ответ — и идём дальше.", "{n}, одна ошибка ничего не решает. Продолжаем."];
+
+const unitOf = (id) => UNITS.find((u) => u.lessons.some((l) => l.id === id));
+const lastOf = (u, id) => u.lessons.at(-1).id === id;
+// Считаем честно: «урок пройден» — только если ученик прошёл его сам. Уроки, закрытые проверкой этапа (skipped),
+// и сами проверки в число пройденных уроков не входят.
+const real = (id) => { const x = store.get().lessons[id]; return !!x?.done && !x.skipped; };
+const doneLessons = () => ALL_LESSONS.filter((l) => !l.test && real(l.id)).length;
+const doneTests = () => ALL_LESSONS.filter((l) => l.test && real(l.id)).length;
+/** Уроки этапа без проверки: сколько всего и сколько пройдено самим учеником. */
+const unitLessons = (u) => { const ls = u.lessons.filter((l) => !l.test); return { total: ls.length, done: ls.filter((l) => real(l.id)).length }; };
+/** Доля пути после сданной проверки этапа: пропущенные уроки отмечаются уже после итогового экрана. */
+function pctAfterTest(u, testId) {
+  const cp = courseProgress();
+  const i = u.lessons.findIndex((l) => l.id === testId);
+  const closing = [...UNITS.filter((x) => x.id < u.id).flatMap((x) => x.lessons), ...u.lessons.slice(0, i)].filter((l) => !store.get().lessons[l.id]?.done).length;
+  return Math.round(((cp.done + closing) / cp.total) * 100);
+}
+
+/** Голос на один урок: помнит, что уже сказано, чтобы не повторяться и не называть имя в каждой фразе. */
+export function lessonVoice({ id, isTest = false, isSurah = false, title = "" } = {}) {
+  let n = 0, missRow = 0, last = "", half = false;
+  // как урок выглядел до начала: закрыт проверкой этапа? какой был лучший результат?
+  const before = (id && !isSurah && store.get().lessons[id]) || null;
+  const wasSkipped = !!before?.skipped, prevBest = before?.best || 0;
+  const pick = (list) => { const c = list.filter((x) => x !== last); return (last = c[Math.floor(Math.random() * c.length)]); };
+  return {
+    /** Слова в начале урока. */
+    intro({ warm = "" } = {}) {
+      const st = store.get();
+      if (warm) return fill(`{n}, начнём с короткого повтора. В прошлый раз было трудно: ${warm}.`);
+      if (isSurah) return fill(`{n}, читаем суру «${title}». Слушайте чтеца и следите за словами.`);
+      if (!id) return fill("{n}, немного практики — и пройденное останется с вами надолго.");
+      if (isTest) return fill("{n}, это проверка этапа. Покажите, чему вы научились: нужно 80% верных ответов.");
+      if (wasSkipped) return fill("{n}, этот урок вы закрыли проверкой этапа. Теперь пройдём его шаг за шагом.");
+      if (st.lessons[id]?.done) return fill(`{n}, возвращаться к пройденному — признак ${g("хорошего ученика", "хорошей ученицы")}. Освежим этот урок.`);
+      const k = doneLessons();
+      if (!k && !Object.keys(st.lessons).length) return fill("{n}, добро пожаловать! Это ваш первый урок. Идём маленькими шагами — спешить некуда.");
+      const u = unitOf(id);
+      if (u) {
+        const p = unitProgress(u), left = p.total - p.done;
+        if (u.lessons[0].id === id) return fill(`{n}, начинаем новый этап — «${u.title}».`);
+        if (left === 1) return fill(`{n}, это последний шаг этапа «${u.title}».`);
+        if (left <= 3) return fill(`{n}, до конца этапа «${u.title}» — ${left} ${plural(left, "шаг", "шага", "шагов")}. Вы почти у цели.`);
+      }
+      const t = doneTests();
+      const tests = t ? ` и ${t} ${plural(t, "проверка", "проверки", "проверок")}` : "";
+      return k ? fill(`{n}, за плечами уже ${k} ${plural(k, "урок", "урока", "уроков")}${tests}. Продолжаем!`) : fill("{n}, продолжаем!");
+    },
+    /** Похвала за верный ответ: имя — в особые моменты и примерно в каждом третьем ответе. */
+    praise({ combo = 0, retry = false } = {}) {
+      const back = missRow > 0;
+      missRow = 0; n++;
+      if (retry) return fill(pick(PRAISE_RETRY));
+      if ([5, 10, 20].includes(combo)) return fill(pick(PRAISE_COMBO).replace("{c}", combo));
+      if (back) return fill(pick(PRAISE_BACK));
+      return n % 3 === 1 ? fill(pick(PRAISE_N)).replace("Молодец", g("Молодец", "Умница")) : pick(PRAISE);
+    },
+    /** Ошибка: короткий заголовок и слова поддержки. */
+    miss({ retry = false } = {}) {
+      missRow++;
+      const list = isTest ? SUPPORT_TEST : retry ? SUPPORT_RETRY : missRow > 1 ? SUPPORT_AGAIN : SUPPORT;
+      return { head: pick(MISS), text: fill(pick(list)) };
+    },
+    /** Один раз за урок — на середине (только в длинных уроках). */
+    halfway(idx, total) {
+      if (half || total < 10 || idx < Math.ceil(total / 2) || idx >= total - 2) return null;
+      half = true;
+      return fill("{n}, половина урока позади — отлично идёте!");
+    },
+    /** Личный разбор ошибок на итоговом экране: что было трудно и что с этим будет дальше. */
+    weakNote(label) {
+      return `Сегодня было трудно: ${label}. Следующий урок начнём с короткого повтора — и всё встанет на место.`;
+    },
+    /** Этап, который этот урок завершил (тогда на итоге показываем «Смотрите, что вы уже умеете»). */
+    unitDone({ passed, first }) {
+      if (!passed || !id || isSurah) return null;
+      const u = unitOf(id);
+      if (!u) return null;
+      if (isTest) return lastOf(u, id) ? u : null; // проверка посреди этапа этап не завершает
+      const p = unitProgress(u);
+      return first && !wasSkipped && p.done === p.total ? u : null;
+    },
+    /** Заголовок итогового экрана. */
+    resultTitle({ passed, pct }) {
+      if (!passed) return fill("{n}, почти получилось");
+      return fill(pct === 100 ? "Безупречно, {n}!" : pct >= 80 ? "Отличная работа, {n}!" : "Урок пройден, {n}!");
+    },
+    /** Что изменилось после этого урока: как далеко продвинулся ученик. Вызывать после finishLesson. */
+    resultNote({ passed, first, pct }) {
+      if (!passed) return null;
+      const say = (t) => fill(t, ""); // имя уже в заголовке итога
+      const cp = courseProgress(), all = Math.round(cp.pct * 100);
+      if (isSurah) {
+        const k = SURAH_PATH.filter((x) => store.get().surahs[x]?.done).length;
+        return first ? say(`{n}, вы прочитали уже ${k} ${plural(k, "суру", "суры", "сур")} Корана из ${SURAH_PATH.length} на пути.`) : null;
+      }
+      if (!id) {
+        const s = streakNow();
+        return s >= 2 ? say(`{n}, вы занимаетесь ${s} ${plural(s, "день", "дня", "дней")} подряд — это и есть путь к свободному чтению.`) : null;
+      }
+      const u = unitOf(id);
+      if (!u) return null;
+      if (isTest && !lastOf(u, id)) return say("{n}, проверка сдана — идём дальше по этапу.");
+      if (isTest) return say(`{n}, этап ${u.id} «${u.title}» позади. Пройдено ${Math.max(all, pctAfterTest(u, id))}% пути к чтению Корана.`);
+      if (wasSkipped) return say("{n}, этот урок был закрыт проверкой этапа — теперь он пройден по-настоящему.");
+      if (!first) {
+        return pct > prevBest ? say(`{n}, это ваш лучший результат в этом уроке — ${pct}%.`) : say("{n}, повторение сделало этот урок прочнее.");
+      }
+      const p = unitProgress(u), left = p.total - p.done;
+      if (!left) return say(`{n}, этап ${u.id} «${u.title}» пройден целиком! Позади ${all}% пути к чтению Корана.`);
+      if (doneLessons() === 1) return say("{n}, первый урок позади — начало положено!");
+      const ul = unitLessons(u);
+      return say(`{n}, пройдено ${ul.done} из ${ul.total} уроков этапа «${u.title}». Позади ${all}% всего пути.`);
+    },
+  };
+}
+
+const VOWEL_RU = { fatha: "слоги с фатхой", kasra: "слоги с касрой", damma: "слоги с даммой", mix: "слоги с разными огласовками" };
+const RULE_RU = { izhar: "изхар", allah: "лям в слове «Аллах»", ra: "твёрдая и мягкая ро" };
+/** Ключи ошибок (как в интервальном повторении) → понятные слова: «буквы ت и ث», «слоги с касрой». */
+export function weakSpots(keys) {
+  const letters = [], other = [];
+  const add = (list, x) => { if (x && !list.includes(x)) list.push(x); };
+  for (const key of keys) {
+    const [t, v] = key.split(":");
+    if ("LMFH".includes(t)) add(letters, byId[v]?.ch);
+    else if (t === "P") v.split("-").forEach((x) => add(letters, byId[x]?.ch));
+    else if (t === "V") add(other, VOWEL_RU[v] || "слоги");
+    else if (t === "W") add(other, "чтение слов");
+    else if (t === "R") add(other, RULE_RU[v] || (RULES[v] ? `правило «${RULES[v].name}»` : "правила таджвида"));
+    else if (t === "S") add(other, "остановка в конце аята");
+  }
+  const ls = letters.slice(0, 4);
+  if (ls.length) other.unshift(ls.length === 1 ? `буква ${ls[0]}` : `буквы ${ls.slice(0, -1).join(", ")} и ${ls.at(-1)}`);
+  return other.slice(0, 2).join(", ");
+}
+
+/** Строка под приветствием на главном экране: замечаем серию, перерыв и пройденный путь. */
+export function homeLine() {
+  const st = store.get();
+  const cp = courseProgress(), all = Math.round(cp.pct * 100);
+  if (!cp.done && !st.xp) return "Начнём путь к чтению Корана";
+  const path = `Пройдено ${all}% пути к чтению Корана`;
+  if (goalDoneToday()) return `Цель дня выполнена — так держать! ${path}.`;
+  const s = streakNow();
+  if (!todayXp()) {
+    const lastDay = Object.keys(st.days).filter((d) => st.days[d] > 0).sort().pop();
+    const gap = lastDay ? Math.round((new Date(today()) - new Date(lastDay)) / 86400000) : 0;
+    if (gap >= 3) return `Вас не было ${gap} ${plural(gap, "день", "дня", "дней")} — хорошо, что вы вернулись. Всё пройденное на месте: ${all}% пути.`;
+    if (s >= 2) return `Вы занимаетесь ${s} ${plural(s, "день", "дня", "дней")} подряд. Сегодняшний урок продолжит серию.`;
+  }
+  return path;
+}
+
+// ---------- Слово учителя перед новым видом шага ----------
+// Учитель объясняет, что на экране и что делать: в каждом уроке, над первым шагом каждого вида (решение автора от 14 октября 2026).
+// Тексты без длинного тире (правило автора). Упражнения одного рода объединены: все «послушайте и выберите» объясняются одинаково.
+const GUIDE = {
+  card: "{n}, это карточка с объяснением. Прочитайте текст сверху вниз. Арабские слова и плитки со значком звука можно нажимать: их прочитает чтец. Всё понятно? Нажмите «Далее» внизу.",
+  letterIntro: "{n}, это новая буква. Крупно показано, как она пишется отдельно. Нажмите на букву или на кнопку под ней: чтец назовёт её имя. Повторите имя вслух. Ниже написано, какой у буквы звук.",
+  letter: "{n}, это карточка буквы. Вверху буква, её имя и звук. Ниже плитки: буква с тремя огласовками. Внизу схема: откуда выходит звук, и слова Корана с этой буквой. Нажимайте и слушайте.",
+  forms: "{n}, здесь одна буква в разных местах слова. Подпись под каждой плиткой говорит, где стоит буква: в начале, в середине, в конце или отдельно. Сравните их: главная часть и точки не меняются.",
+  blend: "{n}, здесь слоги складываются в слово. Плитки слогов соединены знаком «+». Нажмите на слово: чтец по очереди проговорит каждый слог, потом прочитает слово целиком. Потом прочитайте слово слитно, без пауз.",
+  zone: "{n}, это схема рта и горла. Цветом выделено место, откуда выходит звук. Прочитайте текст. Потом скажите этот звук и почувствуйте, где он рождается.",
+  rule: "{n}, это новое правило чтения. Вверху его имя и короткая суть. В словах Корана ниже правило выделено цветом. Нажмите на слово: чтец прочитает его, и вы услышите это правило.",
+  read: "{n}, здесь вы читаете без подсказки. Прочитайте слово вслух. Потом нажмите «Проверить себя»: появится чтение, и чтец прочитает слово. Честно отметьте, верно ли вы прочитали.",
+  speak: "{n}, здесь вы записываете свой голос. Нажмите на микрофон, прочитайте слово и нажмите ещё раз. Потом сравните свою запись с чтецом.",
+  q: "{n}, это упражнение. Вверху вопрос, ниже варианты ответа. Нажмите на ответ. Внизу появится, верно ли, и кнопка «Далее». Ошибка не страшна: вы увидите правильный ответ, а вопрос вернётся в конце урока.",
+  listen: "{n}, это упражнение на слух. Звук играет сам. Большая кнопка со значком звука повторяет его сколько угодно раз. Послушайте и выберите ответ ниже.",
+  match: "{n}, здесь нужно соединить пары. Нажмите на арабский текст, потом на его чтение. Верная пара отметится цветом. Так соедините все пары.",
+  blendBoard: "{n}, здесь вы собираете слово. Послушайте его. Потом нажимайте на слоги внизу по порядку, справа налево. Выбран не тот слог? Кнопка «Убрать слог» уберёт последний.",
+  pointPick: "{n}, на схеме нажмите на место, откуда выходит звук этой буквы.",
+  ruleSpot: "{n}, здесь несколько слов. Найдите слово, где есть названное правило, и нажмите на него.",
+};
+const GUIDE_KIND = { letterListen: "listen", sylListen: "listen", listenWord: "listen", listenFirst: "listen", pairListen: "listen", blend: "blendBoard", match: "match", pointPick: "pointPick", ruleSpot: "ruleSpot" };
+/** Вид шага для слова учителя: экран урока (card, letterIntro…) или упражнение (по его kind). */
+export const guideKind = (screen) => (screen.type === "q" ? GUIDE_KIND[screen.q.kind] || "q" : screen.type);
+/** Слово учителя к виду шага или null. named: false, без имени. */
+export function guideFor(kind, { named = true } = {}) {
+  const t = GUIDE[kind];
+  return t ? fill(t, named ? studentName() : "") : null;
+}

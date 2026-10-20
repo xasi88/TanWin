@@ -1,0 +1,76 @@
+// Практика: интервальное повторение (что пора повторить) и тренажёры.
+import { h, ar, icon, plural, shuffle, rich } from "../ui.js";
+import { store, srsDue, lessonDone, hardWords } from "../store.js";
+import { bank } from "../data.js";
+import { learnedLevel, allOpen } from "../path.js";
+import { playLesson } from "../lesson.js";
+import { stepForKey } from "../exercises.js";
+import { go, celebrate } from "../app.js";
+
+const LEVEL_RU = { fatha: "фатха", kasra: "фатха и касра", damma: "три огласовки", tanween: "танвин", madd: "мадд", sukun: "сукун", shadda: "шадда", full: "всё" };
+
+
+function reviewSteps(max = 14) {
+  const srs = store.get().srs;
+  const due = srsDue().sort((a, b) => srs[a].box - srs[b].box || srs[a].due - srs[b].due).slice(0, max);
+  return shuffle(due).map(stepForKey).filter(Boolean);
+}
+/** Смешанная тренировка по всему пройденному (когда повторять нечего). */
+function mixedSteps() {
+  const keys = Object.keys(store.get().srs);
+  const lv = learnedLevel();
+  const steps = shuffle(keys).slice(0, 10).map(stepForKey).filter(Boolean);
+  if (lv) steps.push({ t: "ex", k: "readWord", n: 3, level: lv }, { t: "ex", k: "listenWord", n: 2, level: lv });
+  return shuffle(steps);
+}
+
+const DRILLS = [
+  { id: "review", icon: "repeat", title: "Повторение", text: "То, что пора освежить в памяти", need: null },
+  { id: "hard", icon: "target", title: "Трудные слова", text: "Слова, в которых вы ошибались", need: null, hard: true, steps: () => {
+    const ws = hardWords().map((k) => bank()?.byKey.get(k)).filter(Boolean).slice(0, 10);
+    return ws.flatMap((w, i) => [{ t: "ex", k: i % 2 ? "listenWord" : "readWord", n: 1, words: [w] }]);
+  } },
+  { id: "letters", icon: "sparkle", title: "Буквы", text: "Названия, формы, звуки", need: "2.9", steps: () => [{ t: "ex", k: "letterName", n: 4, from: "all" }, { t: "ex", k: "letterPick", n: 4, from: "all" }, { t: "ex", k: "formPick", n: 3 }, { t: "ex", k: "listenFirst", n: 3, from: "all" }] },
+  { id: "ear", icon: "ear", title: "Тренажёр слуха", text: "Трудные пары: {س} и {ص}, {ت} и {ط}, {ه} и {ح}…", need: "9.4", steps: () => [{ t: "ex", k: "pairListen", n: 10, pairs: "all" }] },
+  { id: "makharij", icon: "target", title: "Махраджи", text: "Откуда выходит звук", need: "9.8", steps: () => [{ t: "ex", k: "pointPick", n: 5, letters: "all" }, { t: "ex", k: "heavy", n: 4 }, { t: "ex", k: "zonePick", n: 3 }] },
+  { id: "fluency", icon: "book", title: "Беглое чтение", text: "Слова Корана вашего уровня", need: "6.1", steps: () => [{ t: "read", level: learnedLevel() || "fatha", n: 12 }] },
+  { id: "listen", icon: "vol", title: "Слова на слух", text: "Узнайте слово по чтецу", need: "6.1", steps: () => [{ t: "ex", k: "listenWord", n: 10, level: learnedLevel() || "fatha" }] },
+  { id: "voice", icon: "mic", title: "Мой голос", text: "Запишите себя и сравните с чтецом", need: "6.1", steps: () => Array.from({ length: 3 }, () => ({ t: "speak", level: learnedLevel() || "fatha" })) },
+  { id: "tajweed", icon: "palette", title: "Найди правило", text: "Правила таджвида в аятах", need: "10.4", steps: () => [
+    ...["f", "i", "d", "D", "g", "q", "n", "o", "u"].filter(() => Math.random() < 0.7).slice(0, 6).map((c) => ({ t: "ex", k: "ruleSpot", n: 1, code: c })),
+    { t: "ex", k: "nunRule", n: 4 }] },
+  { id: "madd", icon: "slow", title: "Сколько тянуть?", text: "Мадды: 2, 4–5, 6", need: "11.5", steps: () => [{ t: "ex", k: "maddCount", n: 10 }] },
+];
+
+export function ReviewView() {
+  const due = srsDue().length;
+  const total = Object.keys(store.get().srs).length;
+  const cards = DRILLS.map((d) => {
+    const nHard = d.hard ? hardWords().filter((k) => bank()?.byKey.has(k)).length : 0;
+    const open = d.hard ? nHard > 0 : !d.need || lessonDone(d.need) || allOpen();
+    const main = d.id === "review";
+    const sub = main ? (due ? `${due} ${plural(due, "тема ждёт", "темы ждут", "тем ждут")} повторения` : total ? "Сейчас всё свежо в памяти. Можно потренироваться." : "Пройдите первые уроки — и здесь появятся повторения.") : d.hard ? `${nHard} ${plural(nHard, "слово", "слова", "слов")} — повторяйте, пока не станут лёгкими` : d.text;
+    return h(open ? "a.drill" : "div.drill", { href: open ? `#/practice/${d.id}` : null, class: (open ? "" : "locked ") + (main ? "main" : "") },
+      h("span.dr-ic", null, icon(open ? d.icon : "lock", { size: 26 })),
+      h("div", null, h("b", null, d.title), h("div.muted", null, open ? rich(sub) : d.hard ? "Здесь появятся слова, в которых вы ошибётесь в уроках" : "Откроется по мере прохождения пути")),
+      main && due ? h("span.badge", null, due) : d.hard && nHard ? h("span.badge", null, nHard) : null);
+  });
+  return h("div.page", null,
+    h("header.page-head", null, h("h1", null, "Практика"), h("p.muted", null, "Интервальное повторение: приложение запоминает, что вы начинаете забывать, и возвращает это как раз вовремя. Пять минут здесь в день закрепляют пройденное надолго.")),
+    h("div.drills", null, ...cards));
+}
+
+export function PracticeRoute(kind) {
+  const root = h("div.lesson-root");
+  const d = DRILLS.find((x) => x.id === kind);
+  if (!d) { go("/review"); return root; }
+  let steps;
+  if (kind === "review") {
+    steps = reviewSteps();
+    if (!steps.length) steps = mixedSteps();
+    if (!steps.length) { go("/review"); return root; }
+  } else steps = d.steps();
+  playLesson(root, { id: null, title: d.title, steps, onExit: (res) => { go("/review"); if (res) setTimeout(() => celebrate(res.events), 400); } });
+  return root;
+}
+export { LEVEL_RU };
