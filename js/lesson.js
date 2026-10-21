@@ -9,8 +9,9 @@ import { M, syllRu, stripStops } from "./arabic.js";
 import { diagram } from "./diagram.js";
 import { playWord, playAyah, stop, sfx, canRecord, startRecording, stopRecording, envelope, playUrl, playLetter, playSyll } from "./audio.js";
 import { letterIntro, letterForms, harakatTiles, syllTile, blendCard, blendsFor, playAllVowels, spellNote, V3, SYLL_IDS } from "./syllables.js";
-import { knownLetters } from "./course.js";
-import { store, addXp, srsSeen, finishLesson, todayXp, hardSeen } from "./store.js";
+import { knownLetters, UNITS } from "./course.js";
+import { isInstalled } from "./install.js";
+import { store, addXp, srsSeen, finishLesson, todayXp, hardSeen, lessonDone } from "./store.js";
 import { track } from "./usage.js";
 import { lessonVoice, weakSpots, guideFor, guideKind } from "./tutor.js";
 import { applySkip } from "./path.js";
@@ -323,7 +324,8 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
   const mistakes = [];
   const voice = lessonVoice({ id, isTest, isSurah, title });
   const tutorNote = () => h("p.tutor-note", null, icon("sparkle", { size: 16 }), h("span", null, mixed(voice.intro({ warm: warmLabel }))));
-  // слово учителя: над первым шагом каждого вида в уроке (в проверках и уроках сур не нужно)
+  // слово учителя: над первым шагом каждого вида в уроке (в проверках и уроках сур не нужно).
+  // Первые 3 раза для каждого вида — полностью, потом строка «Как это работает?», которая раскрывается нажатием.
   const told = new Set();
   const guideNote = (s) => {
     if (isTest || isSurah) return null;
@@ -332,6 +334,13 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
     const t = guideFor(kind, { named: idx !== 0 }); // на первом экране имя уже прозвучало во вступлении
     if (!t) return null;
     told.add(kind);
+    const counts = guideCounts(), seen = counts[kind] || 0;
+    if (seen >= GUIDE_FULL) {
+      const more = h("p.hidden", null, mixed(t));
+      const btn = h("button.guide-more", { type: "button", "aria-expanded": "false", onclick: () => btn.setAttribute("aria-expanded", !more.classList.toggle("hidden")) }, icon("info", { size: 16 }), "Как это работает?");
+      return h("div.tutor-note.guide.short", null, btn, more);
+    }
+    store.set((st) => { st.guides = { ...(st.guides || counts), [kind]: seen + 1 }; });
     return h("p.tutor-note.guide", null, icon("info", { size: 16 }), h("span", null, mixed(t)));
   };
 
@@ -479,6 +488,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
 
   function finish() {
     document.removeEventListener("keydown", onKey);
+    homeBtn?.replaceWith(xpEl); // на итоге пропускать уже нечего: на место «Пропустить» возвращается счётчик нура
     const pct = total0 ? Math.round((firstTryOk / total0) * 100) : 100;
     const passed = !isTest || pct >= 80;
     const ms = Date.now() - t0;
@@ -512,7 +522,8 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
       note ? h("p.tutor-line", null, note) : null,
       weakText ? h("p.tutor-weak", null, icon("target", { size: 18 }), h("span", null, mixed(voice.weakNote(weakText)))) : null,
       show,
-      h("p.muted", null, passed ? (isTest ? "Проверка сдана — следующий этап открыт." : "Новые знания уже в «Повторении».") : "Для проверки нужно 80% верных ответов с первой попытки. Повторите и попробуйте снова — вы справитесь."),
+      passed && id === "1.1" ? afterFirstLesson() : null,
+      h("p.muted", null, passed ? (isTest ? "Проверка сдана — следующий этап открыт." : "Новые знания уже в «Практике».") : "Для проверки нужно 80% верных ответов с первой попытки. Повторите и попробуйте снова — вы справитесь."),
       h("div.res-stats", null,
         stat("Точность", pct + "%", "target"),
         stat("Нур", "+" + xp, "nur"),
@@ -530,6 +541,41 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
 
   progress();
   show();
+}
+
+// ---------- Слово учителя: сколько раз показано ----------
+// Решение автора от 2026-10-21: каждое пояснение полностью первые 3 раза, потом короткой строкой.
+// Счёт хранится в store.guides. У того, кто учился раньше, он считается один раз по пройденным урокам.
+const GUIDE_FULL = 3;
+function stepGuideKind(st) {
+  if (st.t === "ex") return guideKind({ type: "q", q: { kind: st.k } });
+  if (st.t === "quiz" || st.t === "q") return "q";
+  if (st.t === "letter") return st.mini ? "letter" : "letterIntro";
+  return st.t;
+}
+function guideCounts() {
+  const st = store.get();
+  if (st.guides) return st.guides;
+  const n = {};
+  for (const u of UNITS) for (const l of u.lessons) {
+    if (l.test || !lessonDone(l.id)) continue;
+    for (const k of new Set(l.steps.map(stepGuideKind))) n[k] = (n[k] || 0) + 1;
+  }
+  store.set((s) => { s.guides = n; });
+  return n;
+}
+
+// ---------- После первого урока ----------
+// Что дальше и предложение поставить значок: одна карточка на итоге урока 1.1, без напоминаний.
+function afterFirstLesson() {
+  let hidden = false;
+  try { hidden = !!localStorage.getItem("tanwin.installHint"); } catch {}
+  const offer = !hidden && !isInstalled() && matchMedia("(pointer: coarse)").matches;
+  return h("div.card.after-first", null,
+    h("b", null, "Следующий урок: первые четыре буквы"),
+    ar("ا ب ت ث", { cls: "af-ar" }),
+    offer ? h("p.muted", null, "Поставьте значок TanWin на экран: урок откроется одним нажатием, даже без интернета.") : null,
+    offer ? h("button.btn.secondary", { type: "button", onclick: (e) => { try { localStorage.setItem("tanwin.installHint", "1"); } catch {} e.currentTarget.remove(); import("./app.js").then((m) => m.installApp()); } }, icon("down", { size: 18 }), "Установить") : null);
 }
 
 const stat = (label, value, ic) => h("div.stat", null, icon(ic, { size: 20 }), h("b", null, value), h("small", null, label));

@@ -8,7 +8,7 @@ import { surahMeta } from "../data.js";
 import { playLesson } from "../lesson.js";
 import { go, celebrate, installApp } from "../app.js";
 import { isInstalled } from "../install.js";
-import { devBanner } from "../feedback.js";
+import { feedbackButton } from "../feedback.js";
 import { homeLine, studentName } from "../tutor.js";
 import { NEWS } from "../version.js";
 
@@ -118,7 +118,7 @@ function reviewCard() {
   if (!due) return null;
   return h("a.card.review-card", { href: "#/practice/review" },
     h("span.rc-ic", null, icon("repeat", { size: 26 })),
-    h("div", null, h("b", null, "Пора повторить"), h("div.muted", null, `${due} ${plural(due, "тема", "темы", "тем")} ждут повторения — 2–3 минуты`)),
+    h("div", null, h("b", null, "Пора повторить"), h("div.muted", null, `${due} ${plural(due, "тема ждёт", "темы ждут", "тем ждут")} повторения — 2–3 минуты`)),
     icon("right"));
 }
 
@@ -221,20 +221,22 @@ export function HomeView() {
   const target = nextTarget();
   const page = h("div.page.home", null,
     h("div.home-grid", null,
+      // сверху то, что делать сейчас: приветствие одной строкой, «Продолжить», «Пора повторить»; счётчики ниже (диагностика 2026-10-21)
       h("aside.home-side", null,
-        newsCard(),
-        devBanner(),
-        h("header.home-head", null,
-          h("div", null, h("h1", null, greeting()), h("p.muted", null, homeLine())),
-          statsBar()),
+        h("header.home-head", null, h("h1", null, greeting())),
         continueCard(),
         reviewCard(),
+        newsCard(),
+        h("div.home-progress", null, h("p.muted", null, homeLine()), statsBar()),
         installCard(),
         backupCard(),
+        h("p.home-fb", null, "Нашли ошибку? ", feedbackButton({ cls: "link", label: "Напишите" })),
         h("footer.home-foot", null, h("a", { href: "#/method" }, "Методика"), " · ", h("a", { href: "#/letters" }, "Алфавит"), " · ", h("a", { href: "#/rules" }, "Таджвид"), " · ", h("a", { href: "#/thanks" }, "Благодарности"))),
       h("div.path.home-main", null, ...[...UNITS, SURAH_UNIT].map((u) => unitBlock(u, target)))));
-  // прокрутка к текущему узлу
+  // прокрутка к текущему узлу — только на широком экране, где путь в своей колонке.
+  // На телефоне не прыгаем вниз к пути: сверху должна быть видна «Продолжить».
   requestAnimationFrame(() => {
+    if (!matchMedia("(min-width: 1200px)").matches) return;
     // встаём на урок, который открывали последним; его нет в открытом этапе — на следующий шаг пути
     const x = pickedUnit === undefined ? lastOpen() : null;
     const cur = (x && page.querySelector(x.t === "surah" ? `.unit.open .node[data-surah="${x.n}"]` : `.unit.open .node[data-lesson="${x.id}"]`)) || page.querySelector(".unit.open .node.current");

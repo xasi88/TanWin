@@ -74,15 +74,16 @@ G.listenFirst = (o, lesson) => {
     }, [letterOpt(id, true), ...similarLetters(id, 3, ids).map((x) => letterOpt(x, false))]);
   }).filter(Boolean);
 };
-// На слух: название буквы → какая это буква
+// На слух: название буквы → какая это буква. o.pool — свои варианты ответа (урок 1.1: ب среди непохожих букв, первая лёгкая победа)
 G.letterListen = (o, lesson) => cycle(target(lesson, o).filter((id) => id !== "hamza"), o.n).map((id) => {
   const l = byId[id];
   preloadLetter(id);
-  return withOpts({ kind: "letterListen", key: "L:" + id, layout: "grid4",
+  const wrong = o.pool ? o.pool.filter((x) => x !== id) : similarLetters(id, 3, target(lesson, o));
+  return withOpts({ kind: "letterListen", key: "L:" + id, layout: wrong.length === 2 ? "grid3" : "grid4",
     play: () => playLetter(id),
     prompt: () => promptText("Какую букву вы слышите?", "Можно слушать сколько угодно раз."),
     explain: `Это ${l.name} — ${l.dots}.`,
-  }, [letterOpt(id, true), ...similarLetters(id, 3, target(lesson, o)).map((x) => letterOpt(x, false))]);
+  }, [letterOpt(id, true), ...wrong.map((x) => letterOpt(x, false))]);
 });
 // На слух: слог (буква с огласовкой) → какой это слог
 G.sylListen = (o, lesson) => {
