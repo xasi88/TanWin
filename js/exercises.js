@@ -251,7 +251,7 @@ G.syllable = (o, lesson) => {
       ...similarLetters(id, 3, SYL_LETTERS).filter((x) => x !== "alif" && x !== "hamza").map((x) => sylTr(x, v)),
     ]).filter((t) => t !== right);
     return withOpts({ kind: "syllable", key: "V:" + v, layout: "grid2",
-      prompt: () => h("div.q-center", null, promptText("Как читается слог?"), ar(sylText(id, v), { cls: "q-big" })),
+      prompt: () => h("div.q-center", null, promptText("Как читается слог?"), ar(sylText(id, v), { cls: v === "kasratan" ? "q-big low-mark" : "q-big" })),
       onAnswer: () => { if (VOWELS[v]) playSyll(id, v); },
       explain: `${byId[id].name} + ${{ fatha: "фатха", kasra: "касра", damma: "дамма", fathatan: "фатхатан", kasratan: "касратан", dammatan: "даммтан" }[v]} = «${right}».`,
     }, [trOpt(right, true), ...shuffle(alts).slice(0, 3).map((t) => trOpt(t, false))]);

@@ -548,6 +548,7 @@ body.fullscreen #toast { bottom: 24px; }
 .q-text { text-align: center; }
 .q-text h2 { font-size: clamp(1.25rem, 1.05rem + 1vw, 1.65rem); margin-bottom: 4px; }
 .q-text p { margin: 0; }
+.q-big.low-mark { padding-bottom: .3em; } /* касратан под «джимом» и «йа» опускается ниже строки: место снизу, чтобы знак не вышел за карточку */
 .q-big { --s: 5rem; line-height: 1.8; max-width: 100%; color: var(--ink); padding: 0 20px .1em; min-width: 150px; border-radius: 28px; background: var(--card); border: 2px solid var(--line); box-shadow: var(--shadow); }
 .q-word { --s: 3.1rem; line-height: 1.9; color: var(--ink); max-width: 100%; }
 .form-box { background: var(--card-2); }
