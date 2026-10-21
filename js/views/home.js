@@ -11,6 +11,7 @@ import { isInstalled } from "../install.js";
 import { feedbackButton } from "../feedback.js";
 import { homeLine, studentName } from "../tutor.js";
 import { NEWS } from "../version.js";
+import { tourWaits, startTour } from "../tour.js";
 
 const hue = (u) => `var(--c-${u.hue})`;
 const unitOfLesson = (id) => UNITS.find((u) => u.lessons.some((l) => l.id === id));
@@ -242,6 +243,12 @@ export function HomeView() {
     const cur = (x && page.querySelector(x.t === "surah" ? `.unit.open .node[data-surah="${x.n}"]` : `.unit.open .node[data-lesson="${x.id}"]`)) || page.querySelector(".unit.open .node.current");
     if (cur && Object.keys(store.get().lessons).length > 2) cur.scrollIntoView({ block: "center", behavior: "instant" in document.documentElement.style ? "instant" : "auto" });
   });
+  // новичок после знакомства: один раз показываем, где урок, где весь курс и что в меню
+  if (tourWaits()) setTimeout(() => page.isConnected && startTour([
+    { el: page.querySelector(".hero-card"), title: "Ваш следующий урок", text: "Нажмите на эту карточку, и урок начнётся. Уроки идут по порядку, один за другим. Первый урок займёт несколько минут." },
+    { el: page.querySelector(".home-main .unit-head"), title: "Весь курс по шагам", text: "Ниже весь путь: от первых букв до чтения сур. Нажмите на этап, и вы увидите его уроки." },
+    { el: document.querySelector("#nav .nav-tabs"), fixed: true, title: "Разделы приложения", text: "«Практика»: повторение трудного. «Мой Коран»: чтение Корана. «Прогресс»: ваши успехи. «Ещё»: настройки и связь с разработчиком." },
+  ]), 500);
   return page;
 }
 

@@ -4,6 +4,7 @@ import { store } from "../store.js";
 import { logo, go } from "../app.js";
 import { track, user, whoParams } from "../usage.js";
 import { fill } from "../tutor.js";
+import { tourLater } from "../tour.js";
 
 export function Onboarding() {
   let step = 0;
@@ -68,11 +69,14 @@ export function Onboarding() {
     b.addEventListener("click", () => {
       saveProfile();
       store.set((st) => { st.profile.onboarded = true; });
-      try { sessionStorage.setItem("tanwin.fromWelcome", "1"); } catch {} // в первом уроке будет кнопка «на главную»
+      tourLater(); // на «Пути» новичка ждёт подсказка: где урок, где курс, что в меню
       track("onboarded", { Старт: t, ...whoParams() });
       user(whoParams());
-      go(path === "/learn/1.1" ? "/" : path);
-      if (path === "/learn/1.1") setTimeout(() => go(path), 50);
+      // «С нуля»: сначала «Путь» с подсказкой, урок человек открывает сам (с 1.34.1; раньше сразу открывался урок 1.1 и пугал новичка).
+      // Проверку человек выбрал сам: она открывается сразу, в ней «Пропустить» ведёт на главную
+      if (path === "/learn/1.1") return go("/");
+      try { sessionStorage.setItem("tanwin.fromWelcome", "1"); } catch {}
+      go(path);
     });
     return b;
   }

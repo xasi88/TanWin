@@ -67,7 +67,7 @@ export function lessonVoice({ id, isTest = false, isSurah = false, title = "" } 
       if (wasSkipped) return fill("{n}, этот урок вы закрыли проверкой этапа. Теперь пройдём его шаг за шагом.");
       if (st.lessons[id]?.done) return fill(`{n}, возвращаться к пройденному — признак ${g("хорошего ученика", "хорошей ученицы")}. Освежим этот урок.`);
       const k = doneLessons();
-      if (!k && !Object.keys(st.lessons).length) return fill("{n}, добро пожаловать! Это ваш первый урок. Идём маленькими шагами — спешить некуда.");
+      if (!k && !Object.keys(st.lessons).length) return fill("{n}, добро пожаловать! Это ваш первый урок. Идём маленькими шагами, спешить некуда.");
       const u = unitOf(id);
       if (u) {
         const p = unitProgress(u), left = p.total - p.done;

@@ -382,6 +382,16 @@ body.fullscreen #view { padding-bottom: 0; }
 body.fullscreen #toast { bottom: 24px; }
 .modal-wrap { position: fixed; inset: 0; z-index: 80; display: grid; place-items: end center; background: rgba(10, 12, 25, .45); backdrop-filter: blur(3px); animation: fadeIn .2s; padding: 0; }
 .modal-wrap.out { animation: fadeOut .2s forwards; }
+/* Подсказка новичку на «Пути» (js/tour.js): дыра над нужным местом, вокруг затемнение, рядом облачко */
+.tour { position: fixed; inset: 0; z-index: 70; animation: fadeIn .2s; }
+.tour-hole { position: fixed; border-radius: 22px; box-shadow: 0 0 0 200vmax rgba(10, 12, 25, .6); outline: 3px solid var(--gold); transition: top .25s var(--ease), left .25s var(--ease), width .25s var(--ease), height .25s var(--ease); pointer-events: none; }
+.tour-bubble { position: fixed; left: 16px; width: min(calc(100% - 32px), 420px); background: var(--card); border-radius: 22px; padding: 14px 18px 16px; box-shadow: var(--shadow-lg); transition: top .25s var(--ease), left .25s var(--ease); }
+.tour-top { display: flex; align-items: center; justify-content: space-between; min-height: 44px; margin: -6px 0 2px; }
+.tour-count { font-size: .85rem; font-weight: 800; color: var(--ink-2); }
+.tour-body h3 { margin: 0 0 6px; font-size: 1.15rem; }
+.tour-body p { margin: 0; line-height: 1.5; }
+.tour-foot { display: flex; justify-content: flex-end; margin-top: 14px; }
+@media (prefers-reduced-motion: reduce) { .tour-hole, .tour-bubble { transition: none; } }
 .modal { position: relative; width: min(100%, 560px); max-height: 90dvh; overflow: auto; background: var(--card); border-radius: 26px 26px 0 0; padding: 26px 20px calc(22px + env(safe-area-inset-bottom)); box-shadow: var(--shadow-lg); animation: sheetUp .3s var(--ease); }
 .modal.wide { width: min(100%, 720px); }
 .modal .card { box-shadow: none; border: 0; padding: 0; margin: 0; }
