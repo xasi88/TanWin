@@ -51,7 +51,7 @@ function renderNav(active) {
   const lv = levelInfo();
   nav.replaceChildren(
     h("a.brand", { href: "#/", "aria-label": "TanWin — на главную" }, logo(), h("span.brand-name", null, "TanWin"), h("span.brand-sub", null, "путь к чтению Корана")),
-    h("div.nav-tabs", { role: "tablist" }, ...TABS.map((t) => {
+    h("div.nav-tabs", null, ...TABS.map((t) => { // обычные ссылки, а не «вкладки»: так их называет программа чтения с экрана
       const on = t.path === "/" ? active === "/" : active.startsWith(t.path);
       return h("a.tab", { href: "#" + t.path, class: on ? "on" : "", "aria-current": on ? "page" : null }, icon(t.ic, { size: 24 }), h("span", null, t.label));
     })),
@@ -136,6 +136,13 @@ async function route() {
   store.sync(); // другая вкладка могла что-то записать — новый экран рисуем по свежим данным
   const path = location.hash.replace(/^#/, "") || "/";
   if (!store.get().profile.onboarded && !path.startsWith("/welcome")) { location.replace("#/welcome"); return; }
+  // банк слов и список сур нужны всем экранам, кроме знакомства: новичок дожидается их, только когда знакомство кончилось
+  if (!dataReady && !path.startsWith("/welcome")) {
+    view.replaceChildren(h("div.boot", null, logo(72), h("div.spinner")));
+    const ok = await loadData();
+    if (my !== routing) return;
+    if (!ok) { loadFailed(); return; }
+  }
   const full = FULLSCREEN.test(path);
   document.body.classList.toggle("fullscreen", full);
   if (!full) applyUpdate(); // обновление, отложенное на время урока или чтения, включается сразу после него
@@ -172,6 +179,25 @@ export function celebrate(events = []) {
 }
 
 // ---------- Запуск ----------
+// Банк слов и список сур: три попытки. Не удалось — следующий экран попробует снова
+let dataReady = false, dataP = null;
+function loadData() {
+  return dataP ||= (async () => {
+    for (let i = 0; i < 3; i++) {
+      try { await Promise.all([loadBank(), loadSurahs()]); return (dataReady = true); }
+      catch (e) { console.error(e); await new Promise((ok) => setTimeout(ok, 1200)); }
+    }
+    dataP = null;
+    return false;
+  })();
+}
+function loadFailed() {
+  view.replaceChildren(h("div.page", null, h("div.card", null, h("h2", null, "Не удалось загрузить приложение"),
+    h("p", null, "Похоже, связь прервалась. Проверьте интернет и попробуйте ещё раз. После первой удачной загрузки приложение открывается и без интернета."),
+    h("p", null, "Если у вас включён VPN — попробуйте его выключить. Если выключен — попробуйте включить: иногда сайт не открывается именно из-за этого."),
+    h("button.btn.primary", { type: "button", onclick: () => location.reload() }, "Повторить"))));
+}
+
 async function start() {
   applySettings();
   matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", applySettings);
@@ -194,18 +220,12 @@ async function start() {
   const fonts = Promise.race([
     Promise.all([document.fonts?.load?.('40px "Amiri Quran"', "بسم"), document.fonts?.load?.(`40px ${AR_FONTS[arFont()].css}`, "بسم")]).catch(() => {}),
     new Promise((ok) => setTimeout(ok, 4000))]);
-  let loaded = false;
-  for (let i = 0; i < 3 && !loaded; i++) { // данные: три попытки
-    try { await Promise.all([loadBank(), loadSurahs()]); loaded = true; }
-    catch (e) { console.error(e); await new Promise((ok) => setTimeout(ok, 1200)); }
-  }
+  // новичок начинает со знакомства: ему первый экран не ждёт банка слов (около 120 КБ)
+  const loaded = !store.get().profile.onboarded || await loadData();
   await fonts;
   clearTimeout(slow);
   if (!loaded) {
-    view.replaceChildren(h("div.page", null, h("div.card", null, h("h2", null, "Не удалось загрузить приложение"),
-      h("p", null, "Похоже, связь прервалась. Проверьте интернет и попробуйте ещё раз. После первой удачной загрузки приложение открывается и без интернета."),
-      h("p", null, "Если у вас включён VPN — попробуйте его выключить. Если выключен — попробуйте включить: иногда сайт не открывается именно из-за этого."),
-      h("button.btn.primary", { type: "button", onclick: () => location.reload() }, "Повторить"))));
+    loadFailed();
     registerSW();
     return;
   }
@@ -276,7 +296,10 @@ function registerSW() {
   // но версия та же — перезагружать страницу посреди знакомства или урока незачем
   const updating = !!navigator.serviceWorker.controller;
   let reloaded = false;
-  navigator.serviceWorker.addEventListener("controllerchange", () => { if (updating && !reloaded) { reloaded = true; location.reload(); } });
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!updating) loadData(); // первый заход: банк слов уже в памяти service worker, знакомство берёт его оттуда без второго скачивания
+    else if (!reloaded) { reloaded = true; location.reload(); }
+  });
   // приложение часто не закрывают, а сворачивают: тогда браузер сам новую версию не ищет. Ищем при возврате на экран
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState !== "visible" || !swReg) return;

@@ -282,7 +282,7 @@ function sizePanel(anchor) {
   const place = () => { const r = anchor.getBoundingClientRect(), ph = el.offsetHeight; el.style.top = Math.round(r.bottom + 8 + ph > innerHeight ? Math.max(8, r.top - 8 - ph) : r.bottom + 8) + "px"; el.style.right = Math.max(8, Math.round(innerWidth - r.right)) + "px"; };
   place();
   const outside = (e) => { if (!el.contains(e.target) && !anchor.contains(e.target)) close(); };
-  const esc = (e) => e.key === "Escape" && close();
+  const esc = (e) => { if (e.key === "Escape") { close(); anchor.focus(); } };
   const close = () => { el.remove(); sizePop = null; document.removeEventListener("pointerdown", outside, true); document.removeEventListener("keydown", esc); removeEventListener("hashchange", close); removeEventListener("resize", place); };
   document.addEventListener("pointerdown", outside, true);
   document.addEventListener("keydown", esc);
@@ -341,12 +341,15 @@ export function toast(msg, ms = 2600) {
 
 export function modal(content, { onClose, cls = "" } = {}) {
   const root = $("#modal-root");
+  const back = document.activeElement; // кнопка, которая открыла окно: после закрытия фокус возвращается на неё
   let closed = false;
-  const close = () => {
+  const close = (e) => {
     if (closed) return;
     closed = true;
     wrap.classList.add("out"); setTimeout(() => wrap.remove(), 200);
     document.removeEventListener("keydown", esc); removeEventListener("hashchange", close);
+    // перешли на другой экран — возвращаться некуда; в поле ввода не возвращаем, чтобы не открылась клавиатура
+    if (e?.type !== "hashchange" && back?.isConnected && !back.matches("input, textarea, [contenteditable]")) back.focus({ preventScroll: true });
     onClose?.();
   };
   const esc = (e) => e.key === "Escape" && close();

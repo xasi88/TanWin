@@ -1,5 +1,5 @@
 // Service worker TanWin: офлайн-режим. Список файлов и версия обновляются командой: node tools/build.mjs
-const VERSION = "3a23ccc6fc";
+const VERSION = "8f877aeb0b";
 const CORE = `tanwin-core-${VERSION}`;
 const AUDIO = "tanwin-audio";
 const ROOT = new URL("./", self.location).pathname;
@@ -166,15 +166,9 @@ const FILES = [
   "data/q/114.json",
   "data/rare.json",
   "data/surahs.json",
-  "fonts/OFL-Amiri.txt",
-  "fonts/OFL-NotoNaskh.txt",
-  "fonts/OFL-Scheherazade.txt",
-  "fonts/OFL.txt",
   "fonts/amiri-quran.woff2",
   "fonts/hafs.woff2",
-  "fonts/noto-naskh.woff2",
   "fonts/nunito.woff2",
-  "fonts/scheherazade.woff2",
   "icons/icon-192.png",
   "icons/icon-512.png",
   "icons/icon-maskable-512.png",
@@ -221,6 +215,8 @@ const FILES = [
 ];
 /*END*/
 const AUDIO_HOSTS = ["audio.qurancdn.com", "everyayah.com", "verses.quran.com", "mirrors.quranicaudio.com"];
+const WORDS_HOST = "audio.qurancdn.com"; // записи слов: сохраняются сами при первом прослушивании
+const WORDS_LIMIT = 150 * 1024 * 1024; // предел для них. Суры, скачанные кнопкой, в предел не входят и не удаляются
 
 // На компьютере разработчика код всегда берётся из сети — иначе правки не видны, пока не пересобран список файлов.
 const DEV = /^(localhost|127\.\d+\.\d+\.\d+|\[::1\])$/.test(location.hostname);
@@ -244,6 +240,7 @@ self.addEventListener("install", (e) => {
   e.waitUntil((async () => {
     const c = await caches.open(CORE);
     for (let i = 0; i < FILES.length; i += 8) await Promise.all(FILES.slice(i, i + 8).map((f) => grab(c, f)));
+    await keepFonts(c).catch(() => {});
     // приложение нигде не открыто (открыта только страница для поисковиков или вообще ничего) — прерывать нечего, включаемся сразу
     const wins = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     if (!wins.some((w) => APP_PAGES.includes(new URL(w.url).pathname))) self.skipWaiting();
@@ -254,7 +251,49 @@ self.addEventListener("activate", (e) => {
     for (const k of await caches.keys()) if (k.startsWith("tanwin-core-") && k !== CORE) await caches.delete(k);
     await self.clients.claim();
   })());
+  trimWords(); // включение версии чистку не ждёт
 });
+
+// Шрифт на выбор («Шехерезада», «Ното») заранее не качаем: он сохраняется, когда ученик его выбрал (обработчик шрифтов ниже).
+// Новая версия переносит его из старой копией, без скачивания. Если файл такого шрифта меняется, ему нужно новое имя.
+async function keepFonts(c) {
+  for (const k of await caches.keys()) {
+    if (!k.startsWith("tanwin-core-") || k === CORE) continue;
+    const old = await caches.open(k);
+    for (const r of await old.keys()) {
+      const f = new URL(r.url).pathname.slice(ROOT.length);
+      if (f.startsWith("fonts/") && !FILES.includes(f) && !(await c.match(r))) await c.put(r, await old.match(r));
+    }
+  }
+}
+
+// Записи слов копятся без конца: сверх предела удаляем самые старые (ключи кэша идут в порядке сохранения).
+// Слова суры, скачанной кнопкой, не трогаем: у такой суры в кэше есть записи аятов чтеца.
+let trimming = null, added = 0;
+function trimWords() {
+  return trimming ||= (async () => {
+    const est = await navigator.storage?.estimate?.().catch(() => null);
+    if (est && est.usage < WORDS_LIMIT) return; // всё хранилище меньше предела, значит и слова тоже
+    const c = await caches.open(AUDIO);
+    const keys = await c.keys();
+    const saved = new Set(keys.filter((r) => !r.url.includes(WORDS_HOST)).map((r) => /(\d{3})\d{3}\.mp3$/.exec(r.url)?.[1]));
+    const words = [];
+    let total = 0;
+    for (const r of keys) {
+      const s = /\/wbw\/(\d{3})_/.exec(r.url)?.[1];
+      if (!s || saved.has(s)) continue;
+      const res = await c.match(r);
+      const size = +res?.headers.get("content-length") || (await res?.blob())?.size || 0;
+      words.push([r, size]);
+      total += size;
+    }
+    for (const [r, size] of words) {
+      if (total <= WORDS_LIMIT) break;
+      await c.delete(r);
+      total -= size;
+    }
+  })().catch(() => {}).finally(() => { trimming = null; });
+}
 self.addEventListener("message", (e) => { if (e.data?.type === "SKIP_WAITING") self.skipWaiting(); });
 
 // Ответ 206 из закэшированного файла (нужно Safari для <audio>)
@@ -272,6 +311,7 @@ async function rangeResponse(req, res) {
   });
 }
 
+const loading = new Map(); // записи слов, которые сейчас качаются
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
@@ -284,8 +324,21 @@ self.addEventListener("fetch", (e) => {
       const c = await caches.open(AUDIO);
       const hit = await c.match(key);
       if (hit) return rangeResponse(req, hit);
-      if (url.hostname === "audio.qurancdn.com") e.waitUntil(fetch(key).then((r) => r.ok && c.put(key, r)).catch(() => {}));
-      return fetch(req);
+      if (url.hostname !== WORDS_HOST) return fetch(req);
+      // запись слова качаем один раз: эта же загрузка и звучит, и ложится в кэш (до 1.34.0 слово скачивалось дважды).
+      // Второй запрос того же слова (звук и волна в уроке) ждёт первую загрузку, а не начинает свою
+      if (!loading.has(key)) {
+        const got = fetch(key);
+        loading.set(key, got);
+        e.waitUntil(got.then((r) => r.ok && c.put(key, r.clone()).then(() => { if (added++ % 30 === 0) return trimWords(); }))
+          .catch(() => {}).finally(() => loading.delete(key)));
+      }
+      try {
+        const r = (await loading.get(key)).clone();
+        return r.ok ? rangeResponse(req, r) : r;
+      } catch {
+        return fetch(req); // сервер не отдал запись для кэша: пусть браузер попробует сам, как раньше
+      }
     })());
     return;
   }
