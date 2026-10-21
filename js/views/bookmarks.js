@@ -4,7 +4,7 @@ import { h, icon, modal, toast, plural, confirmBox, keep } from "../ui.js";
 import { surahMeta } from "../data.js";
 import { store } from "../store.js";
 import { go } from "../app.js";
-import { track } from "../metrika.js";
+import { track } from "../usage.js";
 import { enterFullscreen } from "../fullscreen.js";
 import { pageContent, PAGES, JUZ_PAGE } from "./quran.js";
 

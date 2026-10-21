@@ -3,17 +3,31 @@
 // Никаких имён и прогресса по отдельным людям: только просмотры экранов, цели (урок пройден, сура выучена…)
 // и обобщённые параметры (сколько уроков пройдено, на каком этапе, ученик или ученица). Вебвизор, запись сеансов и автосбор нажатий выключены.
 // На localhost и из файла ничего не отправляется — события пишутся в консоль (удобно проверять).
+// Блокировщик рекламы не должен останавливать приложение (до 1.29.1 файл назывался metrika.js и тянул заглушку PostHog
+// обычным import: закрыли один файл — не запускалось всё). Поэтому имя нейтральное, а заглушка PostHog подгружается
+// отдельно, с перехватом ошибки; что пришло до неё, ждёт в очереди phQueue.
 import { store } from "./store.js";
 import { METRIKA_ID, POSTHOG_KEY, POSTHOG_HOST, APP_VERSION } from "./version.js";
-import "./posthog-loader.js";
 
 const LOCAL = location.protocol === "file:" || /^(localhost|127\.\d+\.\d+\.\d+|\[::1\])$|\.(localhost|test)$/.test(location.hostname);
 let started = false;
 let opts = null;
 let lastUrl = document.referrer;
+let phReady = false; // заглушка PostHog загрузилась и init вызван
+const phQueue = [];
 
 export const metrikaAvailable = () => !!METRIKA_ID || !!POSTHOG_KEY;
 const allowed = () => metrikaAvailable() && store.get().settings.analytics !== false;
+
+function toPosthog(method, args) {
+  // window.posthog берём каждый раз: загрузившись, библиотека подменяет заглушку собой
+  const ph = window.posthog;
+  if (!ph) return;
+  if (method === "init") ph.register(args[0].params);
+  else if (method === "userParams") ph.register(args[0]);
+  else if (method === "hit") ph.capture("$pageview", { $current_url: args[0], title: args[1].title, $referrer: args[1].referer });
+  else if (method === "reachGoal") ph.capture(args[0], args[1]);
+}
 
 // статистика никогда не должна мешать учёбе: любые ошибки здесь глушим
 function send(method, ...args) {
@@ -24,12 +38,8 @@ function send(method, ...args) {
   } catch {}
   try {
     if (!started || !allowed() || LOCAL || !POSTHOG_KEY) return;
-    const ph = window.posthog;
-    if (!ph) return;
-    if (method === "init") ph.register(args[0].params);
-    else if (method === "userParams") ph.register(args[0]);
-    else if (method === "hit") ph.capture("$pageview", { $current_url: args[0], title: args[1].title, $referrer: args[1].referer });
-    else if (method === "reachGoal") ph.capture(args[0], args[1]);
+    if (phReady) toPosthog(method, args);
+    else if (phQueue.length < 50) phQueue.push([method, args]);
   } catch {}
 }
 
@@ -55,7 +65,11 @@ function start() {
     document.head.append(s);
     // PostHog: без автосбора нажатий (в них мог бы попасть текст с именем), без записи сеансов и опросов;
     // просмотры экранов отправляем сами. Данные хранятся в localStorage, без cookie.
-    if (POSTHOG_KEY) window.posthog?.init(POSTHOG_KEY, { api_host: POSTHOG_HOST, defaults: "2026-05-30", person_profiles: "identified_only", autocapture: false, capture_pageview: false, capture_pageleave: false, disable_session_recording: true, disable_surveys: true, capture_dead_clicks: false, persistence: "localStorage" });
+    if (POSTHOG_KEY) import("./posthog-loader.js").then(() => {
+      window.posthog.init(POSTHOG_KEY, { api_host: POSTHOG_HOST, defaults: "2026-05-30", person_profiles: "identified_only", autocapture: false, capture_pageview: false, capture_pageleave: false, disable_session_recording: true, disable_surveys: true, capture_dead_clicks: false, persistence: "localStorage" });
+      phReady = true;
+      for (const [method, args] of phQueue.splice(0)) try { toPosthog(method, args); } catch {}
+    }).catch(() => {}); // заглушку закрыл блокировщик — работаем без PostHog
   }
   // defer: просмотры отправляем сами при смене экрана (адреса вида #/learn/3.2)
   send("init", { defer: true, clickmap: true, trackLinks: true, accurateTrackBounce: true, webvisor: false, params: { Версия: APP_VERSION, ...params } });

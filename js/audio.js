@@ -1,7 +1,7 @@
 // Звук: записи чтецов (слова и аяты), звуки ответов (синтез в браузере) и запись своего голоса.
 import { wordAudioUrl, RECITERS } from "./data.js";
 import { store } from "./store.js";
-import { track } from "./metrika.js";
+import { track } from "./usage.js";
 import { ROOT } from "./env.js";
 
 const el = new Audio();

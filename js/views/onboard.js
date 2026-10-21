@@ -2,7 +2,7 @@
 import { h, ar, icon, keep } from "../ui.js";
 import { store } from "../store.js";
 import { logo, go } from "../app.js";
-import { track, user, whoParams } from "../metrika.js";
+import { track, user, whoParams } from "../usage.js";
 import { fill } from "../tutor.js";
 
 export function Onboarding() {

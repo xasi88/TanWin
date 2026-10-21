@@ -6,7 +6,7 @@ import { stop, onFail } from "./audio.js";
 import { checkBadges, courseProgress, nextTarget, lessonById } from "./path.js";
 import { APP_VERSION } from "./version.js";
 import { canPrompt, install, isInstalled, isStandalone, manualHint } from "./install.js";
-import { initMetrika, hit, track, whoParams } from "./metrika.js";
+import { initMetrika, hit, track, whoParams } from "./usage.js";
 import { initFeedback, setScreen } from "./feedback.js";
 import { fill } from "./tutor.js";
 import { initWake } from "./wake.js";
@@ -15,6 +15,7 @@ import { initFullscreen, canFullscreen, isFullscreen, setFullscreen, onFullscree
 
 const view = $("#view");
 const nav = $("#nav");
+window.twStarted = true; // программа загрузилась: запасная надпись из index.html больше не нужна
 
 // ---------- Тема и размер арабского текста ----------
 export function applySettings() {

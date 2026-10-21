@@ -11,7 +11,7 @@ import { playWord, playAyah, stop, sfx, canRecord, startRecording, stopRecording
 import { letterIntro, letterForms, harakatTiles, syllTile, blendCard, blendsFor, playAllVowels, spellNote, V3, SYLL_IDS } from "./syllables.js";
 import { knownLetters } from "./course.js";
 import { store, addXp, srsSeen, finishLesson, todayXp, hardSeen } from "./store.js";
-import { track } from "./metrika.js";
+import { track } from "./usage.js";
 import { lessonVoice, weakSpots, guideFor, guideKind } from "./tutor.js";
 import { applySkip } from "./path.js";
 
@@ -212,7 +212,7 @@ function readStep(step, api) {
       h("div.rd-count", null, `${i + 1} / ${ws.length}`),
       h("p.muted.center", null, "Прочитайте слово вслух. Затем проверьте себя по чтецу."),
       h("button.rd-word", { type: "button", onclick: () => playWord(w.a), "aria-label": "Послушать" }, ar(w.d, { cls: "q-word" })),
-      h("div.rd-tr", null, trEl), stopEl, reveal, judge);
+      h("div.rd-tr", null, trEl), stopEl || "", reveal, judge); // replaceChildren пишет null как текст «null»
   };
   const next = (ok) => { if (ok) good++; srsSeen("W:" + step.level, ok); hardSeen(ws[i].a, ok); api.addXp(ok ? 4 : 1); i++; i < ws.length ? show() : api.done({ good, total: ws.length }); };
   show();

@@ -7,7 +7,7 @@ import { isInstalled, onInstallChange } from "../install.js";
 import { canFullscreen, wantFullscreen, setFullscreen } from "../fullscreen.js";
 import { APP_VERSION, CHANGELOG, CONTACT } from "../version.js";
 import { devBanner, feedbackButton, openFeedback } from "../feedback.js";
-import { track, metrikaAvailable } from "../metrika.js";
+import { track, metrikaAvailable } from "../usage.js";
 
 function seg(label, options, value, onChange) {
   const box = h("div.seg", { role: "radiogroup", "aria-label": label });

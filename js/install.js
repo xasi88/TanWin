@@ -1,6 +1,6 @@
 // Установка приложения на рабочий стол / домашний экран (PWA).
 // Событие beforeinstallprompt ловится сразу при загрузке, иначе браузер его не повторит.
-import { track } from "./metrika.js";
+import { track } from "./usage.js";
 
 let evt = null;
 const listeners = new Set();
