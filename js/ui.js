@@ -29,6 +29,14 @@ export function h(tag, attrs, ...kids) {
 const TEXT_ATTRS = new Set(["aria-label", "placeholder", "title"]);
 /** Текст, который нельзя переводить на «ты»: перевод аятов, цитаты. */
 export const keep = (t) => document.createTextNode(t);
+/** «Пропустить ›»: одно место (правый верхний угол) и один вид во всём приложении. label — что именно пропускаем, для чтения с экрана. */
+export function skipBtn(onclick, { cls = "", label = null } = {}) {
+  return h("button.link.skip-btn", { type: "button", class: cls, "aria-label": label, onclick }, "Пропустить", icon("right", { size: 16 }));
+}
+/** Крестик в правом верхнем углу карточки на «Пути». */
+export function closeX(onclick, label = "Закрыть", cls = "") {
+  return h("button.card-x", { type: "button", class: cls, "aria-label": label, onclick }, icon("close", { size: 18 }));
+}
 function append(el, kids) {
   for (const k of kids.flat(Infinity)) {
     if (k == null || k === false) continue;

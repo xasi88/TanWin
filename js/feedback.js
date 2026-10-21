@@ -1,6 +1,6 @@
 // Связь с разработчиком: маленькая кнопка на каждом экране → окно с сообщением → WhatsApp.
 // Здесь же плашка «приложение в активной разработке».
-import { h, icon, modal, toast } from "./ui.js";
+import { h, icon, modal, toast, closeX } from "./ui.js";
 import { store } from "./store.js";
 import { APP_VERSION, CONTACT } from "./version.js";
 
@@ -121,6 +121,6 @@ export function devBanner({ dismissible = true } = {}) {
       h("b", null, "Приложение в активной разработке"),
       h("p", null, `Мы каждый день делаем TanWin лучше. Нашли ошибку, неточность в правиле или неверное слово? Пожалуйста, сообщите ${CONTACT.name} — это очень поможет. Версия ${APP_VERSION}.`),
       h("div.db-actions", null, feedbackButton({ cls: "btn secondary small-btn" }), h("a.link", { href: "#/changelog" }, "Что нового"))),
-    dismissible ? h("button.db-x", { type: "button", "aria-label": "Скрыть до следующей версии", onclick: () => { try { localStorage.setItem(KEY, APP_VERSION); } catch {} box.remove(); } }, icon("close", { size: 18 })) : null);
+    dismissible ? closeX(() => { try { localStorage.setItem(KEY, APP_VERSION); } catch {} box.remove(); }, "Скрыть до следующей версии", "db-x") : null);
   return box;
 }

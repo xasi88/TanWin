@@ -1,5 +1,5 @@
 // Плеер урока: карточки теории, упражнения, повтор ошибок, итог.
-import { h, ar, rich, tr, icon, wordChip, cardTr, playBtn, toast, confetti, ring, shuffle, sample, plural, modal, mixed, sizeButton } from "./ui.js";
+import { h, ar, rich, tr, icon, wordChip, cardTr, playBtn, toast, confetti, ring, shuffle, sample, plural, modal, mixed, sizeButton, skipBtn } from "./ui.js";
 import { build, quiz, ruleIndex, stepForKey } from "./exercises.js";
 import { g, you } from "./speech.js";
 import { byId, forms, POINTS, ZONES, LETTERS } from "./letters.js";
@@ -256,8 +256,7 @@ function speakStep(step, api) {
     h("div.center", null, mic), status,
     h("div.waves", null, ref, mine),
     h("div.row.center.gap", null, playMine),
-    judge,
-    h("button.link.center", { type: "button", onclick: () => api.done({ skipped: true }) }, "Пропустить"));
+    judge); // «Пропустить» — в правом верхнем углу шага (show)
   return box;
 }
 
@@ -320,6 +319,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
   let idx = 0, firstTryOk = 0, answered = 0, xp = 0, combo = 0, bestCombo = 0;
   const t0 = Date.now();
   if (id && !isTest && !isSurah) track("lesson_started", { Урок: `${id}. ${title}` });
+  else if (id && isTest) track("test_started", { Проверка: `${id}. ${title}` }); // иначе проверки не видны в «открыли урок»
   const mistakes = [];
   const voice = lessonVoice({ id, isTest, isSurah, title });
   const tutorNote = () => h("p.tutor-note", null, icon("sparkle", { size: 16 }), h("span", null, mixed(voice.intro({ warm: warmLabel }))));
@@ -344,13 +344,14 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
   });
   const stage = h("div.lp-stage");
   const sheet = h("div.lp-sheet");
-  // первый урок сразу после знакомства можно не проходить: выход на главную (уроки при этом не открываются)
+  // первый урок (или проверку) сразу после знакомства можно не проходить: «Пропустить» ведёт на главную, уроки при этом не открываются.
+  // Кнопка стоит в верхней панели на месте счётчика нура: нур всё равно виден на итоге урока.
   let fromWelcome = false;
   try { fromWelcome = !!sessionStorage.getItem("tanwin.fromWelcome"); sessionStorage.removeItem("tanwin.fromWelcome"); } catch {}
-  const homeBtn = fromWelcome ? h("button.link.lp-home", { type: "button", onclick: () => { stop(); onExit?.(null); } }, "Пропустить урок и перейти на главную", icon("right", { size: 16 })) : null;
+  const homeBtn = fromWelcome ? skipBtn(() => { stop(); onExit?.(null); }, { cls: "lp-home", label: isTest ? "Пропустить проверку и перейти на главную" : "Пропустить урок и перейти на главную" }) : null;
   const shell = h("div.lesson", { class: isTest ? "test" : "" },
-    h("header.lp-top", null, exitBtn, h("div.lp-bar", null, bar), comboEl, xpEl, sizeButton()),
-    homeBtn, stage, sheet);
+    h("header.lp-top", null, exitBtn, h("div.lp-bar", null, bar), comboEl, homeBtn || xpEl, sizeButton()),
+    stage, sheet);
   root.replaceChildren(shell);
 
   const gain = (n) => { xp += n; xpEl.querySelector("b").textContent = xp; xpEl.classList.remove("pop"); void xpEl.offsetWidth; xpEl.classList.add("pop"); };
@@ -402,7 +403,8 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
     else if (s.type === "speak") body = speakStep(s.st, { addXp: gain, done: () => go() });
     else if (s.type === "custom") body = await s.st.render({ addXp: gain, done: () => go() });
     const needsNext = !["read", "speak"].includes(s.type) && !(s.type === "custom" && s.st.selfNext);
-    stage.replaceChildren(h("div.lp-content", null, idx === 0 ? tutorNote() : null, guideNote(s), body, needsNext ? h("div.lp-actions", null, nextBtn(idx === 0 ? "Начнём" : "Далее")) : null));
+    const skip = s.type === "speak" ? h("div.step-skip", null, skipBtn(() => go(), { label: "Пропустить запись голоса" })) : null;
+    stage.replaceChildren(h("div.lp-content", null, skip, idx === 0 ? tutorNote() : null, guideNote(s), body, needsNext ? h("div.lp-actions", null, nextBtn(idx === 0 ? "Начнём" : "Далее")) : null));
     // звук сразу: название буквы, три слога или первый пример сложения (а не слово, начинающееся с буквы)
     const here = idx;
     const auto = (fn, ms) => setTimeout(() => stage.isConnected && idx === here && fn(), ms);

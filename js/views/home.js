@@ -1,5 +1,5 @@
 // Главный экран: «Путь» — этапы и уроки, карточка продолжения, цель дня.
-import { h, ar, icon, ring, modal, plural, mixed, keep } from "../ui.js";
+import { h, ar, icon, ring, modal, plural, mixed, keep, closeX } from "../ui.js";
 import { UNITS, SURAH_PATH, SURAH_UNIT, lessonById } from "../course.js";
 import { store, streakNow, levelInfo, todayXp, srsDue, lessonDone, surahDone, backupDue, backupLater } from "../store.js";
 import { saveProgressFile } from "./more.js";
@@ -62,7 +62,8 @@ function backupCard() {
       h("div.muted", null, "Прогресс хранится только на этом устройстве. Файл-копия вернёт его, если данные браузера сотрутся или вы смените телефон."),
       h("div.row.gap.wrap", null,
         h("button.btn.primary.small-btn", { type: "button", onclick: async () => { await saveProgressFile(); if (!backupDue()) card.remove(); } }, icon("down", { size: 16 }), "Сохранить файл"),
-        h("button.btn.ghost.small-btn", { type: "button", onclick: () => { backupLater(); card.remove(); } }, "Через неделю"))));
+        h("button.btn.ghost.small-btn", { type: "button", onclick: () => { backupLater(); card.remove(); } }, "Через неделю"))),
+    closeX(() => { backupLater(); card.remove(); }, "Напомнить через неделю"));
   return card;
 }
 
@@ -82,7 +83,8 @@ function installCard() {
       h("div.muted", null, "Значок на главном экране, запуск на весь экран — без адресной строки браузера — и работа без интернета."),
       h("div.row.gap.wrap", null,
         h("button.btn.primary.small-btn", { type: "button", onclick: () => { hide(); installApp(); } }, icon("down", { size: 16 }), "Установить"),
-        h("button.btn.ghost.small-btn", { type: "button", onclick: hide }, "Не сейчас"))));
+        h("button.btn.ghost.small-btn", { type: "button", onclick: hide }, "Не сейчас"))),
+    closeX(hide, "Не сейчас"));
   return card;
 }
 
@@ -106,7 +108,8 @@ function newsCard() {
     h("div.row.gap.wrap", null,
       h("a.btn.primary.small-btn", { href: "#/letters", onclick: hide }, "Как читать подписи"),
       h("a.btn.ghost.small-btn", { href: "#/changelog", onclick: hide }, "Все изменения"),
-      h("button.btn.ghost.small-btn", { type: "button", onclick: hide }, "Понятно")));
+      h("button.btn.ghost.small-btn", { type: "button", onclick: hide }, "Понятно")),
+    closeX(hide, "Закрыть письмо"));
   return card;
 }
 
