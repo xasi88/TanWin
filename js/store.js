@@ -27,21 +27,41 @@ function migrate(s) {
   // До 1.23 настройка «Транскрипция» ни на что не действовала: в карточках теории транскрипция была видна всегда, а в настройке
   // у всех стояло «По нажатию». Чтобы у тех, кто её не трогал, уроки не изменились, один раз переводим её в «Показывать».
   if (s.settings && !s.settings.translitV) { if (s.settings.translit === "tap") s.settings.translit = "show"; s.settings.translitV = 2; }
+  upgradeDayGoal(s);
   if (s.course >= COURSE) return s;
   if (s.lessons && typeof s.lessons === "object") s.lessons = Object.fromEntries(Object.entries(s.lessons).map(([id, v]) => [LESSON_MOVES[id] || id, v]));
   s.course = COURSE;
   return s;
 }
 
+// 1.33: цель дня считается в уроках, а не в нуре (диагностика 2026-10-21: любой урок выполнял любую цель в нуре).
+// Старое число нура остаётся в profile.goal: по нему окрашены дни до перехода, и перевод можно повторить.
+const GOAL_FROM_XP = (xp) => (xp >= 80 ? 3 : xp >= 50 ? 2 : 1);
+/** Переводит цель дня из нура в уроки один раз; сегодняшние уроки, пройденные до перехода, засчитываются. */
+function upgradeDayGoal(s) {
+  if (!s.profile || s.profile.goalLessons) return;
+  const d = today();
+  s.profile.goalLessons = GOAL_FROM_XP(s.profile.goal || 30);
+  s.profile.goalSince = d;
+  if (!s.sessions || typeof s.sessions !== "object") s.sessions = {};
+  if (s.sessions[d] == null) {
+    const isToday = (x) => x && x.at && today(new Date(x.at)) === d;
+    const n = [...Object.values(s.lessons || {}), ...Object.values(s.surahs || {})].filter(isToday).length;
+    // цель сегодня уже выполнена по нуру: серия засчитана, пусть и кольцо это показывает
+    s.sessions[d] = s.streak?.last === d ? Math.max(n, s.profile.goalLessons) : n;
+  }
+}
+
 const DEFAULT = () => ({
   v: 2,
   course: COURSE,
-  profile: { name: "", form: "vy", gender: "", created: Date.now(), goal: 30, onboarded: false }, // form: «вы» или «ты», gender: "m" | "f" | ""
+  profile: { name: "", form: "vy", gender: "", created: Date.now(), goal: 30, goalLessons: 1, goalSince: today(), onboarded: false }, // form: «вы» или «ты», gender: "m" | "f" | ""; goal: старая цель в нуре (до 1.33)
   settings: { theme: "auto", arScale: 1, reciter: "husary", translit: "show", translitV: 2, tajweed: true, sfx: true, translation: true, rate: 1, unlockAll: false, uiScale: 1, analytics: true, arFont: "hafs" },
   lessons: {},
   surahs: {},
   xp: 0,
   days: {},
+  sessions: {}, // пройденные до конца уроки, проверки, уроки сур и тренировки по дням: из них складывается цель дня
   streak: { cur: 0, best: 0, last: "" },
   srs: {},
   stats: { answers: 0, correct: 0, ms: 0, lessons: 0 },
@@ -63,7 +83,14 @@ const parse = (raw) => upgradeGoals(merge(DEFAULT(), migrate(JSON.parse(raw))));
 const state = load();
 function load() {
   const raw = stored();
-  try { if (raw) { const s = parse(raw); seen = raw; return s; } } catch {}
+  try {
+    if (raw) {
+      const s = parse(raw); seen = raw;
+      // цель дня только что переведена в уроки (1.33): записываем сразу, иначе дата перехода сдвигалась бы до первого урока
+      if (!raw.includes('"goalLessons"')) try { seen = JSON.stringify(s); localStorage.setItem(KEY, seen); } catch { seen = raw; }
+      return s;
+    }
+  } catch {}
   return DEFAULT();
 }
 const isMap = (x) => !!x && typeof x === "object" && !Array.isArray(x);
@@ -197,17 +224,22 @@ export function levelInfo(xp = state.xp) {
   return { n, into: xp - a, need: b - a, pct: (xp - a) / (b - a) };
 }
 export const todayXp = () => state.days[today()] || 0;
+/** Цель дня: сколько уроков в день. */
+export const dayGoal = () => state.profile.goalLessons || 1;
+/** Сколько уроков, проверок и тренировок пройдено сегодня. */
+export const todayDone = () => state.sessions[today()] || 0;
 
-/** Добавляет опыт; возвращает события (цель дня выполнена, новый уровень). */
+/** Урок, проверка или тренировка пройдены до конца: добавляет опыт и засчитывает занятие в цель дня. Возвращает события (цель дня выполнена, новый уровень). */
 export function addXp(n) {
   pull();
   const ev = [];
   const d = today();
-  const before = state.days[d] || 0;
   const lvl = levelInfo().n;
   state.xp += n;
-  state.days[d] = before + n;
-  if (before < state.profile.goal && state.days[d] >= state.profile.goal) {
+  state.days[d] = (state.days[d] || 0) + n;
+  const before = state.sessions[d] || 0;
+  state.sessions[d] = before + 1;
+  if (before < dayGoal() && state.sessions[d] >= dayGoal()) {
     ev.push("goal");
     const s = state.streak;
     if (s.last !== d) {
@@ -228,13 +260,19 @@ export function streakNow() {
   const gap = dayDiff(s.last, today());
   return gap <= 1 ? s.cur : 0;
 }
-export const goalDoneToday = () => todayXp() >= state.profile.goal;
+export const goalDoneToday = () => todayDone() >= dayGoal();
+/** Выполнена ли цель в день k. Дни до перехода на уроки (1.33) судим по старой цели в нуре: их уроки не считались. */
+function goalMet(k) {
+  const n = state.sessions[k];
+  if (n != null) return n >= dayGoal();
+  return k < (state.profile.goalSince || "") && (state.days[k] || 0) >= (state.profile.goal || 30);
+}
 export function lastDays(n = 14) {
   const out = [];
   for (let i = n - 1; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i);
     const k = today(d);
-    out.push({ d: k, xp: state.days[k] || 0, wd: d.getDay() });
+    out.push({ d: k, xp: state.days[k] || 0, n: state.sessions[k] || 0, met: goalMet(k), wd: d.getDay() });
   }
   return out;
 }

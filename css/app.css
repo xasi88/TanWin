@@ -253,8 +253,8 @@ body.fullscreen #view { padding-bottom: 0; }
 .home-fb { text-align: center; color: var(--ink-3); font-size: .92rem; margin: 4px 0 0; }
 .home-fb .link { min-height: 44px; vertical-align: middle; }
 /* итог урока 1.1: следующий урок и предложение поставить значок */
-.after-first { display: grid; gap: 8px; justify-items: center; text-align: center; margin: 0; }
-.after-first p { margin: 0; }
+.after-first, .easier { display: grid; gap: 8px; justify-items: center; text-align: center; margin: 0; }
+.after-first p, .easier p { margin: 0; }
 .af-ar { --s: 2rem; }
 .home-stats { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .hs-goal { display: flex; align-items: center; gap: 12px; flex: 1 1 200px; padding: 10px 14px; background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); }
@@ -798,7 +798,6 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .tile span { font-weight: 800; color: var(--ink-2); }
 @media (min-width: 760px) { .prog-hero { grid-template-columns: 240px 1fr; } }
 .bars { position: relative; display: grid; grid-template-columns: repeat(14, 1fr); gap: 6px; height: 170px; align-items: end; padding-top: 18px; }
-.goal-line { position: absolute; left: 0; right: 0; border-top: 2px dashed color-mix(in srgb, var(--gold) 60%, transparent); }
 .bar-col { display: grid; grid-template-rows: 1fr auto; height: 100%; align-items: end; justify-items: center; gap: 4px; }
 .bar { width: 100%; max-width: 30px; border-radius: 8px 8px 3px 3px; background: var(--card-3); position: relative; transition: height .6s var(--ease); }
 .bar.some { background: color-mix(in srgb, var(--accent) 55%, var(--card-3)); }

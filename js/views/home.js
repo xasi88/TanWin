@@ -1,7 +1,7 @@
 // Главный экран: «Путь» — этапы и уроки, карточка продолжения, цель дня.
 import { h, ar, icon, ring, modal, plural, mixed, keep, closeX } from "../ui.js";
 import { UNITS, SURAH_PATH, SURAH_UNIT, lessonById } from "../course.js";
-import { store, streakNow, levelInfo, todayXp, srsDue, lessonDone, surahDone, backupDue, backupLater } from "../store.js";
+import { store, streakNow, levelInfo, dayGoal, todayDone, srsDue, lessonDone, surahDone, backupDue, backupLater } from "../store.js";
 import { saveProgressFile } from "./more.js";
 import { lessonUnlocked, surahUnlocked, surahsOpen, unitProgress, nextTarget, courseProgress, allOpen, lastOpen, setLastOpen } from "../path.js";
 import { surahMeta } from "../data.js";
@@ -25,10 +25,10 @@ function greeting() {
 function statsBar() {
   const s = store.get();
   const lv = levelInfo();
-  const goal = s.profile.goal, tx = todayXp();
+  const goal = dayGoal(), n = todayDone();
   return h("div.home-stats", null,
-    h("div.hs-goal", null, ring(tx / goal, { size: 64, stroke: 8, cls: tx >= goal ? "done" : "", label: tx >= goal ? "✓" : `${tx}` }),
-      h("div", null, h("b", null, tx >= goal ? "Цель дня выполнена" : "Цель дня"), h("div.muted", null, `${Math.min(tx, goal)} / ${goal} нура`))),
+    h("div.hs-goal", null, ring(n / goal, { size: 64, stroke: 8, cls: n >= goal ? "done" : "", label: n >= goal ? "✓" : `${n}` }),
+      h("div", null, h("b", null, n >= goal ? "Цель дня выполнена" : "Цель дня"), h("div.muted", null, `Уроков: ${Math.min(n, goal)} из ${goal}`))),
     h("div.hs-pill", { title: "Дней подряд" }, icon("flame", { size: 20, fill: true, sw: 1, cls: streakNow() ? "fire" : "" }), h("b", null, streakNow())),
     h("div.hs-pill", { title: "Уровень" }, h("span.lv-badge", null, lv.n), h("div.lv-bar", null, h("i", { style: { width: lv.pct * 100 + "%" } }))));
 }

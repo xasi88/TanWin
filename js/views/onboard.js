@@ -7,7 +7,7 @@ import { fill } from "../tutor.js";
 
 export function Onboarding() {
   let step = 0;
-  const data = { name: store.get().profile.name || "", goal: store.get().profile.goal || 30, form: store.get().profile.form || "vy", gender: store.get().profile.gender || "" };
+  const data = { name: store.get().profile.name || "", goal: store.get().profile.goalLessons || 1, form: store.get().profile.form || "vy", gender: store.get().profile.gender || "" };
   const root = h("div.onboard");
   const dots = () => h("div.ob-dots", null, ...[0, 1, 2, 3].map((i) => h("i", { class: i === step ? "on" : "" })));
   const screens = [
@@ -34,7 +34,7 @@ export function Onboarding() {
       h("h2", null, data.name ? `Приятно познакомиться, ${fill("{n}", data.name)}!` : "Сколько времени в день?"),
       data.name ? h("p.lead", null, "Сколько времени в день вы готовы уделять?") : null,
       h("p.muted", null, "Регулярность важнее длительности. Цель можно изменить в любой момент."),
-      h("div.goal-opts", null, ...[[10, "Лёгкий темп", "≈ 5 минут"], [30, "Обычный", "≈ 10 минут"], [50, "Серьёзный", "≈ 15 минут"], [80, "Интенсив", "≈ 25 минут"]].map(([v, t, s]) => {
+      h("div.goal-opts", null, ...[[1, "1 урок в день", "≈ 5-7 минут"], [2, "2 урока", "≈ 10-15 минут"], [3, "3 урока", "≈ 15-20 минут"]].map(([v, t, s]) => {
         const b = h("button.goal-opt", { type: "button", class: data.goal === v ? "on" : "" }, h("b", null, t), h("span", null, s));
         b.addEventListener("click", () => { data.goal = v; b.parentNode.querySelectorAll(".goal-opt").forEach((x) => x.classList.toggle("on", x === b)); });
         return b;
@@ -51,7 +51,7 @@ export function Onboarding() {
   ];
   function pt(ic, t, s) { return h("div.ob-pt", null, h("span.ob-pt-ic", null, icon(ic, { size: 22 })), h("div", null, h("b", null, t), h("small", null, s))); }
   // обращение и род действуют сразу — уже на следующих экранах знакомства
-  const saveProfile = () => store.set((st) => { st.profile.name = data.name; st.profile.goal = data.goal; st.profile.form = data.form; st.profile.gender = data.gender; });
+  const saveProfile = () => store.set((st) => { st.profile.name = data.name; st.profile.goalLessons = data.goal; st.profile.form = data.form; st.profile.gender = data.gender; });
   // кнопка прикреплена к низу экрана (.ob-foot): на телефоне она видна сразу, даже если текст длиннее экрана
   function next(label) { return h("div.ob-foot", null, h("button.btn.primary.wide.big", { type: "button", onclick: () => { saveProfile(); if (!step) track("onboard_started"); step++; draw(); } }, label, icon("right", { size: 20 }))); }
   function choice(key, options) {

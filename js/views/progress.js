@@ -1,6 +1,6 @@
 // Прогресс: уровень, серия, активность, освоение букв и правил, этапы, награды.
 import { h, ar, icon, ring, plural } from "../ui.js";
-import { store, levelInfo, streakNow, lastDays, mastery, surahDone, readStats } from "../store.js";
+import { store, levelInfo, streakNow, lastDays, mastery, surahDone, readStats, dayGoal } from "../store.js";
 import { UNITS, SURAH_UNIT, SURAH_PATH } from "../course.js";
 import { LETTERS } from "../letters.js";
 import { RULES } from "../rules.js";
@@ -10,15 +10,15 @@ import { fmtTime } from "../lesson.js";
 
 function activityChart() {
   const days = lastDays(14);
-  const max = Math.max(store.get().profile.goal, ...days.map((d) => d.xp));
-  const goal = store.get().profile.goal;
+  const max = Math.max(1, ...days.map((d) => d.xp));
+  const goal = dayGoal();
   const WD = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
+  // столбик: нур за день; выделен день, когда цель выполнена (с 1.33 цель в уроках, линии нура больше нет)
   return h("div.card.chart-card", null,
-    h("div.card-title", null, h("h3", null, "Активность за 2 недели"), h("span.muted", null, `цель — ${goal} нура в день`)),
+    h("div.card-title", null, h("h3", null, "Активность за 2 недели"), h("span.muted", null, `цель: ${goal} ${plural(goal, "урок", "урока", "уроков")} в день`)),
     h("div.bars", { role: "img", "aria-label": "Нур по дням" },
-      h("div.goal-line", { style: { bottom: (goal / max) * 100 + "%" } }),
-      ...days.map((d, i) => h("div.bar-col", { title: `${d.d}: ${d.xp} нура` },
-        h("div.bar", { class: d.xp >= goal ? "met" : d.xp ? "some" : "", style: { height: Math.max(2, (d.xp / max) * 100) + "%" } }, d.xp ? h("span.bar-v", null, d.xp) : null),
+      ...days.map((d, i) => h("div.bar-col", { title: `${d.d}: ${d.xp} нура, уроков: ${d.n}` },
+        h("div.bar", { class: d.met ? "met" : d.xp ? "some" : "", style: { height: Math.max(2, (d.xp / max) * 100) + "%" } }, d.xp ? h("span.bar-v", null, d.xp) : null),
         h("small", { class: i === days.length - 1 ? "today" : "" }, WD[d.wd])))));
 }
 

@@ -378,7 +378,8 @@ export const UNITS = [
           ex("readWord", 5, { level: "full", need: "M" }),
         ] },
       { id: "8.7", title: "Проверка: аяты и особые написания", sub: "Перед чтением сур", test: true,
-        steps: [ex("sunMoon", 5), ex("allahLam", 4), ex("readWord", 5, { level: "full" }), ex("ruleSpot", 3, { code: "w" })] },
+        // с 1.33 больше чтения, меньше терминов (диагностика 2026-10-21, программа п.6): чтение 11 вопросов из 17
+        steps: [ex("readWord", 6, { level: "full" }), ex("listenWord", 3, { level: "full" }), ex("readWord", 2, { level: "full", need: "M" }), ex("ruleSpot", 2, { code: "w" }), ex("sunMoon", 2), ex("allahLam", 2)] },
     ],
   },
   {

@@ -9,9 +9,9 @@ import { M, syllRu, stripStops } from "./arabic.js";
 import { diagram } from "./diagram.js";
 import { playWord, playAyah, stop, sfx, canRecord, startRecording, stopRecording, envelope, playUrl, playLetter, playSyll } from "./audio.js";
 import { letterIntro, letterForms, harakatTiles, syllTile, blendCard, blendsFor, playAllVowels, spellNote, V3, SYLL_IDS } from "./syllables.js";
-import { knownLetters, UNITS } from "./course.js";
+import { knownLetters, UNITS, ALL_LESSONS } from "./course.js";
 import { isInstalled } from "./install.js";
-import { store, addXp, srsSeen, finishLesson, todayXp, hardSeen, lessonDone } from "./store.js";
+import { store, addXp, srsSeen, finishLesson, dayGoal, todayDone, hardSeen, lessonDone } from "./store.js";
 import { track } from "./usage.js";
 import { lessonVoice, weakSpots, guideFor, guideKind } from "./tutor.js";
 import { applySkip } from "./path.js";
@@ -506,8 +506,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
     sfx.finish();
     if (passed) confetti(res.stars === 3 ? 110 : 60);
     const st = passed ? res.stars : 0;
-    const goal = store.get().profile.goal;
-    const tx = todayXp();
+    const goal = dayGoal(), done = todayDone();
     const note = voice.resultNote({ passed, first: res.first, pct });
     // личный разбор: что было трудно — с этого начнётся следующий урок
     const weak = isSurah ? [] : [...new Set(mistakes.map((m) => m.key).filter(Boolean))].slice(0, 3);
@@ -523,13 +522,14 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
       weakText ? h("p.tutor-weak", null, icon("target", { size: 18 }), h("span", null, mixed(voice.weakNote(weakText)))) : null,
       show,
       passed && id === "1.1" ? afterFirstLesson() : null,
-      h("p.muted", null, passed ? (isTest ? "Проверка сдана — следующий этап открыт." : "Новые знания уже в «Практике».") : "Для проверки нужно 80% верных ответов с первой попытки. Повторите и попробуйте снова — вы справитесь."),
+      h("p.muted", null, passed ? (isTest ? "Проверка сдана: следующий этап открыт." : "Новые знания уже в «Практике».") : "Для проверки нужно 80% верных ответов с первой попытки. Повторите и попробуйте снова: вы справитесь."),
+      !passed && isTest && id ? easierTest(id, { fromWelcome, events }) : null,
       h("div.res-stats", null,
         stat("Точность", pct + "%", "target"),
         stat("Нур", "+" + xp, "nur"),
         stat("Время", fmtTime(ms), "bolt")),
-      h("div.res-goal", null, ring(tx / goal, { size: 58, stroke: 7, label: Math.min(100, Math.round((tx / goal) * 100)) + "%" }),
-        h("div", null, h("b", null, tx >= goal ? "Цель дня выполнена!" : "Цель дня"), h("div.muted", null, `${tx} из ${goal} нура сегодня`))),
+      h("div.res-goal", null, ring(done / goal, { size: 58, stroke: 7, label: done >= goal ? "✓" : `${done}/${goal}` }),
+        h("div", null, h("b", null, done >= goal ? "Цель дня выполнена!" : "Цель дня"), h("div.muted", null, done >= goal ? `Уроков сегодня: ${done}` : `Уроков сегодня: ${done} из ${goal}`))),
       !weakText && mistakes.some((m) => m.key) && !isTest ? h("p.muted.small", null, "Темы с ошибками чаще появятся в «Практике» — так они запомнятся лучше.") : null,
       h("div.lp-actions", null,
         !passed ? h("button.btn.secondary.wide", { type: "button", onclick: () => playLesson(root, { id, title, steps, isTest, onExit, isSurah, lesson }) }, "Ещё раз") : null,
@@ -563,6 +563,31 @@ function guideCounts() {
   }
   store.set((s) => { s.guides = n; });
   return n;
+}
+
+// ---------- Проверка не сдана ----------
+// Запасной путь (диагностика 2026-10-21, программа п.6): не отправлять сразу на урок 1.1, а предложить предыдущую проверку курса.
+// Сдал её: уроки до неё засчитаны, путь продолжится сразу после неё. Предыдущая уже сдана: путь и так ведёт к нужным урокам.
+function easierTest(id, { fromWelcome, events }) {
+  const i = ALL_LESSONS.findIndex((l) => l.id === id);
+  const prev = ALL_LESSONS.slice(0, i).findLast((l) => l.test);
+  const open = (path) => {
+    if (fromWelcome) try { sessionStorage.setItem("tanwin.fromWelcome", "1"); } catch {} // и в этой проверке «Пропустить» на главную
+    import("./app.js").then((m) => { m.go(path); setTimeout(() => m.celebrate(events), 400); });
+  };
+  if (!prev) {
+    if (lessonDone("1.1")) return null;
+    return h("div.card.easier", null,
+      h("b", null, "Начните с первого урока"),
+      h("p.muted", null, "Буквы по четыре, с голосом чтеца. Первые уроки короткие."),
+      h("button.btn.secondary", { type: "button", onclick: () => open("/learn/1.1") }, "Первый урок", icon("right", { size: 18 })));
+  }
+  if (lessonDone(prev.id)) return null;
+  const next = ALL_LESSONS[ALL_LESSONS.indexOf(prev) + 1]; // в названии бывает арабский знак («Фатха  ـَ»): в строке текста он без арабского шрифта, убираем
+  return h("div.card.easier", null,
+    h("b", null, "Попробуйте проверку попроще"),
+    h("p.muted", null, `Сдадите её, и путь продолжится с урока «${next.title.replace(/[؀-ۿـ]+/g, "").replace(/\s+/g, " ").trim()}».`),
+    h("button.btn.secondary", { type: "button", onclick: () => open("/learn/" + prev.id) }, prev.title, icon("right", { size: 18 })));
 }
 
 // ---------- После первого урока ----------
