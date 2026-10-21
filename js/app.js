@@ -1,11 +1,11 @@
 // TanWin — оболочка приложения: маршруты, навигация, тема, офлайн.
 import { h, $, icon, toast, modal, checkShaping, queueFit, AR_FONTS, arFont } from "./ui.js";
-import { store, streakNow, levelInfo, todayXp, protectStorage } from "./store.js";
+import { store, streakNow, levelInfo, todayXp, protectStorage, onStorageFail } from "./store.js";
 import { loadBank, loadSurahs } from "./data.js";
 import { stop, onFail } from "./audio.js";
 import { checkBadges, courseProgress, nextTarget, lessonById } from "./path.js";
 import { APP_VERSION } from "./version.js";
-import { canPrompt, install, isInstalled, isStandalone, manualHint } from "./install.js";
+import { canPrompt, install, isInstalled, isStandalone, isIOS, manualHint } from "./install.js";
 import { initMetrika, hit, track, whoParams } from "./usage.js";
 import { initFeedback, setScreen } from "./feedback.js";
 import { fill } from "./tutor.js";
@@ -64,7 +64,25 @@ function renderNav(active) {
 }
 export async function installApp() {
   if (canPrompt()) { if (await install()) toast("TanWin установлен — ищите его на рабочем столе ✓"); }
+  else if (isIOS() && Object.values(store.get().lessons).some((x) => x.done)) iosInstallBox();
   else toast(manualHint(), 6000);
+}
+/** iPhone: установленное приложение хранит данные отдельно от Safari, поэтому прогресс переносится файлом. На живом iPhone не проверено. */
+function iosInstallBox() {
+  modal((close) => h("div.confirm.ios-install", null,
+    h("h3", null, "Как установить на iPhone"),
+    h("ol", null,
+      h("li", null, "Сохраните копию прогресса: «Ещё» → «Данные» → «Сохранить прогресс»."),
+      h("li", null, "В Safari нажмите «Поделиться» и выберите «На экран „Домой“»."),
+      h("li", null, "Откройте TanWin с экрана «Домой» и загрузите копию: «Ещё» → «Данные» → «Загрузить».")),
+    h("button.btn.primary.wide", { type: "button", onclick: () => close() }, "Понятно")));
+}
+/** Браузер не сохраняет прогресс: говорим один раз за запуск. */
+function storageWarning() {
+  modal((close) => h("div.confirm", null,
+    h("h3", null, "Прогресс не сохраняется на этом устройстве"),
+    h("p", null, "Браузер не даёт TanWin сохранять данные: запрещено сохранять данные сайтов или память заполнена. Пройденные уроки пропадут, когда вы закроете страницу. Откройте TanWin в обычном окне браузера или освободите место на устройстве."),
+    h("button.btn.primary.wide", { type: "button", onclick: () => close() }, "Понятно")));
 }
 onFullscreenChange(() => renderNav(location.hash.replace(/^#/, "") || "/"));
 
@@ -201,6 +219,7 @@ async function start() {
   registerSW();
   // когда есть что беречь — просим браузер не удалять данные приложения
   if (Object.keys(store.get().lessons).length) protectStorage();
+  setTimeout(() => onStorageFail(storageWarning), 1500); // после первого экрана, чтобы окно не мигнуло под ним
 }
 
 // ---------- Статистика посещений (Яндекс.Метрика, анонимно) ----------

@@ -1,5 +1,5 @@
 // «Ещё»: настройки, справочники, данные, об источниках.
-import { h, ar, icon, toast, confirmBox, SIZES, AR_FONTS, arFont, keep } from "../ui.js";
+import { h, ar, icon, toast, confirmBox, plural, SIZES, AR_FONTS, arFont, keep } from "../ui.js";
 import { store, backupDone } from "../store.js";
 import { RECITERS } from "../data.js";
 import { go, installApp, checkUpdate } from "../app.js";
@@ -62,8 +62,20 @@ export function MoreView() {
   const fileIn = h("input", { type: "file", accept: "application/json,.json", hidden: true });
   fileIn.addEventListener("change", async () => {
     const f = fileIn.files[0]; if (!f) return;
-    try { store.import(await f.text()); toast("Прогресс загружен ✓"); go("/"); } catch (e) { toast("Не удалось загрузить: " + e.message); }
+    fileIn.value = ""; // тот же файл можно выбрать ещё раз
+    try {
+      const text = await f.text();
+      const { lessons, exported, now } = store.fileInfo(text);
+      const when = exported ? ", сохранён " + dateRu(exported, true) : "";
+      if (!(await confirmBox("Заменить прогресс?", `В файле: ${lessons} ${lessonsWord(lessons)}${when}. Сейчас на устройстве: ${now} ${lessonsWord(now)}. Нынешний прогресс сохранится: вернуть его можно в «Ещё» → «Данные» → «Вернуть как было».`, "Заменить", "Отмена"))) return;
+      store.import(text); toast("Прогресс загружен ✓"); go("/");
+    } catch (e) { toast("Не удалось загрузить: " + e.message); }
   });
+  const undo = store.undoInfo();
+  const undoImport = async () => {
+    if (!(await confirmBox("Вернуть прогресс как было?", `Вернётся прогресс до загрузки файла ${dateRu(undo.at)}. Всё, что сделано после загрузки, пропадёт.`, "Вернуть", "Отмена"))) return;
+    try { store.undoImport(); toast("Прогресс возвращён ✓"); go("/"); } catch (e) { toast("Не удалось вернуть: " + e.message); }
+  };
 
   return h("div.page.more", null,
     h("header.page-head", null, h("h1", null, "Ещё")),
@@ -115,6 +127,7 @@ export function MoreView() {
         h("button.btn.secondary", { type: "button", onclick: saveProgressFile }, icon("down", { size: 18 }), "Сохранить прогресс"),
         h("button.btn.secondary", { type: "button", onclick: () => fileIn.click() }, icon("up", { size: 18 }), "Загрузить"), fileIn,
         h("button.btn.danger", { type: "button", onclick: async () => { if (await confirmBox("Сбросить весь прогресс?", "Это действие нельзя отменить. Сначала можно сохранить прогресс в файл.", "Сбросить", "Отмена")) { store.reset(); go("/welcome"); } } }, icon("trash", { size: 18 }), "Сбросить")),
+      undo ? h("div.set-row.undo-row", null, h("div", null, h("span.set-label", null, "Загрузили не тот файл?"), h("small.muted", null, `Прогресс до загрузки файла ${dateRu(undo.at)}`)), h("button.btn.secondary", { type: "button", onclick: undoImport }, icon("repeat", { size: 18 }), "Вернуть как было")) : null,
       metrikaAvailable() ? h("div.set-sep", null, toggle("Анонимная статистика", "analytics", "Показывает автору, сколько людей учится и где бывает трудно. Через Яндекс.Метрику и PostHog передаются только открытые экраны, пройденные уроки и то, кто учится — ученик или ученица. Имя не передаётся.")) : null),
     h("section.card.about", null,
       h("h3", null, "Об источниках"),
@@ -122,6 +135,9 @@ export function MoreView() {
       h("p", null, "Шрифты: Amiri Quran (Khaled Hosny), Scheherazade New (SIL Global), Noto Naskh Arabic (Google) и Nunito — лицензия SIL Open Font License; KFGQPC Uthmanic Script Hafs — Комплекс имени короля Фахда по изданию Священного Корана (Медина)."),
       h("p.muted.small", null, "Приложение не заменяет учителя. Чтение Корана традиционно передаётся из уст в уста (талакки): когда пройдёте путь, прочитайте знающему человеку — он поправит тонкости произношения.")));
 }
+const lessonsWord = (n) => plural(n, "урок", "урока", "уроков");
+/** «21 октября» или «21 октября 2026». */
+const dateRu = (t, year = false) => new Date(t).toLocaleDateString("ru-RU", { day: "numeric", month: "long", ...(year ? { year: "numeric" } : {}) }).replace(/\s*г\.$/, "");
 const link = (href, ic, t, sub) => h("a.more-link", { href }, h("span.ml-ic", null, icon(ic, { size: 22 })), h("div", null, h("b", null, t), h("small.muted", null, sub)), icon("right", { size: 18 }));
 /** Сохраняет прогресс в файл: на телефоне — через «Поделиться» (в «Файлы», мессенджер, почту), на компьютере — загрузкой. */
 export async function saveProgressFile() {

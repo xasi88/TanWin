@@ -465,6 +465,8 @@ body.fullscreen #toast { bottom: 24px; }
 .stop-cell { display: grid; justify-items: center; padding: 8px; border-radius: 14px; background: var(--card-2); border: 1px solid var(--line); text-align: center; min-width: 0; overflow-wrap: anywhere; }
 .stop-sign { --s: 2.6rem; color: var(--c-rose); }
 .ar.stop-sign { padding-top: .65em; } /* знак остановки стоит высоко над строкой */
+/* в «Мадине» знак над татвилем мелкий и лежит прямо на линии: знаки остановки рисует Амири, в нём знак над строкой */
+[data-ar-font="hafs"] .ar.stop-sign { font-family: "Amiri Quran", serif; }
 .rule-wheel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .rw-cell { display: grid; justify-items: center; padding: 12px 8px; border-radius: 18px; background: color-mix(in srgb, var(--rc) 10%, var(--card)); border: 2px solid color-mix(in srgb, var(--rc) 40%, transparent); text-align: center; }
 .rw-cell b { color: var(--rc); font-size: 1.05rem; }
@@ -1176,6 +1178,8 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .fb-tab { position: fixed; z-index: 25; right: 0; top: 44%; display: grid; place-items: center; width: 26px; height: 46px; padding: 0 0 0 2px; border-radius: 14px 0 0 14px; border: 1px solid var(--line); border-right: 0;
   background: color-mix(in srgb, var(--card) 86%, transparent); color: var(--ink-3); box-shadow: var(--shadow); cursor: pointer; opacity: .62; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   transition: opacity .25s var(--ease), width .2s var(--ease), color .2s; }
+/* на вид кнопка узкая, а зона касания 44×50: невидимое поле в сторону экрана */
+.fb-tab::before { content: ""; position: absolute; inset: -2px 0 -2px -19px; }
 .fb-tab:hover, .fb-tab:focus-visible { opacity: 1; width: 34px; color: var(--accent-2); }
 .fb-tab:active { opacity: 1; color: var(--accent-2); }
 body:has(.focus.quiet) .fb-tab, body:has(.lp-sheet.show) .fb-tab, body:has(.size-pop) .fb-tab { opacity: 0; pointer-events: none; }
@@ -1252,6 +1256,7 @@ button.more-link { width: 100%; text-align: left; font: inherit; cursor: pointer
 .page-wheel.busy .pw-tip { opacity: 1; }
 /* кнопка «Написать разработчику» в режиме чтения уходит на левый край: справа — колесо страниц */
 body:has(.focus) .fb-tab { right: auto; left: 0; padding: 0 2px 0 0; border-radius: 0 14px 14px 0; border: 1px solid var(--line); border-left: 0; }
+body:has(.focus) .fb-tab::before, body:has(.sura-scrub) .fb-tab::before { inset: -2px -19px -2px 0; }
 /* Порядок закладок: ручка «переместить» */
 .mark-grip { flex: none; width: 30px; color: var(--ink-3); cursor: grab; touch-action: none; }
 .mark-row.drag { position: relative; z-index: 1; border-color: var(--accent); box-shadow: var(--shadow-lg); }

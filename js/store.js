@@ -117,8 +117,26 @@ function merge(base, x) {
 }
 function save() {
   const raw = JSON.stringify(state);
-  try { localStorage.setItem(KEY, raw); seen = raw; } catch {} // не записалось — seen прежний: следующий pull не вернёт старое поверх нового
+  try { localStorage.setItem(KEY, raw); seen = raw; } catch { storageFailed(); } // не записалось — seen прежний: следующий pull не вернёт старое поверх нового
   listeners.forEach((f) => f(state));
+}
+// Память браузера закрыта или полна: прогресс живёт только в этом окне и пропадёт вместе с ним. Приложение говорит об этом один раз за запуск.
+let failed = false;
+const failListeners = new Set();
+function storageFailed() { if (failed) return; failed = true; failListeners.forEach((f) => f()); }
+try { localStorage.setItem(KEY + ".test", "1"); localStorage.removeItem(KEY + ".test"); } catch { failed = true; }
+/** Вызывает fn один раз, когда выяснится, что прогресс не сохраняется (или сразу, если это уже известно). */
+export function onStorageFail(fn) { if (failed) fn(); else failListeners.add(fn); }
+
+// Прогресс до загрузки файла: «Вернуть как было» в «Ещё» → «Данные». Одна копия, до возврата или до следующей загрузки.
+const UNDO_KEY = KEY + ".before-import";
+const doneCount = (s) => Object.values(s.lessons || {}).filter((x) => x && x.done && !x.skipped).length;
+/** Прогресс из файла копии; чужой файл — ошибка. */
+function fileState(text) {
+  const j = JSON.parse(text);
+  const s = j.state || j;
+  if (!s || typeof s !== "object" || !("lessons" in s)) throw new Error("Это не файл прогресса TanWin");
+  return { state: upgradeGoals(merge(DEFAULT(), migrate(s))), exported: Date.parse(j.exported) || null };
 }
 /** Другое окно записало прогресс — подхватываем сразу (тема, размер текста, закладки), не дожидаясь своей записи. */
 function sync() { if (pull()) listeners.forEach((f) => f(state)); }
@@ -135,11 +153,22 @@ export const store = {
   sync,
   reset() { adopt(state, DEFAULT()); save(); },
   export: () => { pull(); return JSON.stringify({ app: "TanWin", exported: new Date().toISOString(), state }, null, 1); },
+  /** Что в файле копии и что сейчас на устройстве — для вопроса перед заменой. */
+  fileInfo(text) { const f = fileState(text); pull(); return { lessons: doneCount(f.state), exported: f.exported, now: doneCount(state) }; },
+  /** Заменяет прогресс файлом. Прежний прогресс сначала откладывается для «Вернуть как было»: не отложился — замены нет. */
   import(text) {
-    const j = JSON.parse(text);
-    const s = j.state || j;
-    if (!s || typeof s !== "object" || !("lessons" in s)) throw new Error("Это не файл прогресса TanWin");
-    adopt(state, upgradeGoals(merge(DEFAULT(), migrate(s)))); save();
+    const { state: s } = fileState(text);
+    pull();
+    try { localStorage.setItem(UNDO_KEY, JSON.stringify({ at: Date.now(), state })); }
+    catch { throw new Error("не удалось сохранить запасную копию: память браузера закрыта или заполнена"); }
+    adopt(state, s); save();
+  },
+  /** Дата загрузки файла, если прогресс до неё можно вернуть. */
+  undoInfo() { try { const u = JSON.parse(localStorage.getItem(UNDO_KEY)); return u?.state ? { at: u.at } : null; } catch { return null; } },
+  undoImport() {
+    const u = JSON.parse(localStorage.getItem(UNDO_KEY));
+    adopt(state, upgradeGoals(merge(DEFAULT(), migrate(u.state)))); save();
+    try { localStorage.removeItem(UNDO_KEY); } catch {}
   },
 };
 
