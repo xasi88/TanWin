@@ -1,6 +1,6 @@
 // Буква → её звуки → слоги → слова: экраны урока и «кирпичики» для них.
 // Порядок как в классических букварях: сначала сама буква и её формы, потом буква с тремя огласовками,
-// потом слоги складываются в слово. Звук — записи букв и слогов (audio/letters), слова — чтец Корана.
+// потом слоги складываются в слово. Звук: записи букв и слогов (audio/letters), слова: чтец Корана.
 import { h, ar, arParts, tr, icon, rich, modal, gone, shuffle } from "./ui.js";
 import { byId, byChar, forms, LETTERS } from "./letters.js";
 import { M, syllRu, clusters } from "./arabic.js";
@@ -19,7 +19,7 @@ const markToVowel = { [M.FATHA]: "fatha", [M.KASRA]: "kasra", [M.DAMMA]: "damma"
 /** Буквы, у которых есть слоги (у алифа своего согласного звука нет). */
 export const SYLL_IDS = LETTERS.filter((l) => l.id !== "alif").map((l) => l.id);
 export const syllText = (id, v) => (id === "hamza" ? HAMZA_SEAT[v] : byId[id].ch + VOWELS[v].mark);
-export const syllTr = (id, v) => syllRu(byId[id].ch, v); // гласная зависит от буквы: после тяжёлых — «о» и «ы»
+export const syllTr = (id, v) => syllRu(byId[id].ch, v); // гласная зависит от буквы: после тяжёлых, «о» и «ы»
 // Запись слога звучит по складам, как в «Каиде Нурании»: имя буквы, имя огласовки, потом сам слог («Ба, фатха, ба»).
 // Слог с хамзой чтец называет по подставке: «Алиф, фатха, а».
 const SPELL_NAME = { hamza: "Алиф" };
@@ -37,9 +37,9 @@ export function formWith(id, form, v) {
 }
 
 // ---------- Плитка со звуком ----------
-/** Кнопка-плитка: арабский текст + чтение; по нажатию звучит. play() запускает звук, audioId — id записи (для подсветки). */
+/** Кнопка-плитка: арабский текст + чтение; по нажатию звучит. play() запускает звук, audioId: id записи (для подсветки). */
 export function soundTile(text, trText, { play, audioId, cls = "", label = null, hint = null, spell = null } = {}) {
-  // spell: [буква, огласовка, слог] — подпись к записи по складам вместо одного чтения
+  // spell: [буква, огласовка, слог], подпись к записи по складам вместо одного чтения
   const sp = spell && h("span.spell", null, h("span", null, spell[0]), h("span", null, spell[1]), h("b", null, spell[2]));
   const b = h("button.snd-tile", { type: "button", class: cls, "aria-label": label || `Послушать: ${spell ? spell.join(", ") : trText || text}` },
     ar(text), sp || (trText ? tr(trText) : null), hint ? h("small", null, hint) : null, h("span.snd-ico", null, icon("vol", { size: 14 })));
@@ -66,7 +66,7 @@ function drawGlyph(ch) {
 }
 const FORM_NAMES = [["fin", "в конце"], ["med", "в середине"], ["ini", "в начале"], ["iso", "отдельно"]];
 
-/** Знакомство с буквой: как выглядит отдельно и как называется. more(id) — полная карточка (махрадж, советы). */
+/** Знакомство с буквой: как выглядит отдельно и как называется. more(id): полная карточка (махрадж, советы). */
 export function letterIntro(id, { more } = {}) {
   const l = byId[id];
   const hasName = id !== "hamza";
@@ -74,7 +74,7 @@ export function letterIntro(id, { more } = {}) {
   const sync = () => { if (gone(glyph, off)) return; glyph.classList.toggle("playing", playingId() === "l:" + id); };
   const off = onPlay(sync);
   const note = id === "alif" ? "Своего звука у алифа нет. Звук даёт маленький знак хамзы ء над алифом или под ним. Нажмите на плитки: чтец скажет «Алиф, фатха, а». После фатхи алиф без знаков тянет звук «а»: «аа»."
-    : id === "hamza" ? "Хамза — короткая смычка голоса. Чаще всего она «сидит» на алифе: {أ} {إ}."
+    : id === "hamza" ? "Хамза: короткая смычка голоса. Чаще всего она «сидит» на алифе: {أ} {إ}."
     : l.sound;
   return h("div.card.letter-intro", null,
     h("div.li-top", null, glyph,
@@ -96,17 +96,17 @@ export function letterForms(id) {
   const l = byId[id];
   const f = forms(l);
   const tile = (k, n) => soundTile(f[k], null, { play: () => playLetter(id), cls: "form-tile" + (k === "iso" ? " iso" : ""), hint: n, label: `${l.name} ${n}` });
-  // буквы в одном слове: соединяющаяся — три подряд (начало, середина, конец); «гордая» — между двумя «ба», после неё разрыв
+  // буквы в одном слове: соединяющаяся, три подряд (начало, середина, конец); «гордая»: между двумя «ба», после неё разрыв
   const demo = l.nc ? "ب" + l.ch + "ب" : l.ch + l.ch + l.ch;
   return h("div.card.letter-forms", null,
     h("div.li-kicker", null, "Формы буквы"),
     h("h2", null, `${l.name} в слове`),
     h("p", null, rich(l.nc
-      ? `${l.name} соединяется только с **предыдущей** буквой. Поэтому вида у неё два: как отдельная — в начале слова, и с «хвостиком» справа — в середине и в конце.`
-      : `В слове ${l.name} соединяется с соседями с обеих сторон и меняет вид. Главная часть и точки остаются — по ним букву и узнаём.`)),
+      ? `${l.name} соединяется только с **предыдущей** буквой. Поэтому вида у неё два: отдельный в начале слова и с «хвостиком» справа в середине и в конце.`
+      : `В слове ${l.name} соединяется с соседями с обеих сторон и меняет вид. Главная часть и точки остаются: по ним букву и узнаём.`)),
     h("div.snd-row.forms4", { dir: "rtl" }, ...[...FORM_NAMES].reverse().map(([k, n]) => tile(k, n))),
     h("div", null,
-      h("div.label", null, l.nc ? "В слове: после неё — разрыв" : "Три подряд: начало, середина, конец"),
+      h("div.label", null, l.nc ? "В слове: после неё разрыв" : "Три подряд: начало, середина, конец"),
       h("div.forms-demo", null, ar(demo))));
 }
 
@@ -154,8 +154,8 @@ export function letterSounds(id) {
     h("div.li-kicker", null, "Буква + огласовка = слог"),
     h("h2", null, id === "hamza" ? "Хамза с огласовками" : h("span", null, `${l.name} с огласовками`)),
     h("p", null, rich(id === "hamza"
-      ? "Огласовка — маленький значок над или под буквой. Он даёт гласный звук. Подставка-алиф не читается — звучит только хамза."
-      : `Сама буква — согласный «${l.t}». Маленький значок над или под ней добавляет гласный: получается слог. Нажимайте на плитки и повторяйте вслух.`)),
+      ? "Огласовка: маленький значок над или под буквой. Он даёт гласный звук. Подставка-алиф не читается, звучит только хамза."
+      : `Сама буква даёт согласный «${l.t}». Маленький значок над или под ней добавляет гласный: получается слог. Нажимайте на плитки и повторяйте вслух.`)),
     row,
     spellNote(),
     listenBtn("Послушать все три", () => playAllVowels(id, row)),
@@ -177,9 +177,9 @@ export function wordSyllables(d) {
 
 /**
  * Примеры «слог + слог = слово» для урока.
- * letters — буквы урока (хотя бы одна есть в каждом примере), known — все уже пройденные буквы; vowels — допустимые огласовки,
- * need — огласовка, которая обязательно есть в слове.
- * Сначала настоящие слова Корана (самые частые и короткие), а если букв ещё мало — цепочки слогов, как в классических букварях.
+ * letters: буквы урока (хотя бы одна есть в каждом примере), known: все уже пройденные буквы; vowels: допустимые огласовки,
+ * need: огласовка, которая обязательно есть в слове.
+ * Сначала настоящие слова Корана (самые частые и короткие), а если букв ещё мало: цепочки слогов, как в классических букварях.
  */
 export function blendsFor({ letters = null, known = null, vowels = V3, need = null, n = 3, minLen = 2, maxLen = 3 } = {}) {
   const want = letters ? new Set(letters) : null, ok = known ? new Set(known) : null;
@@ -208,7 +208,7 @@ export function blendsFor({ letters = null, known = null, vowels = V3, need = nu
 }
 export const blendTr = (b) => b.sylls.map((x) => syllTr(x.id, x.v)).join("-");
 
-/** Проиграть пример: слоги по одному, затем слитно (слово Корана — голосом чтеца). onStep(i): i — слог, sylls.length — всё слово. */
+/** Проиграть пример: слоги по одному, затем слитно (слово Корана, голосом чтеца). onStep(i): i: слог, sylls.length: всё слово. */
 export function playBlend(b, { onStep, onEnd } = {}) {
   const parts = b.sylls.map((x) => syllItem(x.id, x.v)); // каждый слог по складам: «Ба, фатха, ба»
   const n = parts.length;
@@ -243,7 +243,7 @@ export function blendCard(blends, { title = null, text = null } = {}) {
   const card = h("div.card.blend-card", null,
     h("div.li-kicker", null, real ? "Слог + слог = слово" : "Слог + слог"),
     h("h2", null, title || (real ? "Слоги складываются в слово" : "Читаем слоги слитно")),
-    h("p", null, rich(text || "Читаем справа налево: первый слог, второй — и сразу вместе, без паузы. Буквы при этом соединяются и меняют форму, а звуки остаются теми же.")),
+    h("p", null, rich(text || "Читаем справа налево: первый слог, второй, и сразу вместе, без паузы. Буквы при этом соединяются и меняют форму, а звуки остаются теми же.")),
     h("div.blend-list", null, ...rows),
     spellNote(),
     h("p.muted.small.center", null, real ? "Нажмите на слово. Сначала прозвучит каждый слог по складам, потом всё слово голосом чтеца Корана." : "Нажмите на большую плитку. Прозвучит каждый слог по складам. Потом прочитайте слоги вместе, без паузы."));
@@ -252,7 +252,7 @@ export function blendCard(blends, { title = null, text = null } = {}) {
 }
 
 // ---------- Упражнение «Соберите слово из слогов» ----------
-/** Игровое поле: плитки-слоги внизу, собранное слово сверху (буквы соединяются по мере сборки). answer(ok) — по заполнении. */
+/** Игровое поле: плитки-слоги внизу, собранное слово сверху (буквы соединяются по мере сборки). answer(ok): по заполнении. */
 export function blendBoard(b, extra, answer) {
   const tiles = shuffle([...b.sylls.map((x) => ({ ...x })), ...extra]);
   const picked = [];
@@ -284,6 +284,6 @@ export function blendBoard(b, extra, answer) {
   return h("div.blend-board", null, out, tray, h("div.center", null, undo));
 }
 
-/** Полная карточка буквы в окне (из урока — по ссылке «Подробнее»). */
+/** Полная карточка буквы в окне (из урока: по ссылке «Подробнее»). */
 export function openLetter(card) { stop(); modal(card, { cls: "wide" }); }
 export { letterAudioUrl };

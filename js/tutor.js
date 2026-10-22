@@ -1,5 +1,5 @@
 // Голос преподавателя: обращение по имени, похвала, поддержка при ошибке, слова о продвижении.
-// В шаблонах {n} — имя ученика; если имя не указано, обращение убирается и фраза остаётся цельной.
+// В шаблонах {n}: имя ученика; если имя не указано, обращение убирается и фраза остаётся цельной.
 import { store, streakNow, todayXp, goalDoneToday, today } from "./store.js";
 import { UNITS, SURAH_PATH, ALL_LESSONS } from "./course.js";
 import { courseProgress, unitProgress } from "./path.js";
@@ -19,22 +19,22 @@ export function fill(t, n = studentName()) {
 
 const PRAISE = ["Верно!", "Отлично!", "Правильно!", "Так держать!", "Машаллах!", "Здорово!"];
 const PRAISE_N = ["Верно, {n}!", "Отлично, {n}!", "{n}, так держать!", "Машаллах, {n}!", "Молодец, {n}!", "Здорово получается, {n}!"];
-const PRAISE_COMBO = ["{n}, {c} подряд без ошибок!", "{c} подряд — блестяще, {n}!"];
+const PRAISE_COMBO = ["{n}, {c} подряд без ошибок!", "{c} подряд! Блестяще, {n}!"];
 const PRAISE_RETRY = ["Вот теперь верно, {n}!", "{n}, теперь получилось!", "Разобрались, {n}!"];
 const PRAISE_BACK = ["Вот так, {n}!", "{n}, снова верно!", "Хорошо, {n}, идём дальше!"];
 const MISS = ["Не совсем", "Почти", "Чуть иначе"];
 const SUPPORT = [
   "{n}, ничего страшного: этот вопрос вернётся в конце урока, и вы ответите верно.",
-  "{n}, ошибаться — нормально: так запоминается крепче. К этому вопросу мы ещё вернёмся.",
-  "{n}, посмотрите на верный ответ — в конце урока попробуем ещё раз.",
+  "{n}, ошибаться нормально: так запоминается крепче. К этому вопросу мы ещё вернёмся.",
+  "{n}, посмотрите на верный ответ. В конце урока попробуем ещё раз.",
 ];
-const SUPPORT_AGAIN = ["{n}, не спешите — здесь важнее точность, чем скорость.", "{n}, сделайте вдох и посмотрите на объяснение. У вас получится."];
-const SUPPORT_RETRY = ["{n}, это трудное место — оно ещё встретится в «Практике», и мы его закрепим.", "{n}, запомним это место: вернёмся к нему в «Практике»."];
-const SUPPORT_TEST = ["{n}, запомните верный ответ — и идём дальше.", "{n}, одна ошибка ничего не решает. Продолжаем."];
+const SUPPORT_AGAIN = ["{n}, не спешите: здесь важнее точность, чем скорость.", "{n}, сделайте вдох и посмотрите на объяснение. У вас получится."];
+const SUPPORT_RETRY = ["{n}, это трудное место. Оно ещё встретится в «Практике», и мы его закрепим.", "{n}, запомним это место: вернёмся к нему в «Практике»."];
+const SUPPORT_TEST = ["{n}, запомните верный ответ, и идём дальше.", "{n}, одна ошибка ничего не решает. Продолжаем."];
 
 const unitOf = (id) => UNITS.find((u) => u.lessons.some((l) => l.id === id));
 const lastOf = (u, id) => u.lessons.at(-1).id === id;
-// Считаем честно: «урок пройден» — только если ученик прошёл его сам. Уроки, закрытые проверкой этапа (skipped),
+// Считаем честно: «урок пройден»: только если ученик прошёл его сам. Уроки, закрытые проверкой этапа (skipped),
 // и сами проверки в число пройденных уроков не входят.
 const real = (id) => { const x = store.get().lessons[id]; return !!x?.done && !x.skipped; };
 const doneLessons = () => ALL_LESSONS.filter((l) => !l.test && real(l.id)).length;
@@ -62,24 +62,24 @@ export function lessonVoice({ id, isTest = false, isSurah = false, title = "" } 
       const st = store.get();
       if (warm) return fill(`{n}, начнём с короткого повтора. В прошлый раз было трудно: ${warm}.`);
       if (isSurah) return fill(`{n}, читаем суру «${title}». Слушайте чтеца и следите за словами.`);
-      if (!id) return fill("{n}, немного практики — и пройденное останется с вами надолго.");
+      if (!id) return fill("{n}, немного практики, и пройденное останется с вами надолго.");
       if (isTest) return fill("{n}, это проверка этапа. Покажите, чему вы научились: нужно 80% верных ответов.");
       if (wasSkipped) return fill("{n}, этот урок вы закрыли проверкой этапа. Теперь пройдём его шаг за шагом.");
-      if (st.lessons[id]?.done) return fill(`{n}, возвращаться к пройденному — признак ${g("хорошего ученика", "хорошей ученицы")}. Освежим этот урок.`);
+      if (st.lessons[id]?.done) return fill(`{n}, возвращаться к пройденному: признак ${g("хорошего ученика", "хорошей ученицы")}. Освежим этот урок.`);
       const k = doneLessons();
       if (!k && !Object.keys(st.lessons).length) return fill("{n}, добро пожаловать! Это ваш первый урок. Идём маленькими шагами, спешить некуда.");
       const u = unitOf(id);
       if (u) {
         const p = unitProgress(u), left = p.total - p.done;
-        if (u.lessons[0].id === id) return fill(`{n}, начинаем новый этап — «${u.title}».`);
+        if (u.lessons[0].id === id) return fill(`{n}, начинаем новый этап: «${u.title}».`);
         if (left === 1) return fill(`{n}, это последний шаг этапа «${u.title}».`);
-        if (left <= 3) return fill(`{n}, до конца этапа «${u.title}» — ${left} ${plural(left, "шаг", "шага", "шагов")}. Вы почти у цели.`);
+        if (left <= 3) return fill(`{n}, до конца этапа «${u.title}» осталось ${left} ${plural(left, "шаг", "шага", "шагов")}. Вы почти у цели.`);
       }
       const t = doneTests();
       const tests = t ? ` и ${t} ${plural(t, "проверка", "проверки", "проверок")}` : "";
       return k ? fill(`{n}, за плечами уже ${k} ${plural(k, "урок", "урока", "уроков")}${tests}. Продолжаем!`) : fill("{n}, продолжаем!");
     },
-    /** Похвала за верный ответ: имя — в особые моменты и примерно в каждом третьем ответе. */
+    /** Похвала за верный ответ: имя, в особые моменты и примерно в каждом третьем ответе. */
     praise({ combo = 0, retry = false } = {}) {
       const back = missRow > 0;
       missRow = 0; n++;
@@ -94,15 +94,15 @@ export function lessonVoice({ id, isTest = false, isSurah = false, title = "" } 
       const list = isTest ? SUPPORT_TEST : retry ? SUPPORT_RETRY : missRow > 1 ? SUPPORT_AGAIN : SUPPORT;
       return { head: pick(MISS), text: fill(pick(list)) };
     },
-    /** Один раз за урок — на середине (только в длинных уроках). */
+    /** Один раз за урок: на середине (только в длинных уроках). */
     halfway(idx, total) {
       if (half || total < 10 || idx < Math.ceil(total / 2) || idx >= total - 2) return null;
       half = true;
-      return fill("{n}, половина урока позади — отлично идёте!");
+      return fill("{n}, половина урока позади. Отлично идёте!");
     },
     /** Личный разбор ошибок на итоговом экране: что было трудно и что с этим будет дальше. */
     weakNote(label) {
-      return `Сегодня было трудно: ${label}. Следующий урок начнём с короткого повтора — и всё встанет на место.`;
+      return `Сегодня было трудно: ${label}. Следующий урок начнём с короткого повтора, и всё встанет на место.`;
     },
     /** Этап, который этот урок завершил (тогда на итоге показываем «Смотрите, что вы уже умеете»). */
     unitDone({ passed, first }) {
@@ -129,19 +129,19 @@ export function lessonVoice({ id, isTest = false, isSurah = false, title = "" } 
       }
       if (!id) {
         const s = streakNow();
-        return s >= 2 ? say(`{n}, вы занимаетесь ${s} ${plural(s, "день", "дня", "дней")} подряд — это и есть путь к свободному чтению.`) : null;
+        return s >= 2 ? say(`{n}, вы занимаетесь ${s} ${plural(s, "день", "дня", "дней")} подряд. Это и есть путь к свободному чтению.`) : null;
       }
       const u = unitOf(id);
       if (!u) return null;
-      if (isTest && !lastOf(u, id)) return say("{n}, проверка сдана — идём дальше по этапу.");
+      if (isTest && !lastOf(u, id)) return say("{n}, проверка сдана, идём дальше по этапу.");
       if (isTest) return say(`{n}, этап ${u.id} «${u.title}» позади. Пройдено ${Math.max(all, pctAfterTest(u, id))}% пути к чтению Корана.`);
-      if (wasSkipped) return say("{n}, этот урок был закрыт проверкой этапа — теперь он пройден по-настоящему.");
+      if (wasSkipped) return say("{n}, этот урок был закрыт проверкой этапа. Теперь он пройден по-настоящему.");
       if (!first) {
-        return pct > prevBest ? say(`{n}, это ваш лучший результат в этом уроке — ${pct}%.`) : say("{n}, повторение сделало этот урок прочнее.");
+        return pct > prevBest ? say(`{n}, это ваш лучший результат в этом уроке: ${pct}%.`) : say("{n}, повторение сделало этот урок прочнее.");
       }
       const p = unitProgress(u), left = p.total - p.done;
       if (!left) return say(`{n}, этап ${u.id} «${u.title}» пройден целиком! Позади ${all}% пути к чтению Корана.`);
-      if (doneLessons() === 1) return say("{n}, первый урок позади — начало положено!");
+      if (doneLessons() === 1) return say("{n}, первый урок позади. Начало положено!");
       const ul = unitLessons(u);
       return say(`{n}, пройдено ${ul.done} из ${ul.total} уроков этапа «${u.title}». Позади ${all}% всего пути.`);
     },
@@ -174,12 +174,12 @@ export function homeLine() {
   const cp = courseProgress(), all = Math.round(cp.pct * 100);
   if (!cp.done && !st.xp) return "Начнём путь к чтению Корана";
   const path = `Пройдено ${all}% пути к чтению Корана`;
-  if (goalDoneToday()) return `Цель дня выполнена — так держать! ${path}.`;
+  if (goalDoneToday()) return `Цель дня выполнена. Так держать! ${path}.`;
   const s = streakNow();
   if (!todayXp()) {
     const lastDay = Object.keys(st.days).filter((d) => st.days[d] > 0).sort().pop();
     const gap = lastDay ? Math.round((new Date(today()) - new Date(lastDay)) / 86400000) : 0;
-    if (gap >= 3) return `Вас не было ${gap} ${plural(gap, "день", "дня", "дней")} — хорошо, что вы вернулись. Всё пройденное на месте: ${all}% пути.`;
+    if (gap >= 3) return `Вас не было ${gap} ${plural(gap, "день", "дня", "дней")}. Хорошо, что вы вернулись. Всё пройденное на месте: ${all}% пути.`;
     if (s >= 2) return `Вы занимаетесь ${s} ${plural(s, "день", "дня", "дней")} подряд. Сегодняшний урок продолжит серию.`;
   }
   return path;

@@ -1,4 +1,4 @@
-// TanWin — оболочка приложения: маршруты, навигация, тема, офлайн.
+// TanWin: оболочка приложения: маршруты, навигация, тема, офлайн.
 import { h, $, icon, toast, modal, checkShaping, queueFit, AR_FONTS, arFont } from "./ui.js";
 import { store, streakNow, levelInfo, todayXp, protectStorage, onStorageFail } from "./store.js";
 import { loadBank, loadSurahs } from "./data.js";
@@ -31,7 +31,7 @@ export function applySettings() {
   root.dataset.arFont = arFont(); // по нему одна буква Йа в «Мадине» берёт шрифт с точками (.ya-dots)
   if (root.style.getPropertyValue("--ar-font") !== font) {
     root.style.setProperty("--ar-font", font);
-    // у другого шрифта другая ширина слов — после загрузки файла заново подгоняем крупные слова под карточки
+    // у другого шрифта другая ширина слов: после загрузки файла заново подгоняем крупные слова под карточки
     document.fonts?.load?.(`40px ${font}`, "بسم")?.then(queueFit, () => {});
   }
   const dark = s.theme === "dark" || (s.theme === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
@@ -50,7 +50,7 @@ function renderNav(active) {
   const s = store.get();
   const lv = levelInfo();
   nav.replaceChildren(
-    h("a.brand", { href: "#/", "aria-label": "TanWin — на главную" }, logo(), h("span.brand-name", null, "TanWin"), h("span.brand-sub", null, "путь к чтению Корана")),
+    h("a.brand", { href: "#/", "aria-label": "TanWin: на главную" }, logo(), h("span.brand-name", null, "TanWin"), h("span.brand-sub", null, "путь к чтению Корана")),
     h("div.nav-tabs", null, ...TABS.map((t) => { // обычные ссылки, а не «вкладки»: так их называет программа чтения с экрана
       const on = t.path === "/" ? active === "/" : active.startsWith(t.path);
       return h("a.tab", { href: "#" + t.path, class: on ? "on" : "", "aria-current": on ? "page" : null }, icon(t.ic, { size: 24 }), h("span", null, t.label));
@@ -63,7 +63,7 @@ function renderNav(active) {
       h("a.nf-ver", { href: "#/changelog" }, `Версия ${APP_VERSION} · в разработке`)));
 }
 export async function installApp() {
-  if (canPrompt()) { if (await install()) toast("TanWin установлен — ищите его на рабочем столе ✓"); }
+  if (canPrompt()) { if (await install()) toast("TanWin установлен. Ищите его на рабочем столе ✓"); }
   else if (isIOS() && Object.values(store.get().lessons).some((x) => x.done)) iosInstallBox();
   else toast(manualHint(), 6000);
 }
@@ -133,7 +133,7 @@ let routing = 0;
 async function route() {
   const my = ++routing;
   stop();
-  store.sync(); // другая вкладка могла что-то записать — новый экран рисуем по свежим данным
+  store.sync(); // другая вкладка могла что-то записать: новый экран рисуем по свежим данным
   const path = location.hash.replace(/^#/, "") || "/";
   if (!store.get().profile.onboarded && !path.startsWith("/welcome")) { location.replace("#/welcome"); return; }
   // банк слов и список сур нужны всем экранам, кроме знакомства: новичок дожидается их, только когда знакомство кончилось
@@ -173,13 +173,13 @@ export const go = (p) => { location.hash = "#" + p; };
 /** Показать новые награды и события после урока. */
 export function celebrate(events = []) {
   const fresh = checkBadges();
-  if (events.includes("level")) toast(h("span", null, icon("sparkle", { size: 18 }), " " + fill(`{n}, новый уровень — ${levelInfo().n}!`)), 3200);
+  if (events.includes("level")) toast(h("span", null, icon("sparkle", { size: 18 }), " " + fill(`{n}, новый уровень: ${levelInfo().n}!`)), 3200);
   else if (events.includes("goal")) toast(h("span", null, icon("flame", { size: 18, fill: true, sw: 1 }), " " + fill(`{n}, цель дня выполнена! Серия: ${streakNow()}`)), 3200);
   fresh.forEach((b, i) => setTimeout(() => toast(h("span.toast-badge", null, h("span.tb-ic", null, b.icon), h("span", null, h("b", null, "Новая награда: "), b.name)), 3000), 800 + i * 3200));
 }
 
 // ---------- Запуск ----------
-// Банк слов и список сур: три попытки. Не удалось — следующий экран попробует снова
+// Банк слов и список сур: три попытки. Не удалось: следующий экран попробует снова
 let dataReady = false, dataP = null;
 function loadData() {
   return dataP ||= (async () => {
@@ -194,7 +194,7 @@ function loadData() {
 function loadFailed() {
   view.replaceChildren(h("div.page", null, h("div.card", null, h("h2", null, "Не удалось загрузить приложение"),
     h("p", null, "Похоже, связь прервалась. Проверьте интернет и попробуйте ещё раз. После первой удачной загрузки приложение открывается и без интернета."),
-    h("p", null, "Если у вас включён VPN — попробуйте его выключить. Если выключен — попробуйте включить: иногда сайт не открывается именно из-за этого."),
+    h("p", null, "Если у вас включён VPN, попробуйте его выключить. Если выключен, попробуйте включить: иногда сайт не открывается именно из-за этого."),
     h("button.btn.primary", { type: "button", onclick: () => location.reload() }, "Повторить"))));
 }
 
@@ -206,15 +206,15 @@ async function start() {
   initFullscreen();
   initWake();
   initFeedback();
-  // запись не загрузилась — одна подсказка на всё приложение: уроки, карточки слов, чтец
-  onFail(() => toast("Звук не загружается. Проверьте интернет. Не помогло — включите или выключите VPN.", 6000));
+  // запись не загрузилась, одна подсказка на всё приложение: уроки, карточки слов, чтец
+  onFail(() => toast("Звук не загружается. Проверьте интернет. Не помогло? Включите или выключите VPN.", 6000));
   startMetrika();
-  // на странице уже стоит заставка с описанием сайта (index.html) — оставляем её до первого экрана
+  // на странице уже стоит заставка с описанием сайта (index.html): оставляем её до первого экрана
   if (!view.querySelector(".boot")) view.replaceChildren(h("div.boot", null, logo(72), h("div.spinner")));
-  // связь медленная — говорим об этом, а не держим человека перед пустым экраном
+  // связь медленная: говорим об этом, а не держим человека перед пустым экраном
   const slow = setTimeout(() => view.querySelector(".boot")?.append(
     h("p.muted.center", null, "Загрузка идёт дольше обычного. Проверьте интернет."),
-    h("p.muted.center", null, "Если у вас включён VPN — попробуйте его выключить. Если выключен — попробуйте включить: иногда сайт не открывается именно из-за этого."),
+    h("p.muted.center", null, "Если у вас включён VPN, попробуйте его выключить. Если выключен, попробуйте включить: иногда сайт не открывается именно из-за этого."),
     h("button.btn.secondary", { type: "button", onclick: () => location.reload() }, "Обновить")), 8000);
   // шрифты ждём не дольше четырёх секунд: без них приложение откроется, а текст перерисуется, когда они придут
   const fonts = Promise.race([
@@ -237,7 +237,7 @@ async function start() {
   document.fonts?.ready.then(queueFit);
   route();
   registerSW();
-  // когда есть что беречь — просим браузер не удалять данные приложения
+  // когда есть что беречь: просим браузер не удалять данные приложения
   if (Object.keys(store.get().lessons).length) protectStorage();
   setTimeout(() => onStorageFail(storageWarning), 1500); // после первого экрана, чтобы окно не мигнуло под ним
 }
@@ -253,13 +253,13 @@ function startMetrika() {
       "Пройдено уроков": count(s.lessons),
       "Выучено сур": count(s.surahs),
       "Прогресс курса, %": Math.round(courseProgress().pct * 100),
-      "Текущий этап": !s.profile.onboarded ? "новичок" : nt?.type === "lesson" ? lessonById[nt.id]?.unit ?? "—" : nt ? "суры" : "курс пройден",
+      "Текущий этап": !s.profile.onboarded ? "новичок" : nt?.type === "lesson" ? lessonById[nt.id]?.unit ?? "-" : nt ? "суры" : "курс пройден",
       "Уровень": levelInfo().n,
       "Установлено": isInstalled() ? "да" : "нет",
       ...whoParams(),
     },
   });
-  // «Написать автору» — ссылки на WhatsApp в разных местах приложения
+  // «Написать автору»: ссылки на WhatsApp в разных местах приложения
   document.addEventListener("click", (e) => { if (e.target.closest?.('a[href^="https://wa.me/"]')) track("feedback", { Экран: location.hash || "#/" }); });
 }
 
@@ -293,7 +293,7 @@ function registerSW() {
     });
   }).catch(() => {});
   // перезагрузка нужна только при обновлении. При самом первом заходе service worker тоже «берёт управление»,
-  // но версия та же — перезагружать страницу посреди знакомства или урока незачем
+  // но версия та же: перезагружать страницу посреди знакомства или урока незачем
   const updating = !!navigator.serviceWorker.controller;
   let reloaded = false;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
@@ -312,20 +312,20 @@ function registerSW() {
 
 /** «Проверить обновление»: просим браузер прямо сейчас сходить за новой версией (обычно он делает это сам при запуске). */
 export async function checkUpdate() {
-  if (!swReg) return toast("Обновите страницу — этого достаточно, чтобы получить новую версию.", 5000);
+  if (!swReg) return toast("Обновите страницу: этого достаточно, чтобы получить новую версию.", 5000);
   toast("Проверяю обновление…", 20000);
   try {
     await swReg.update();
     if (swReg.installing || swReg.waiting) {
-      toast("Есть обновление — загружаю. Приложение перезапустится само.", 20000);
+      toast("Есть обновление, загружаю. Приложение перезапустится само.", 20000);
       swReg.waiting?.postMessage({ type: "SKIP_WAITING" });
-    } else toast(`У вас последняя версия — ${APP_VERSION} ✓`, 4000);
+    } else toast(`У вас последняя версия: ${APP_VERSION} ✓`, 4000);
   } catch { toast("Не получилось проверить обновление. Включите или выключите VPN и попробуйте ещё раз.", 7000); }
 }
 
 /**
  * Окно «Приложение обновляется само»: один раз каждому. Обновление может не дойти из-за VPN (включённого или выключенного),
- * и тогда приложение зависает или не открывается — человек должен знать, что делать.
+ * и тогда приложение зависает или не открывается: человек должен знать, что делать.
  * Новичку в первые дни не показываем (диагностика 2026-10-21, техника п.6): только с третьего дня, на «Пути».
  */
 const NOTE = "tanwin.updNote";

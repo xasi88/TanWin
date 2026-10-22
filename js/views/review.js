@@ -39,7 +39,7 @@ const DRILLS = [
   { id: "tajweed", icon: "palette", title: "Найди правило", text: "Правила таджвида в аятах", need: "10.4", steps: () => [
     ...["f", "i", "d", "D", "g", "q", "n", "o", "u"].filter(() => Math.random() < 0.7).slice(0, 6).map((c) => ({ t: "ex", k: "ruleSpot", n: 1, code: c })),
     { t: "ex", k: "nunRule", n: 4 }] },
-  { id: "madd", icon: "slow", title: "Сколько тянуть?", text: "Мадды: 2, 4–5, 6", need: "11.5", steps: () => [{ t: "ex", k: "maddCount", n: 10 }] },
+  { id: "madd", icon: "slow", title: "Сколько тянуть?", text: "Мадды: 2, 4-5, 6", need: "11.5", steps: () => [{ t: "ex", k: "maddCount", n: 10 }] },
 ];
 
 export function ReviewView() {
@@ -49,7 +49,7 @@ export function ReviewView() {
     const nHard = d.hard ? hardWords().filter((k) => bank()?.byKey.has(k)).length : 0;
     const open = d.hard ? nHard > 0 : !d.need || lessonDone(d.need) || allOpen();
     const main = d.id === "review";
-    const sub = main ? (due ? `${due} ${plural(due, "тема ждёт", "темы ждут", "тем ждут")} повторения` : total ? "Сейчас всё свежо в памяти. Можно потренироваться." : "Пройдите первые уроки — и здесь появятся повторения.") : d.hard ? `${nHard} ${plural(nHard, "слово", "слова", "слов")} — повторяйте, пока не станут лёгкими` : d.text;
+    const sub = main ? (due ? `${due} ${plural(due, "тема ждёт", "темы ждут", "тем ждут")} повторения` : total ? "Сейчас всё свежо в памяти. Можно потренироваться." : "Пройдите первые уроки, и здесь появятся повторения.") : d.hard ? `${nHard} ${plural(nHard, "слово", "слова", "слов")}: повторяйте, пока не станут лёгкими` : d.text;
     return h(open ? "a.drill" : "div.drill", { href: open ? `#/practice/${d.id}` : null, class: (open ? "" : "locked ") + (main ? "main" : "") },
       h("span.dr-ic", null, icon(open ? d.icon : "lock", { size: 26 })),
       h("div", null, h("b", null, d.title), h("div.muted", null, open ? rich(sub) : d.hard ? "Здесь появятся слова, в которых вы ошибётесь в уроках" : "Откроется по мере прохождения пути")),

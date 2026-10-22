@@ -14,7 +14,7 @@ async function json(url) {
   return p;
 }
 
-// Коды признаков — см. tools/qdata/build.mjs (FEAT)
+// Коды признаков: см. tools/qdata/build.mjs (FEAT)
 export const LEVEL_ORDER = ["fatha", "kasra", "damma", "tanween", "madd", "sukun", "shadda", "full"];
 let BANK = null;
 export async function loadBank() {
@@ -41,8 +41,8 @@ export const bank = () => BANK;
 
 /**
  * Слова для упражнений.
- * level — самый поздний допустимый уровень; exact — только этот уровень; need — обязательные признаки (коды);
- * maxLen — длина в кластерах; startsWith — первая буква.
+ * level: самый поздний допустимый уровень; exact: только этот уровень; need: обязательные признаки (коды);
+ * maxLen: длина в кластерах; startsWith: первая буква.
  */
 export function words({ level = "full", exact = false, need = "", avoid = "", maxLen = 7, minLen = 2, startsWith = null, filter = null } = {}) {
   const li = LEVEL_ORDER.indexOf(level);
@@ -54,7 +54,7 @@ export function words({ level = "full", exact = false, need = "", avoid = "", ma
     (!startsWith || w.first === startsWith || (startsWith === "ء" && "أإءؤئ".includes(w.first))) &&
     (!filter || filter(w)));
 }
-/** Слова «по теме» урока: сначала самого уровня, потом более ранних; частые — первыми. */
+/** Слова «по теме» урока: сначала самого уровня, потом более ранних; частые: первыми. */
 export function lessonWords(opts, n) {
   const exact = words({ ...opts, exact: true });
   const pool = exact.length >= n * 2 ? exact : words(opts);
@@ -65,7 +65,7 @@ export function lessonWords(opts, n) {
 export function letterExamples(id, n = 3) {
   const l = byId[id];
   if (id === "alif") {
-    // как у других букв: слова, которые начинаются с алифа (с хамзой) — по одному на أَ «а», إِ «и», أُ «у»
+    // как у других букв: слова, которые начинаются с алифа (с хамзой), по одному на أَ «а», إِ «и», أُ «у»
     const pool = words({ level: "tanween", minLen: 3, maxLen: 5, filter: (w) => /^[أإ]/.test(w.d) && !w.stop }).sort((a, b) => a.li - b.li || b.n - a.n);
     const out = [];
     for (const v of [M.FATHA, M.KASRA, M.DAMMA]) { const w = pool.find((x) => x.d[1] === v); if (w) out.push(w); }

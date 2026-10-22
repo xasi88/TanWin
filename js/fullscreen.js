@@ -1,6 +1,6 @@
 // Полный экран: приложение без адресной строки и панелей браузера.
 // Установленное приложение (PWA) и так открывается отдельным окном без адресной строки. Во вкладке браузера
-// страница может развернуться только после нажатия — так требуют браузеры, — поэтому разворачиваемся при первом касании.
+// страница может развернуться только после нажатия: так требуют браузеры, поэтому разворачиваемся при первом касании.
 import { store } from "./store.js";
 import { isInstalled } from "./install.js";
 
@@ -8,7 +8,7 @@ const root = document.documentElement;
 const request = root.requestFullscreen || root.webkitRequestFullscreen;
 const leave = document.exitFullscreen || document.webkitExitFullscreen;
 
-/** Умеет ли браузер разворачивать страницу (iPhone — нет: там только установка на экран «Домой»). */
+/** Умеет ли браузер разворачивать страницу (iPhone: нет: там только установка на экран «Домой»). */
 export const canFullscreen = () => !!request && (document.fullscreenEnabled ?? document.webkitFullscreenEnabled ?? true);
 export const isFullscreen = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
 

@@ -2,7 +2,7 @@
 import { h, ar, icon, keep } from "../ui.js";
 import { DONORS, THANKS_TEXT, TOTAL_RAISED, SPECIAL_THANKS } from "../donors.js";
 
-// слова автора: на «ты» не переводятся (keep); **имя** — полужирным
+// слова автора: на «ты» не переводятся (keep); **имя**: полужирным
 const bold = (text) => text.split("**").map((x, i) => (i % 2 ? h("b", null, keep(x)) : keep(x)));
 
 export function ThanksView() {
@@ -11,7 +11,7 @@ export function ThanksView() {
     h("header.page-head", null, h("a.back", { href: "#/more" }, icon("left", { size: 18 }), "Ещё"), h("h1", null, T.title)),
     h("section.card.thanks-hero", null,
       h("div.th-ar", null, ar("جَزَاكُمُ ٱللَّهُ خَيۡرًا")),
-      h("p.th-tr", null, "Джазакумуллаху хайран — да воздаст вам Аллах благом"),
+      h("p.th-tr", null, "Джазакумуллаху хайран: да воздаст вам Аллах благом"),
       TOTAL_RAISED ? h("div.th-total", null, h("small", null, "Собрано на создание"), h("b", null, TOTAL_RAISED)) : null,
       h("p.th-lead", null, T.lead)),
     h("section.card.th-special", null,

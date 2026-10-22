@@ -1,4 +1,4 @@
-// Закладки и их цели: сохранённые места в Коране (с названиями и группами). У закладки может быть цель —
+// Закладки и их цели: сохранённые места в Коране (с названиями и группами). У закладки может быть цель:
 // читать по порядку (столько-то страниц или аятов в день) или повторять отрывок (суру, аяты, свой набор).
 import { h, icon, modal, toast, plural, confirmBox, keep } from "../ui.js";
 import { surahMeta } from "../data.js";
@@ -22,10 +22,10 @@ function openRead(s, a) {
   if (location.hash === hash) window.dispatchEvent(new HashChangeEvent("hashchange")); else go(hash.slice(1));
 }
 // ---------- Цель закладки ----------
-// mark.plan — что читать:
-//   { k: "seq", unit: "p" | "a", n }             — по порядку: n страниц или аятов в день; закладка идёт вперёд
-//   { k: "rep", items: [{ s, from, to }], days } — повторять отрывок (сура, аяты, свой набор); days — дни недели (0 — вс) или null = каждый день
-// mark.done — когда цель выполнена в последний раз; mark.cur = { s, a } — где остановились, не дочитав сегодняшнее.
+// mark.plan: что читать:
+//   { k: "seq", unit: "p" | "a", n }, по порядку: n страниц или аятов в день; закладка идёт вперёд
+//   { k: "rep", items: [{ s, from, to }], days }, повторять отрывок (сура, аяты, свой набор); days: дни недели (0: вс) или null = каждый день
+// mark.done: когда цель выполнена в последний раз; mark.cur = { s, a }: где остановились, не дочитав сегодняшнее.
 // Цель считается только тогда, когда чтение открыто через эту закладку (экран #/mark/ID в views/quran.js).
 const sameDay = (t) => new Date(t).toDateString() === new Date().toDateString();
 const WD = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"], WEEK = [1, 2, 3, 4, 5, 6, 0];
@@ -33,9 +33,9 @@ export const doneToday = (m) => !!m.done && sameDay(m.done);
 export const dueToday = (m) => !!m.plan && (m.plan.k !== "rep" || !m.plan.days || m.plan.days.includes(new Date().getDay()));
 const itemText = (x) => {
   const sm = surahMeta(x.s), name = sm?.ru || `Сура ${x.s}`;
-  return x.from <= 1 && sm && x.to >= sm.verses ? `сура ${name}` : x.from === x.to ? `${name}, аят ${x.from}` : `${name}, аяты ${x.from}–${x.to}`;
+  return x.from <= 1 && sm && x.to >= sm.verses ? `сура ${name}` : x.from === x.to ? `${name}, аят ${x.from}` : `${name}, аяты ${x.from}-${x.to}`;
 };
-/** Цель словами: «по 2 страницы в день», «сура Аль-Мульк · каждый день», «Аль-Бакара, аяты 285–286 · пт». */
+/** Цель словами: «по 2 страницы в день», «сура Аль-Мульк · каждый день», «Аль-Бакара, аяты 285-286 · пт». */
 export function planText(pl) {
   if (!pl) return "";
   if (pl.k === "seq") return `по ${pl.n} ${pl.unit === "p" ? plural(pl.n, "странице", "страницы", "страниц") : plural(pl.n, "аяту", "аята", "аятов")} в день`;
@@ -44,7 +44,7 @@ export function planText(pl) {
 }
 /** Изменить закладку. */
 export const setMark = (id, fn) => store.set((st) => { const m = (st.marks || []).find((x) => x.id === id); if (m) fn(m); });
-/** Открыть закладку: с целью — экран цели (только то, что нужно прочесть сегодня), без цели — чтение с этого места. */
+/** Открыть закладку: с целью, экран цели (только то, что нужно прочесть сегодня), без цели, чтение с этого места. */
 function openMark(m) {
   if (!m.plan) return openRead(m.s, m.a);
   enterFullscreen();
@@ -53,7 +53,7 @@ function openMark(m) {
 }
 
 // ---------- Закладки и группы ----------
-// Закладка: { id, s, a, p, at, name, g, goal } — name, g (группа) и goal (страниц за раз) необязательны. Группа: { id, name, closed }.
+// Закладка: { id, s, a, p, at, name, g, goal }, name, g (группа) и goal (страниц за раз) необязательны. Группа: { id, name, closed }.
 export const marks = () => store.get().marks || [];
 export const groups = () => store.get().markGroups || [];
 /** Ставит закладку на аят и открывает её настройки (название, группа, цель); возвращает false, если такая уже есть. */
@@ -66,7 +66,7 @@ export function addMark(s, a, p) {
   return true;
 }
 /**
- * Новый порядок и группы закладок: lists — [[группа, [id…]]…], списки сверху вниз, как на экране ("" — «Без группы»).
+ * Новый порядок и группы закладок: lists: [[группа, [id…]]…], списки сверху вниз, как на экране ("": «Без группы»).
  * Закладка получает группу своего списка; закладки, которых на экране нет, остаются на своих местах.
  */
 const arrangeMarks = (lists) => store.set((st) => {
@@ -79,7 +79,7 @@ const arrangeMarks = (lists) => store.set((st) => {
 const removeMark = (id) => store.set((st) => { st.marks = (st.marks || []).filter((m) => m.id !== id); });
 const addGroup = (name) => { const id = "g" + newId(); store.set((st) => { st.markGroups = [...(st.markGroups || []), { id, name }]; }); return id; };
 
-/** Настройки закладки: название, группа, цель, удаление. fresh — закладку только что поставили. */
+/** Настройки закладки: название, группа, цель, удаление. fresh: закладку только что поставили. */
 export function markEditor(id, { fresh = false, onChange } = {}) {
   const m = marks().find((x) => x.id === id);
   if (!m) return;
@@ -104,8 +104,8 @@ export function markEditor(id, { fresh = false, onChange } = {}) {
     const pFrom = num(m.p || 1, PAGES, "С какой страницы"), pTo = num(m.p || 1, PAGES, "По какую страницу");
     const addPages = async () => {
       const a = Math.round(+pFrom.value), b = Math.round(+pTo.value);
-      if (!(a >= 1 && b >= a && b <= PAGES)) return toast(`Страницы — от 1 до ${PAGES}, «с» не больше «по».`);
-      if (b - a > 40) return toast("За один раз — не больше 40 страниц.");
+      if (!(a >= 1 && b >= a && b <= PAGES)) return toast(`Страницы: от 1 до ${PAGES}, «с» не больше «по».`);
+      if (b - a > 40) return toast("За один раз не больше 40 страниц.");
       const add = [];
       for (let p = a; p <= b; p++) for (const part of await pageContent(p).catch(() => [])) {
         const last = add[add.length - 1];
@@ -128,18 +128,18 @@ export function markEditor(id, { fresh = false, onChange } = {}) {
       kindRow.replaceChildren(...seg([["", "Без цели"], ["seq", "Читать по порядку"], ["rep", "Повторять отрывок"]], kind, (k) => { kind = k; draw(); }));
       if (kind === "seq") box.replaceChildren(
         h("div.plan-seq", null, nIn, h("div.rm-row", null, ...seg([["p", "страниц в день"], ["a", "аятов в день"]], unit, (k) => { unit = k; draw(); }))),
-        h("p.muted.small", null, "Откроете закладку — на экране будет ровно столько, сколько нужно прочесть сегодня. В конце нажмите «Я прочитал» — и можно читать дальше: назавтра закладка будет ждать там, где вы остановитесь."));
+        h("p.muted.small", null, "Откроете закладку, и на экране будет ровно столько, сколько нужно прочесть сегодня. В конце нажмите «Я прочитал», и можно читать дальше: назавтра закладка будет ждать там, где вы остановитесь."));
       else if (kind === "rep") box.replaceChildren(
         h("div.label", null, "Что читать"),
         ...items.map(itemRow),
-        h("p.muted.small", null, "Вся сура — аяты с первого по последний. Чтобы читать только часть, поменяйте номера аятов."),
+        h("p.muted.small", null, "Вся сура: аяты с первого по последний. Чтобы читать только часть, поменяйте номера аятов."),
         h("button.btn.ghost.small-btn", { type: "button", onclick: () => { const lastS = items[items.length - 1]?.s || m.s; const s = Math.min(114, lastS + 1); items.push({ s, from: 1, to: verses(s) }); draw(); } }, "+ Ещё сура или отрывок"),
         h("div.plan-pages", null, h("span", null, "Или страницы: с"), pFrom, h("span", null, "по"), pTo, h("button.btn.ghost.small-btn", { type: "button", onclick: addPages }, "Добавить")),
         h("div.label", null, "Когда"),
         h("div.rm-row", null,
           h("button.seg-btn", { type: "button", class: days ? "" : "on", onclick: () => { days = null; draw(); } }, "Каждый день"),
           ...WEEK.map((d) => h("button.seg-btn", { type: "button", class: days?.has(d) ? "on" : "", onclick: () => { days = days || new Set(); if (days.has(d)) days.delete(d); else days.add(d); if (!days.size || days.size === 7) days = null; draw(); } }, WD[d]))),
-        h("p.muted.small", null, "Откроете закладку — на экране будет только этот отрывок. Место закладки не меняется: в следующий раз вы прочтёте его снова."));
+        h("p.muted.small", null, "Откроете закладку, и на экране будет только этот отрывок. Место закладки не меняется: в следующий раз вы прочтёте его снова."));
       else box.replaceChildren();
     };
     draw();
@@ -153,7 +153,7 @@ export function markEditor(id, { fresh = false, onChange } = {}) {
         Object.assign(x, { name: name.value.trim(), g: gid });
         if (!changed) return;
         if (plan) x.plan = plan; else delete x.plan;
-        delete x.done; delete x.cur; // новая цель — новый отсчёт
+        delete x.done; delete x.cur; // новая цель: новый отсчёт
         if (plan?.k === "rep") Object.assign(x, { s: plan.items[0].s, a: plan.items[0].from, p: null }); // закладка стоит на начале отрывка
       });
       close(); onChange?.();
@@ -162,7 +162,7 @@ export function markEditor(id, { fresh = false, onChange } = {}) {
     return h("div.mark-edit", null,
       h("h2", null, fresh ? "Закладка поставлена ✓" : "Закладка"),
       h("p.muted", null, placeText(m.s, m.a, m.p)),
-      h("div.label", null, "Название — если нужно"), name,
+      h("div.label", null, "Название, если нужно"), name,
       h("div.label", null, "Группа"), chips, ng,
       h("div.label", null, "Цель"), kindRow, box,
       h("div.row.gap.wrap", null,
@@ -173,7 +173,7 @@ export function markEditor(id, { fresh = false, onChange } = {}) {
   });
 }
 
-/** Группа закладок: название, место в списке, удаление. id = null — новая группа. */
+/** Группа закладок: название, место в списке, удаление. id = null: новая группа. */
 function groupEditor(id, onChange) {
   const g = groups().find((x) => x.id === id);
   modal((close) => {
@@ -199,7 +199,7 @@ function groupEditor(id, onChange) {
         g && groups().length > 1 ? h("button.btn.ghost", { type: "button", onclick: () => move(-1) }, "Выше") : null,
         g && groups().length > 1 ? h("button.btn.ghost", { type: "button", onclick: () => move(1) }, "Ниже") : null,
         g ? h("button.btn.ghost", { type: "button", onclick: async () => {
-          if (!(await confirmBox("Удалить группу?", `«${g.name}». Закладки из неё останутся — без группы.`, "Удалить"))) return;
+          if (!(await confirmBox("Удалить группу?", `«${g.name}». Закладки из неё останутся, но без группы.`, "Удалить"))) return;
           store.set((st) => { st.markGroups = st.markGroups.filter((x) => x.id !== id); });
           close(); onChange?.();
         } }, icon("trash", { size: 18 }), "Удалить") : null));
@@ -208,8 +208,8 @@ function groupEditor(id, onChange) {
 
 const scrollBox = (el) => { for (let p = el.parentElement; p; p = p.parentElement) if (/auto|scroll/.test(getComputedStyle(p).overflowY) && p.scrollHeight > p.clientHeight) return p; return document.scrollingElement; };
 /**
- * Ручка «переместить»: закладку тянут вверх или вниз (или двигают стрелками на клавиатуре) — внутри своего списка,
- * в соседнюю группу или в «Без группы». wrap — все списки закладок (.mark-list), save — записать то, что получилось.
+ * Ручка «переместить»: закладку тянут вверх или вниз (или двигают стрелками на клавиатуре), внутри своего списка,
+ * в соседнюю группу или в «Без группы». wrap: все списки закладок (.mark-list), save: записать то, что получилось.
  * Внутри списка сдвигаются соседние строки, а не сама закладка. В соседний список закладка переезжает сама; браузер при этом
  * отпускает её из-под пальца, поэтому движение слушаем на окне и берём закладку заново (hold).
  */
@@ -240,7 +240,7 @@ function gripBtn(wrap, row, save) {
     const place = () => {
       for (let n = 0; n < 40; n++) { // быстрым движением закладка проходит несколько строк и списков
         const box = row.parentElement, prev = row.previousElementSibling, next = row.nextElementSibling, r = row.getBoundingClientRect();
-        // граница с соседним списком — середина промежутка между ним и закладкой (там заголовок группы)
+        // граница с соседним списком: середина промежутка между ним и закладкой (там заголовок группы)
         const above = prev ? mid(prev) : beside(-1) ? (beside(-1).getBoundingClientRect().bottom + r.top) / 2 : -Infinity;
         const below = next ? mid(next) : beside(1) ? (r.bottom + beside(1).getBoundingClientRect().top) / 2 : Infinity;
         if (y < above) up(); else if (y > below) down(); else break;
@@ -267,7 +267,7 @@ function gripBtn(wrap, row, save) {
   return btn;
 }
 
-/** Список закладок по группам. onOpen — что сделать перед переходом (закрыть окно), onChange — после любого изменения. */
+/** Список закладок по группам. onOpen: что сделать перед переходом (закрыть окно), onChange: после любого изменения. */
 function marksList({ onOpen, onChange } = {}) {
   const wrap = h("div.mark-groups");
   const redraw = () => (onChange ? onChange() : draw());
@@ -277,7 +277,7 @@ function marksList({ onOpen, onChange } = {}) {
     for (const d of wrap.querySelectorAll(".mark-group")) d.querySelector(".mg-count").textContent = d.querySelectorAll(".mark-row").length;
   };
   const row = (m, grip) => {
-    const rep = m.plan?.k === "rep"; // у отрывка для повтора место — сам отрывок
+    const rep = m.plan?.k === "rep"; // у отрывка для повтора место: сам отрывок
     const status = !m.plan ? null : doneToday(m) ? "сегодня выполнено ✓" : dueToday(m) ? "ждёт сегодня" : null;
     const sub = [m.name && !rep ? ayahText(m.s, m.a) : null, m.p && !rep ? `стр. ${m.p}` : null, !m.name && m.p && !rep ? `джуз ${juzOf(m.p)}` : null, m.plan ? `цель: ${rep && !m.name ? planText(m.plan).split(" · ").slice(1).join(" · ") : planText(m.plan)}` : dateRu(m.at), status].filter(Boolean).join(" · ");
     const r = h("div.mark-row", { "data-id": m.id },
@@ -291,7 +291,7 @@ function marksList({ onOpen, onChange } = {}) {
   const draw = () => {
     const all = marks(), gs = groups(), known = new Set(gs.map((g) => g.id));
     const loose = all.filter((m) => !known.has(m.g));
-    const grip = all.length > 1 || (all.length > 0 && gs.length > 0); // ручка — у каждой закладки, когда её есть куда двигать: есть другая закладка или группа
+    const grip = all.length > 1 || (all.length > 0 && gs.length > 0); // ручка: у каждой закладки, когда её есть куда двигать: есть другая закладка или группа
     const rows = (list, g = "") => { const box = h("div.mark-list"); box.dataset.g = g; box.append(...list.map((m) => row(m, grip))); return box; };
     wrap.replaceChildren(...[
       ...gs.map((g) => {
@@ -304,7 +304,7 @@ function marksList({ onOpen, onChange } = {}) {
       }),
       // пустой блок «Без группы» виден только пока закладку тянут: в него тоже можно перенести
       h("div.mark-loose", null, gs.length ? h("div.label", null, "Без группы") : null, rows(loose)),
-      all.length ? null : h("p.muted", null, "Закладок пока нет. Откройте суру, нажмите на экран и выберите вверху «Закладка здесь». Или нажмите на слово и удерживайте — закладка встанет точно на этот аят. Закладке можно задать цель: например, две страницы в день или сура Аль-Мульк каждый вечер."),
+      all.length ? null : h("p.muted", null, "Закладок пока нет. Откройте суру, нажмите на экран и выберите вверху «Закладка здесь». Или нажмите на слово и удерживайте: закладка встанет точно на этот аят. Закладке можно задать цель: например, две страницы в день или сура Аль-Мульк каждый вечер."),
       grip ? h("p.muted.small", null, "Чтобы поменять порядок, потяните закладку за точки слева вверх или вниз." + (gs.length ? " Так же её можно перенести в другую раскрытую группу или в «Без группы»." : "")) : null,
       h("button.btn.secondary", { type: "button", onclick: () => groupEditor(null, redraw) }, "Новая группа"),
     ].filter(Boolean));
@@ -313,7 +313,7 @@ function marksList({ onOpen, onChange } = {}) {
   return wrap;
 }
 
-/** Окно со списком закладок — для режима чтения, чтобы не выходить из него. */
+/** Окно со списком закладок: для режима чтения, чтобы не выходить из него. */
 export function marksSheet() {
   modal((close) => h("div.read-menu", null, h("h2", null, "Мои закладки"), marksList({ onOpen: close })), { cls: "sheet" });
 }

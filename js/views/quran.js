@@ -1,4 +1,4 @@
-// Мой Коран: список сур и джузов и чтение на весь экран (сплошной текст, по аятам с переводом, постранично) —
+// Мой Коран: список сур и джузов и чтение на весь экран (сплошной текст, по аятам с переводом, постранично):
 // с таджвидом, пословным аудио, чтецом и автопрокруткой.
 import { h, ar, icon, tr, modal, toast, plural, rich, sizeButton, keep, confetti } from "../ui.js";
 import { g } from "../speech.js";
@@ -21,7 +21,7 @@ export const JUZ_PAGE = [1, 22, 42, 62, 82, 102, 121, 142, 162, 182, 201, 222, 2
 // с какого аята начинается каждый джуз: [сура, аят]
 const JUZ_START = [[1, 1], [2, 142], [2, 253], [3, 93], [4, 24], [4, 148], [5, 82], [6, 111], [7, 88], [8, 41], [9, 93], [11, 6], [12, 53], [15, 1], [17, 1], [18, 75], [21, 1], [23, 1], [25, 21], [27, 56], [29, 46], [33, 31], [36, 28], [39, 32], [41, 47], [46, 1], [51, 31], [58, 1], [67, 1], [78, 1]];
 const juzOfPage = (p) => { let j = 0; while (j < 29 && JUZ_PAGE[j + 1] <= p) j++; return j + 1; };
-/** Суры джуза j: [{ s, from, to }]; to = 0 — до конца суры. */
+/** Суры джуза j: [{ s, from, to }]; to = 0: до конца суры. */
 function juzParts(j) {
   const [s0, a0] = JUZ_START[j - 1], nx = JUZ_START[j];
   const s1 = !nx ? 114 : nx[1] > 1 ? nx[0] : nx[0] - 1;
@@ -31,13 +31,13 @@ function juzParts(j) {
 export function legendModal() {
   modal(h("div.legend", null,
     h("h2", null, "Цвета таджвида"),
-    h("p.muted", null, "Цвет показывает правило чтения. Нажмите на любое слово в мусхафе — увидите, какие правила в нём есть."),
+    h("p.muted", null, "Цвет показывает правило чтения. Нажмите на любое слово в мусхафе и увидите, какие правила в нём есть."),
     h("div.legend-list", null, ...LEGEND.map((c) => h("div.lg-row", null, h("span.lg-sw", { style: { background: `var(--r-${c})` } }), h("div", null, h("b", null, RULES[c].name), h("small.muted", null, rich(RULES[c].short)))))),
     h("a.btn.secondary.wide", { href: "#/rules" }, "Подробно о правилах")));
 }
 
 // ---------- «Мой Коран»: последнее место, закладки, 30 джузов, все суры ----------
-let mqView = 0; // что открыто: 0 — главный список, -1 — 30 джузов, 1…30 — суры джуза; помним до перезагрузки
+let mqView = 0; // что открыто: 0, главный список, -1-30 джузов, 1…30, суры джуза; помним до перезагрузки
 /** Адрес #/bookmarks (отдельного раздела закладок больше нет): главная «Моего Корана» с раскрытыми закладками. */
 export function MarksRoute() {
   mqView = 0;
@@ -49,7 +49,7 @@ export async function MyQuran() {
   const list = await loadSurahs();
   const reads = store.get().reads || {};
   const ayahs = (n) => `${n} ${plural(n, "аят", "аята", "аятов")}`;
-  // from > 1 — сура открывается с аята, с которого начинается джуз
+  // from > 1: сура открывается с аята, с которого начинается джуз
   const row = (s, from = 1, page = s.page) => h("a.surah-row", { href: `#/read/${s.id}${from > 1 ? `/${from}` : ""}`, onclick: () => enterFullscreen() },
     h("span.sr-num", null, h("span", null, s.id)),
     h("div.sr-main", null, h("b", null, s.ru), h("small.muted", null, s.meaning), h("small.muted", null, `${from > 1 ? `с аята ${from} · ` : ""}${ayahs(s.verses)} · ${s.place === "м" ? "мекканская" : "мединская"} · стр. ${page}`)),
@@ -57,7 +57,7 @@ export async function MyQuran() {
     h("span.sr-ar", null, ar(s.ar)));
   const juzSub = (j) => {
     const parts = juzParts(j), first = list[parts[0].s - 1], last = list[parts[parts.length - 1].s - 1];
-    return `стр. ${JUZ_PAGE[j - 1]}–${(JUZ_PAGE[j] || PAGES + 1) - 1} · ${first.ru}${last !== first ? ` — ${last.ru}` : ""}`;
+    return `стр. ${JUZ_PAGE[j - 1]}-${(JUZ_PAGE[j] || PAGES + 1) - 1} · ${first.ru}${last !== first ? ` - ${last.ru}` : ""}`;
   };
   const body = h("div.mq-body");
   let scrub = null;
@@ -66,7 +66,7 @@ export async function MyQuran() {
   const draw = () => {
     scrub?.off();
     scrub = null;
-    if (mqView > 0) { // суры одного джуза — и ничего больше
+    if (mqView > 0) { // суры одного джуза: и ничего больше
       const j = mqView;
       body.replaceChildren(
         back("30 джузов", -1),
@@ -97,16 +97,16 @@ export async function MyQuran() {
   };
   draw();
   return h("div.page.quran-page.my-quran", null,
-    h("header.page-head", null, h("h1", null, "Мой Коран"), h("p.muted", null, "Мусхаф Мадины, риваят Хафса от Асыма. Выберите суру или джуз — текст откроется на весь экран.")),
+    h("header.page-head", null, h("h1", null, "Мой Коран"), h("p.muted", null, "Мусхаф Мадины, риваят Хафса от Асыма. Выберите суру или джуз: текст откроется на весь экран.")),
     body);
 }
 
 /**
- * Ручка справа от списка сур: потянули вниз — список летит к последней суре, вверх — к первой. Рядом — номер и название суры.
+ * Ручка справа от списка сур: потянули вниз, список летит к последней суре, вверх, к первой. Рядом: номер и название суры.
  * Живёт в body, а не в странице: у #view есть transform (анимация появления), внутри него position: fixed не держится за экран.
  */
 function surahScrub(box, list) {
-  const THUMB = 56; // высота ручки, px — как в стилях .ss-thumb
+  const THUMB = 56; // высота ручки, px: как в стилях .ss-thumb
   const rows = [...box.children];
   const thumb = h("div.ss-thumb", null, icon("grip", { size: 18, sw: 3 }));
   const tip = h("div.ss-tip");
@@ -170,15 +170,15 @@ function wordPop(s, a, wi, w, meta, page) {
       h("button.btn.secondary", { type: "button", onclick: () => playAyah(s, a) }, icon("play", { size: 18 }), "Весь аят")),
     page ? h("button.btn.ghost", { type: "button", onclick: () => addMark(s, a, page) }, icon("bookmark", { size: 18 }), `Закладка на аят ${a}`) : null,
     codes.length ? h("div.wp-rules", null, h("div.label", null, "Правила в этом слове"),
-      ...codes.map((c) => h("div.lg-row", null, h("span.lg-sw", { style: { background: `var(--r-${c})` } }), h("div", null, h("b", null, RULES[c].name), h("small.muted", null, rich(RULES[c].text)))))) : h("p.muted.small", null, "Особых правил таджвида в слове нет — читается по огласовкам."),
-    h("p.muted.small", null, "Транскрипция — для отдельно прочитанного слова. В слитном чтении начало и конец слова могут звучать иначе (см. правила).")), { cls: "sheet" });
+      ...codes.map((c) => h("div.lg-row", null, h("span.lg-sw", { style: { background: `var(--r-${c})` } }), h("div", null, h("b", null, RULES[c].name), h("small.muted", null, rich(RULES[c].text)))))) : h("p.muted.small", null, "Особых правил таджвида в слове нет, читается по огласовкам."),
+    h("p.muted.small", null, "Транскрипция дана для отдельно прочитанного слова. В слитном чтении начало и конец слова могут звучать иначе (см. правила).")), { cls: "sheet" });
 }
 
 // ---------- Отображение аятов ----------
 /**
  * Рисует аяты суры. mode: "mushaf" (сплошным текстом) или "ayat" (по аятам с переводом).
- * pages — отметки страниц мусхафа Мадины; hifz — заучивание: 0 все слова видны, 1…3 — скрыта треть / две трети / все;
- * bare — без рамки (для страницы мусхафа). Возвращает { el, highlight(a, ms), ayahEls }.
+ * pages: отметки страниц мусхафа Мадины; hifz: заучивание: 0 все слова видны, 1…3, скрыта треть / две трети / все;
+ * bare: без рамки (для страницы мусхафа). Возвращает { el, highlight(a, ms), ayahEls }.
  */
 export function renderVerses(s, data, meta, { mode = "mushaf", colors = true, translation = true, from = 1, to = data.v.length, onAyah, pages = false, prevPage = null, hifz = 0, bare = false } = {}) {
   const el = h("div.verses", { class: `${mode}${bare ? " bare" : ""}${hifz ? " hifz" : ""}`, dir: "rtl" });
@@ -192,7 +192,7 @@ export function renderVerses(s, data, meta, { mode = "mushaf", colors = true, tr
     const words = v[0].map((w, wi) => {
       const hide = hifz && (hifz >= 3 || (a * 5 + wi * 2) % 3 < hifz);
       const b = h("span.qw", { role: "button", tabindex: "0", "data-wi": wi, class: hide ? "hid" : "" }, ar(w, { colors, tag: "span" }));
-      // скрытое слово: первое нажатие открывает его, следующее — карточку слова
+      // скрытое слово: первое нажатие открывает его, следующее, карточку слова
       const open = () => { if (b.classList.contains("hid") && !b.classList.contains("shown")) { b.classList.add("shown"); return; } wordPop(s, a, wi, w, meta, page); };
       b.addEventListener("click", open);
       b.addEventListener("keydown", (e) => e.key === "Enter" && open());
@@ -226,7 +226,7 @@ export function renderVerses(s, data, meta, { mode = "mushaf", colors = true, tr
   };
 }
 
-// Отметка начала страницы мусхафа Мадины (604 страницы). Нажатие — открыть эту страницу целиком.
+// Отметка начала страницы мусхафа Мадины (604 страницы). Нажатие: открыть эту страницу целиком.
 function pageMark(p, juz, s, a) {
   return h("a.page-mark", { href: `#/page/${p}`, "data-p": p, dir: "ltr", title: "Открыть страницу мусхафа" },
     h("span", null, `страница ${p}`), juz ? h("span", null, `джуз ${juz}`) : null);
@@ -235,13 +235,13 @@ function pageMark(p, juz, s, a) {
 // ---------- Чтец ведёт текст ----------
 /**
  * Аят, который начинает чтец, встаёт первой строкой у верха экрана; аят длиннее экрана подтягивается вверх за словом, которое звучит.
- * box — блок с прокруткой (нет — прокручивается страница); topLine() — где верх текста, считая от верха box;
- * busy() — читатель листает сам: за словом текст не тянем.
+ * box: блок с прокруткой (нет: прокручивается страница); topLine(): где верх текста, считая от верха box;
+ * busy(): читатель листает сам: за словом текст не тянем.
  */
 function reciterScroll({ box = null, topLine, busy = () => false }) {
   let ledAt = 0;
   const top = () => (box ? box.getBoundingClientRect().top : 0);
-  /** Строка слова w встаёт у верха экрана; lines — сколько строк над ней остаётся на виду. */
+  /** Строка слова w встаёт у верха экрана; lines: сколько строк над ней остаётся на виду. */
   const lead = (w, lines = 0) => {
     const r = w.getBoundingClientRect(), lh = parseFloat(getComputedStyle(w).lineHeight) || r.height * 2;
     const d = r.top - (lh - r.height) / 2 - lines * lh - top() - topLine();
@@ -263,7 +263,7 @@ export function surahPlayer(s, data, view, { from = 1, to = data.v.length, onFin
   let cur = null, playing = false, reps = 0;
   const settings = () => store.get().settings;
   const repeat = { n: 1 };
-  // верх текста — под верхней строкой урока и под кнопками «Слушать» и повтора, которые прилипают к верху экрана
+  // верх текста: под верхней строкой урока и под кнопками «Слушать» и повтора, которые прилипают к верху экрана
   const guide = reciterScroll({ topLine: () => {
     const tools = btn.closest(".reader-tools");
     return Math.max(document.querySelector(".lp-top")?.getBoundingClientRect().bottom || 0, tools ? (parseFloat(getComputedStyle(tools).top) || 0) + tools.offsetHeight : 0) + 8;
@@ -298,7 +298,7 @@ export function surahPlayer(s, data, view, { from = 1, to = data.v.length, onFin
 }
 
 // ---------- Где остановился читатель ----------
-/** Запоминает место чтения: сура, аят, страница и как читали — "surah", "juz" (j — номер джуза), "page" или "mark" (id — закладка с целью). */
+/** Запоминает место чтения: сура, аят, страница и как читали, "surah", "juz" (j: номер джуза), "page" или "mark" (id: закладка с целью). */
 function saveReading(s, a, page, mode, j = 0, id = "") {
   const r = store.get().reading;
   if (r && r.s === s && r.a === a && r.mode === mode && (r.j || 0) === j && (r.id || "") === id) return;
@@ -322,7 +322,7 @@ const HIFZ = ["нет", "треть", "две трети", "все"]; // ско�
 const hifzLevel = () => { try { return +localStorage.getItem("tanwin.hifz") || 0; } catch { return 0; } };
 
 // ---------- Дорожная карта: 30 джузов точками ----------
-/** Пройденные джузы закрашены, текущий заполняется по мере чтения, остальные — впереди. set(page) обновляет карту. */
+/** Пройденные джузы закрашены, текущий заполняется по мере чтения, остальные: впереди. set(page) обновляет карту. */
 export function juzMap(page) {
   const dots = Array.from({ length: 30 }, () => h("i"));
   const cap = h("small.jm-cap");
@@ -342,11 +342,11 @@ export function juzMap(page) {
 }
 
 // ---------- Колесо страниц: полоска справа ----------
-const WHEEL_ROW = 30; // высота строки колеса, px — как в стилях .pw-list i
+const WHEEL_ROW = 30; // высота строки колеса, px: как в стилях .pw-list i
 /**
- * Полоска с номерами всех 604 страниц. Медленное движение пальца — страница за страницей; быстрый взмах — колесо
+ * Полоска с номерами всех 604 страниц. Медленное движение пальца: страница за страницей; быстрый взмах: колесо
  * разгоняется и летит дальше, так что до начала или конца Корана можно добраться за пару жестов. Когда колесо
- * остановилось, pick(p) открывает страницу под отметкой. onUse — читатель трогает колесо. set(p) ставит колесо на страницу.
+ * остановилось, pick(p) открывает страницу под отметкой. onUse: читатель трогает колесо. set(p) ставит колесо на страницу.
  */
 function pageWheel(list, pick, onUse) {
   const rows = Array.from({ length: PAGES }, (_, i) => h("i", { class: JUZ_PAGE.includes(i + 1) ? "juz" : "" }, i + 1));
@@ -398,12 +398,12 @@ function pageWheel(list, pick, onUse) {
     if (!drag || e.pointerId !== drag.id) return;
     const d = drag;
     drag = null;
-    if (d.moved < 6) { // нажатие: на номер — сразу к этой странице; по летящему колесу — остановить его
+    if (d.moved < 6) { // нажатие: на номер, сразу к этой странице; по летящему колесу, остановить его
       const p = d.wasGliding ? 0 : rows.indexOf(document.elementFromPoint(e.clientX, e.clientY)) + 1;
       if (p) roll.scrollTop = (p - 1) * WHEEL_ROW;
       return end();
     }
-    let v = e.timeStamp - d.t > 80 ? 0 : Math.max(-30, Math.min(30, d.v)), last = performance.now(); // палец замер перед отпусканием — без разгона
+    let v = e.timeStamp - d.t > 80 ? 0 : Math.max(-30, Math.min(30, d.v)), last = performance.now(); // палец замер перед отпусканием: без разгона
     if (Math.abs(v) < 0.15) return end();
     gliding = true;
     const glide = (t) => {
@@ -420,7 +420,7 @@ function pageWheel(list, pick, onUse) {
   roll.addEventListener("pointercancel", release);
   roll.addEventListener("wheel", () => { begin(); tm = setTimeout(end, 500); }, { passive: true }); // колесо мыши: ждём, пока докрутят
   roll.addEventListener("scroll", () => { if (busy && !drag && !gliding) { mark(at()); onUse(); } }, { passive: true });
-  new ResizeObserver(() => { if (!busy) roll.scrollTop = (shown - 1) * WHEEL_ROW; }).observe(roll); // высота полоски изменилась — отметка остаётся на своей странице
+  new ResizeObserver(() => { if (!busy) roll.scrollTop = (shown - 1) * WHEEL_ROW; }).observe(roll); // высота полоски изменилась: отметка остаётся на своей странице
   return { el, set };
 }
 
@@ -435,7 +435,7 @@ function surahPicker(list, cur, open) {
   }, { cls: "sheet" });
 }
 
-/** Аяты страницы p: [{ s, meta, data, from, to }] — на одной странице может быть конец одной суры и начало другой. */
+/** Аяты страницы p: [{ s, meta, data, from, to }], на одной странице может быть конец одной суры и начало другой. */
 export async function pageContent(p) {
   const list = await loadSurahs();
   const cand = list.filter((m, i) => m.page <= p && (i === list.length - 1 || list[i + 1].page >= p));
@@ -448,11 +448,11 @@ export async function pageContent(p) {
   return parts;
 }
 
-/** Переход к странице / джузу. open(p) — что открыть (по умолчанию — страницу мусхафа). */
+/** Переход к странице / джузу. open(p): что открыть (по умолчанию: страницу мусхафа). */
 function pagePicker(cur, open = (p) => go(`/page/${p}`)) {
   modal((close) => {
     const inp = h("input.text-in.big", { type: "number", min: 1, max: PAGES, value: cur, inputmode: "numeric", "aria-label": "Номер страницы" });
-    const goTo = () => { const v = Math.round(+inp.value); if (v >= 1 && v <= PAGES) { close(); open(v); } else toast(`Номер страницы — от 1 до ${PAGES}`); };
+    const goTo = () => { const v = Math.round(+inp.value); if (v >= 1 && v <= PAGES) { close(); open(v); } else toast(`Номер страницы: от 1 до ${PAGES}`); };
     inp.addEventListener("keydown", (e) => e.key === "Enter" && goTo());
     return h("div.page-picker", null,
       h("h2", null, "Перейти"),
@@ -463,17 +463,17 @@ function pagePicker(cur, open = (p) => go(`/page/${p}`)) {
 }
 
 // ---------- Чтение: текст на весь экран, с автопрокруткой ----------
-const SPEED = { min: 1, max: 20, def: 4, px: 3 }; // скорость 1…20; одно деление — 3 px/с при обычном размере арабского текста
+const SPEED = { min: 1, max: 20, def: 4, px: 3 }; // скорость 1…20; одно деление: 3 px/с при обычном размере арабского текста
 const readSpeed = () => { try { return Math.min(SPEED.max, Math.max(SPEED.min, Math.round(+localStorage.getItem("tanwin.readSpeed")) || SPEED.def)); } catch { return SPEED.def; } };
-// вид текста: "text" — сплошной, "ayat" — по аятам с переводом; «по страницам» — отдельный адрес (#/page/N)
+// вид текста: "text": сплошной, "ayat": по аятам с переводом; «по страницам»: отдельный адрес (#/page/N)
 const readView = () => { try { const v = localStorage.getItem("tanwin.readView"); return v === "ayat" || v === "text" ? v : localStorage.getItem("tanwin.readTr") === "1" ? "ayat" : "text"; } catch { return "text"; } };
 const READING = /^#\/(read|juz|page|mark)\b/;
 /** Перейти по адресу, даже если он уже открыт (тогда экран просто открывается заново). */
 const goHash = (hash) => { if (location.hash === hash) dispatchEvent(new HashChangeEvent("hashchange")); else location.replace(hash); };
 
-let resumeScroll = false; // автопрокрутка дошла до конца — следующая сура или страница продолжает идти сама
-let lastPage = 0; // страница, которую читатель видел последней: перешли на следующую за ней — она прочитана
-const PAGE_DWELL = 40000; // …или читатель провёл на странице столько времени (мс) — так считаются и разрозненные страницы
+let resumeScroll = false; // автопрокрутка дошла до конца: следующая сура или страница продолжает идти сама
+let lastPage = 0; // страница, которую читатель видел последней: перешли на следующую за ней, она прочитана
+const PAGE_DWELL = 40000; // …или читатель провёл на странице столько времени (мс): так считаются и разрозненные страницы
 
 /** Продолжить с того места и в том виде, где читатель остановился. */
 export function ReadStart() {
@@ -488,7 +488,7 @@ export async function ReadMode(n, startA = 0) {
   const [list, data] = await Promise.all([loadSurahs(), loadSurah(n)]);
   return readSession(list, { kind: "surah", parts: [{ s: n, meta: list[n - 1], data, from: 1, to: data.v.length }], start: startA > 1 ? { s: n, a: startA } : null });
 }
-/** Джуз j целиком — от его первого аята до последнего, через границы сур. s, a — место, с которого продолжить. */
+/** Джуз j целиком: от его первого аята до последнего, через границы сур. s, a: место, с которого продолжить. */
 export async function ReadJuz(j, s = 0, a = 0) {
   j = Math.min(30, Math.max(1, j));
   const list = await loadSurahs();
@@ -502,14 +502,14 @@ export async function ReadPage(p) {
   return readSession(list, { kind: "page", page: p, parts });
 }
 
-/** Место сразу после аята (s, a): следующий аят или начало следующей суры (после конца Корана — его начало). */
+/** Место сразу после аята (s, a): следующий аят или начало следующей суры (после конца Корана, его начало). */
 async function ayahAfter(list, s, a) {
   const data = await loadSurah(s);
   if (a < data.v.length) return { s, a: a + 1, p: data.v[a][4][0] };
   const n = s < 114 ? s + 1 : 1;
   return { s: n, a: 1, p: list[n - 1].page };
 }
-/** Что читать сегодня по цели закладки m: части текста [{ s, meta, data, from, to }] — ровно столько, сколько задано. */
+/** Что читать сегодня по цели закладки m: части текста [{ s, meta, data, from, to }], ровно столько, сколько задано. */
 async function markParts(list, m) {
   const pl = m.plan, parts = [];
   if (pl.k === "rep") { // отрывок для повтора: суры и аяты, как выбрано
@@ -539,8 +539,8 @@ async function markParts(list, m) {
   return parts;
 }
 /**
- * Закладка с целью: на экране ровно то, что нужно прочесть сегодня, в конце — «Я прочитал».
- * more — читать дальше после выполненной цели «по порядку»: обычное чтение суры, закладка идёт следом за читателем.
+ * Закладка с целью: на экране ровно то, что нужно прочесть сегодня, в конце, «Я прочитал».
+ * more: читать дальше после выполненной цели «по порядку»: обычное чтение суры, закладка идёт следом за читателем.
  */
 export async function ReadMark(id, more = false) {
   const list = await loadSurahs();
@@ -563,8 +563,8 @@ export async function ReadMark(id, more = false) {
 }
 
 /**
- * Экран чтения. parts — что показано: [{ s, meta, data, from, to }] (сура, части джуза или части страницы).
- * Нажатие на экран показывает или прячет две панели: сверху — полное меню, снизу — автопрокрутка, скорость, чтец и размер текста.
+ * Экран чтения. parts: что показано: [{ s, meta, data, from, to }] (сура, части джуза или части страницы).
+ * Нажатие на экран показывает или прячет две панели: сверху, полное меню, снизу, автопрокрутка, скорость, чтец и размер текста.
  */
 function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark = null, follow = "" }) {
   if (!parts.length) throw new Error("Текст не загрузился");
@@ -574,10 +574,10 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
   const endOfQuran = last.s === 114 && last.to === last.data.v.length;
   const pageOf = (x) => x.p.data.v[x.a - 1][4][0];
 
-  // --- текст: его можно перерисовать на ходу (вид, заучивание) — flat всегда описывает текущий ---
+  // --- текст: его можно перерисовать на ходу (вид, заучивание), flat всегда описывает текущий ---
   const textBox = h("div.focus-body");
-  let flat = []; // все аяты подряд: { p — часть, a — номер аята, el }
-  let sel = null; // аят, на котором чтец сейчас или на котором его остановили: { s, a } — с него он продолжит по кнопке в меню
+  let flat = []; // все аяты подряд: { p, часть, a, номер аята, el }
+  let sel = null; // аят, на котором чтец сейчас или на котором его остановили: { s, a }, с него он продолжит по кнопке в меню
   const build = () => {
     const mode = kind !== "page" && readView() === "ayat" ? "ayat" : "mushaf";
     let prev = null;
@@ -599,7 +599,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
 
   // --- что дальше: следующая сура, следующий джуз или следующая страница ---
   const hasNext = kind === "mark" ? false : kind === "page" ? page < PAGES : kind === "juz" ? juz < 30 : last.s < 114;
-  const stopAtEnd = kind === "juz" || kind === "mark"; // джуз и цель закладки читают целиком — в конце текст останавливается
+  const stopAtEnd = kind === "juz" || kind === "mark"; // джуз и цель закладки читают целиком: в конце текст останавливается
   let finished = false, followOff = false;
   const advance = (keepGoing) => {
     resumeScroll = keepGoing;
@@ -611,7 +611,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
     }
     location.replace(kind === "page" ? `#/page/${page + 1}` : kind === "juz" ? `#/juz/${juz + 1}` : `#/read/${last.s + 1}`);
   };
-  // цель закладки: «Я прочитал» — цель выполнена; после цели «по порядку» можно читать дальше
+  // цель закладки: «Я прочитал»: цель выполнена; после цели «по порядку» можно читать дальше
   const markNow = () => marks().find((x) => x.id === mark.id) || mark;
   const markEnd = () => {
     const m = markNow(), done = doneToday(m);
@@ -642,10 +642,10 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
 
   const jm = juzMap(pageOf((start && find(start.s, start.a)) || flat[0]));
   jm.el.classList.add("focus-juz");
-  // строка под дорожной картой: «читаем джуз целиком», цель закладки или «читаем дальше — закладка идёт следом»
+  // строка под дорожной картой: «читаем джуз целиком», цель закладки или «читаем дальше, закладка идёт следом»
   const modeCap = kind === "juz" || kind === "mark" || follow ? h("b.focus-mode") : null;
   if (kind === "mark") modeCap.textContent = `${mark.name ? `«${mark.name}» · ` : ""}цель: ${planText(mark.plan)}`;
-  if (follow) modeCap.textContent = "Читаем дальше — закладка идёт следом";
+  if (follow) modeCap.textContent = "Читаем дальше, закладка идёт следом";
   jm.el.append(modeCap || "");
   const scroller = h("div.focus-scroll", { tabindex: "-1" }, h("div.focus-text", null, textBox, endEl));
   const prog = h("i.focus-prog");
@@ -668,20 +668,20 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
   // --- автопрокрутка ---
   let speed = readSpeed(), running = false, listening = false, raf = 0, lastT = 0, pos = 0, touching = false, holdUntil = 0, ran = 0;
   const maxTop = () => scroller.scrollHeight - scroller.clientHeight;
-  const pxPerSec = () => speed * SPEED.px * (store.get().settings.arScale || 1); // крупнее текст — выше строка: темп в строках тот же
+  const pxPerSec = () => speed * SPEED.px * (store.get().settings.arScale || 1); // крупнее текст: выше строка: темп в строках тот же
   const tick = (t) => {
     if (!running) return;
     raf = requestAnimationFrame(tick);
     const dt = Math.min(100, t - lastT);
     lastT = t;
-    // палец на экране, колесо мыши, клавиши — читатель листает сам; продолжаем с нового места
+    // палец на экране, колесо мыши, клавиши: читатель листает сам; продолжаем с нового места
     if (!scroller.clientHeight || touching || t < holdUntil || Math.abs(scroller.scrollTop - pos) > 3) { pos = scroller.scrollTop; return; }
     ran += dt;
     // конец текста поднялся в верхнюю треть экрана: дальше идёт следующая сура или страница. Короткому тексту, который виден целиком, даём время на чтение
     if (endEl.getBoundingClientRect().top - scroller.getBoundingClientRect().top < scroller.clientHeight * 0.35 || pos >= maxTop() - 1) {
       if (ran >= Math.min(60000, words * 700 * SPEED.def / speed)) {
         if (hasNext && !stopAtEnd) advance(true);
-        else { setRunning(false); if (kind === "juz") toast(`Джуз ${juz} прочитан ✓`, 4000); } // джуз читают целиком — в его конце текст останавливается
+        else { setRunning(false); if (kind === "juz") toast(`Джуз ${juz} прочитан ✓`, 4000); } // джуз читают целиком: в его конце текст останавливается
       }
       return;
     }
@@ -689,8 +689,8 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
     scroller.scrollTop = pos;
   };
   const setRunning = (on) => {
-    if (on && scroller.scrollTop >= maxTop() - 1) scroller.scrollTop = 0; // дочитали до конца — начинаем сначала
-    if (on && listening) stop(); // чтец сам ведёт по тексту — вместе с автопрокруткой они мешают друг другу
+    if (on && scroller.scrollTop >= maxTop() - 1) scroller.scrollTop = 0; // дочитали до конца: начинаем сначала
+    if (on && listening) stop(); // чтец сам ведёт по тексту: вместе с автопрокруткой они мешают друг другу
     running = on;
     cancelAnimationFrame(raf);
     if (on) { pos = scroller.scrollTop; lastT = performance.now(); raf = requestAnimationFrame(tick); }
@@ -705,16 +705,16 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
     val.textContent = speed; slower.disabled = speed <= SPEED.min; faster.disabled = speed >= SPEED.max;
   };
 
-  // --- чтец. Нажатие на номер аята — читает подряд с него до конца открытого текста (суры, джуза, страницы, аятов цели).
-  // Отметка идёт за чтецом: остановили — плитка в меню продолжит с того же аята; ничего не слушали — с начала суры.
-  // «Бисмиллях» — сура с самого начала. ---
+  // --- чтец. Нажатие на номер аята: читает подряд с него до конца открытого текста (суры, джуза, страницы, аятов цели).
+  // Отметка идёт за чтецом: остановили, плитка в меню продолжит с того же аята; ничего не слушали: с начала суры.
+  // «Бисмиллях»: сура с самого начала. ---
   let pi = -1, reps = 0, repeatN = 1;
   const setSel = (x) => {
     textBox.querySelector(".sel")?.classList.remove("sel");
     sel = x ? { s: x.p.s, a: x.a } : null;
     x?.el.classList.add("sel");
   };
-  // Чтец ведёт текст: аят встаёт началом у верха экрана — под дорожной картой, а при открытом меню — под ним.
+  // Чтец ведёт текст: аят встаёт началом у верха экрана, под дорожной картой, а при открытом меню, под ним.
   // Длинный аят, который не помещается в экран, подтягивается вверх за словом, которое звучит.
   const topLine = () => {
     const pad = parseFloat(getComputedStyle(scroller).paddingTop) || 0;
@@ -732,12 +732,12 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
         if (++reps < repeatN) return play();
         reps = 0;
         if (pi < flat.length - 1) { pi++; play(); }
-        else { pi = -1; setSel(null); syncListen(); toast("Прослушано. Теперь прочитайте сами — вслух!"); }
+        else { pi = -1; setSel(null); syncListen(); toast("Прослушано. Теперь прочитайте сами вслух!"); }
       },
       onStop: () => x.p.view.highlight(x.a, -1),
     });
   };
-  /** Читать подряд с аята x. bism — начать с «Бисмилляхи-р-рахмани-р-рахим» (запись первого аята Аль-Фатихи), если x — первый аят суры. */
+  /** Читать подряд с аята x. bism: начать с «Бисмилляхи-р-рахмани-р-рахим» (запись первого аята Аль-Фатихи), если x: первый аят суры. */
   const listenFrom = (x, bism = false) => {
     setRunning(false);
     pi = flat.indexOf(x); reps = 0;
@@ -748,9 +748,9 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
   /** Нажатие на номер аята: читать подряд с него. */
   const listenHere = (x) => {
     listenFrom(x);
-    try { if (!localStorage.getItem("tanwin.ayahHint2")) { localStorage.setItem("tanwin.ayahHint2", "1"); toast("Чтец читает с этого аята и дальше. Чтобы остановить, нажмите на экран и выберите «Остановить чтеца» — потом он продолжит с того же места.", 7000); } } catch {}
+    try { if (!localStorage.getItem("tanwin.ayahHint2")) { localStorage.setItem("tanwin.ayahHint2", "1"); toast("Чтец читает с этого аята и дальше. Чтобы остановить, нажмите на экран и выберите «Остановить чтеца». Потом он продолжит с того же места.", 7000); } } catch {}
   };
-  /** Плитка «Слушать»: с аята, на котором чтеца остановили, иначе — с начала суры, которая сейчас на экране. */
+  /** Плитка «Слушать»: с аята, на котором чтеца остановили, иначе, с начала суры, которая сейчас на экране. */
   const listenAll = () => {
     const x = sel && find(sel.s, sel.a);
     if (x) return listenFrom(x);
@@ -759,7 +759,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
   };
 
   // --- нижняя панель: автопрокрутка, её скорость, размер текста ---
-  const playB = h("button.play-btn", { type: "button", onclick: () => { setRunning(!running); if (running) hide(); } }); // пошла автопрокрутка — панели уходят: читатель хочет читать
+  const playB = h("button.play-btn", { type: "button", onclick: () => { setRunning(!running); if (running) hide(); } }); // пошла автопрокрутка: панели уходят: читатель хочет читать
   const val = h("b.focus-speed", { title: "Скорость прокрутки" }, speed);
   const slower = h("button.sp-btn", { type: "button", "aria-label": "Медленнее", title: "Медленнее", disabled: speed <= SPEED.min, onclick: () => setSpeed(-1) }, "−");
   const faster = h("button.sp-btn", { type: "button", "aria-label": "Быстрее", title: "Быстрее", disabled: speed >= SPEED.max, onclick: () => setSpeed(1) }, "+");
@@ -775,7 +775,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
   const openPage = async (p) => {
     if (kind === "page") { if (p !== page) { resumeScroll = running; location.replace(`#/page/${p}`); } return; }
     const i = flat.findIndex((x) => pageOf(x) === p);
-    if (i < 0) { // страницы нет в открытом тексте — открываем её суру (а при чтении джуза — её джуз)
+    if (i < 0) { // страницы нет в открытом тексте: открываем её суру (а при чтении джуза, её джуз)
       const part = await pageContent(p).then((x) => x[0], () => null);
       if (!root.isConnected) return;
       if (!part) { wheel.set(shownPage()); return toast("Не удалось открыть страницу. Проверьте интернет."); }
@@ -820,7 +820,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
       parts[0].s < 114 ? tile("right", "След. сура", () => { const s = here().p.s; if (s < 114) go(`/read/${s + 1}`); }) : null,
       tile("bookmark", "Закладка здесь", () => { const x = place(); addMark(x.s, x.a, x.p); }),
       tile("bookmark", `Закладки${marks().length ? `: ${marks().length}` : ""}`, () => marksSheet(), false, { fill: true, sw: 1 }),
-      tile("ear", st.reciter === "husary" ? "Чтец: Хусари" : "Чтец: Афаси", () => { stop(); store.set((s) => { s.settings.reciter = s.settings.reciter === "husary" ? "afasy" : "husary"; }); const r = RECITERS[store.get().settings.reciter]; toast(`Чтец: ${r.name} — ${r.note}`); }),
+      tile("ear", st.reciter === "husary" ? "Чтец: Хусари" : "Чтец: Афаси", () => { stop(); store.set((s) => { s.settings.reciter = s.settings.reciter === "husary" ? "afasy" : "husary"; }); const r = RECITERS[store.get().settings.reciter]; toast(`Чтец: ${r.name}, ${r.note}`); }),
       tile("slow", `Темп чтеца: ${st.rate || 1}×`, () => { stop(); store.set((s) => { const r = s.settings.rate || 1; s.settings.rate = r === 1 ? 0.8 : r === 0.8 ? 0.6 : r === 0.6 ? 1.2 : 1; }); }, (st.rate || 1) !== 1),
       tile("loop", `Повтор аята: ×${repeatN}`, () => { repeatN = repeatN === 1 ? 3 : repeatN === 3 ? 5 : 1; }, repeatN > 1),
       tile("book", "Сплошной текст", () => setView("text"), view === "text"),
@@ -838,23 +838,23 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
     ].filter(Boolean));
   };
   const head = h("div.focus-head", null, jm.el, menu);
-  // при открытии — только текст (quiet); панели появляются по нажатию на экран
+  // при открытии: только текст (quiet); панели появляются по нажатию на экран
   const root = h("div.focus", { class: `kind-${kind} quiet` }, prog, head, scroller, wheel.el, bar);
   new ResizeObserver(() => root.style.setProperty("--head-h", head.offsetHeight + "px")).observe(head); // колесо страниц начинается под меню
-  // панели показывает и прячет только нажатие на экран: открылись — остаются, пока не нажмёшь ещё раз.
+  // панели показывает и прячет только нажатие на экран: открылись, остаются, пока не нажмёшь ещё раз.
   // Карточка слова, чтец по номеру аята, колесо страниц и автопрокрутка сами панели не открывают.
   const reveal = () => { if (root.isConnected) fillMenu(); root.classList.remove("quiet"); };
   const hide = () => root.classList.add("quiet");
 
-  // нажатие на текст показывает или прячет панели; на номер аята — чтец читает с него
-  // долгое нажатие на слово — карточка слова: его читает чтец, видны транскрипция и правила таджвида
+  // нажатие на текст показывает или прячет панели; на номер аята: чтец читает с него
+  // долгое нажатие на слово, карточка слова: его читает чтец, видны транскрипция и правила таджвида
   let pressTm = 0, pressAt = null, pressT = 0, pressW = null, pressed = false, byTouch = false;
   const pressOff = () => { clearTimeout(pressTm); pressAt = null; pressW = null; };
   const ayahAt = (el) => { const a = +el.closest("[data-a]")?.dataset.a, s = +el.closest("[data-s]")?.dataset.s; return a && s ? find(s, a) : null; };
   // палец ещё на экране, когда карточка уже открыта: на Android его отпускание приходит нажатием по затемнению
-  // вокруг карточки и тут же её закрывает — такие нажатия гасим, пока палец не поднят
+  // вокруг карточки и тут же её закрывает: такие нажатия гасим, пока палец не поднят
   const eat = (e) => { e.stopPropagation(); e.preventDefault(); };
-  // и текст карточки под пальцем Android не выделяет (класс held): палец подняли — выделять и копировать снова можно
+  // и текст карточки под пальцем Android не выделяет (класс held): палец подняли, выделять и копировать снова можно
   const unhold = () => { document.removeEventListener("click", eat, true); document.removeEventListener("contextmenu", eat, true); document.documentElement.classList.remove("held"); };
   const eatClicks = () => {
     document.addEventListener("click", eat, true);
@@ -903,12 +903,12 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
     const am = e.target.closest(".ayah-mark");
     const x = am && ayahAt(am);
     if (x) { if (listening && flat[pi] === x) stop(); else listenHere(x); return; }
-    const bs = e.target.closest(".bismillah"); // «Бисмиллях» — чтец читает суру с самого начала
+    const bs = e.target.closest(".bismillah"); // «Бисмиллях»: чтец читает суру с самого начала
     const x1 = bs && find(+bs.closest("[data-s]").dataset.s, 1);
     if (x1) { if (listening && flat[pi] === x1) stop(); else { setSel(null); listenFrom(x1, true); } return; }
     if (root.classList.contains("quiet")) reveal(); else hide();
   }, true);
-  // по страницам: следующая страница — слева, как в мусхафе (листаем вправо или стрелка ←)
+  // по страницам: следующая страница, слева, как в мусхафе (листаем вправо или стрелка ←)
   const turn = (d) => { const p = page + d; if (p >= 1 && p <= PAGES) { resumeScroll = running; location.replace(`#/page/${p}`); } };
   let x0 = null, y0 = 0;
   scroller.addEventListener("touchstart", (e) => { touching = true; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
@@ -936,7 +936,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
     if (spent >= 30000) { readTick(spent); spent = 0; }
   }, 5000);
   let jmTm = 0;
-  // страница под глазами читателя; 605 — последняя сура дочитана до конца (для цели «до конца Корана»)
+  // страница под глазами читателя; 605: последняя сура дочитана до конца (для цели «до конца Корана»)
   // новая страница начинается, как только её строка «страница N · джуз M» показалась на экране
   const shownPage = () => {
     if (kind === "page") return page;
@@ -960,14 +960,14 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
     jm.set(p); wheel.set(p);
     if (kind === "juz") { const left = Math.max(1, (JUZ_PAGE[juz] || PAGES + 1) - p); modeCap.textContent = `Читаем джуз ${juz} целиком · до конца ${left} ${plural(left, "страница", "страницы", "страниц")}`; }
     if (!root.classList.contains("quiet")) fillInfo();
-    if (now !== lastPage) { // перешли ровно на следующую страницу — предыдущая прочитана
+    if (now !== lastPage) { // перешли ровно на следующую страницу: предыдущая прочитана
       if (now === lastPage + 1 && lastPage >= 1) readPage(lastPage);
       lastPage = now;
       dwell = 0;
     }
   };
   scroller.addEventListener("scroll", () => {
-    const end = endEl.offsetTop - scroller.clientHeight * 0.35; // полоса сверху — доля прочитанного
+    const end = endEl.offsetTop - scroller.clientHeight * 0.35; // полоса сверху: доля прочитанного
     prog.style.width = (end > 0 ? Math.min(1, scroller.scrollTop / end) * 100 : 100) + "%";
     if (!jmTm) jmTm = setTimeout(updJuz, 250);
   }, { passive: true });
@@ -975,7 +975,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
   // --- выход: кнопка, Esc, «назад»; место чтения запоминается ---
   let closed = false;
   const close = () => location.replace("#/quran");
-  // Открытое окно или панель «Aa»: Esc и «назад» закрывают только их, чтение остаётся. Клавиши слушаем на этапе capture —
+  // Открытое окно или панель «Aa»: Esc и «назад» закрывают только их, чтение остаётся. Клавиши слушаем на этапе capture:
   // раньше, чем окно закроет само себя: иначе к этому моменту окна уже нет, и тот же Esc закрывал бы ещё и чтение.
   const overlay = () => document.querySelector("#modal-root .modal-wrap:not(.out), .size-pop");
   let escAt = 0; // когда Esc достался окну: выход из полного экрана от того же нажатия чтение не закрывает
@@ -996,7 +996,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
     const on = isFullscreen();
     if (root.isConnected) fillMenu();
     if (wasFull && !on && !closed) {
-      // в полном экране Esc и «назад» до страницы не доходят — браузер просто выходит из него; открытое окно закрываем сами
+      // в полном экране Esc и «назад» до страницы не доходят: браузер просто выходит из него; открытое окно закрываем сами
       if (overlay()) document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
       else if (Date.now() - escAt > 600) close();
     }
@@ -1006,7 +1006,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
     closed = true;
     if (root.isConnected) {
       const x = save();
-      if (kind === "mark" && !finished && !doneToday(markNow())) setMark(mark.id, (y) => { y.cur = { s: x.s, a: x.a }; }); // не дочитали — в следующий раз продолжим отсюда
+      if (kind === "mark" && !finished && !doneToday(markNow())) setMark(mark.id, (y) => { y.cur = { s: x.s, a: x.a }; }); // не дочитали: в следующий раз продолжим отсюда
     }
     running = false; cancelAnimationFrame(raf); clearTimeout(jmTm);
     clearInterval(clock); readTick(spent); spent = 0;
@@ -1025,7 +1025,7 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
     scroller.focus({ preventScroll: true });
     fillMenu();
     updJuz();
-    try { if (!localStorage.getItem("tanwin.readHint")) { localStorage.setItem("tanwin.readHint", "1"); toast("Нажмите на экран — появится меню. Ещё раз — исчезнет.", 5000); } } catch {}
+    try { if (!localStorage.getItem("tanwin.readHint")) { localStorage.setItem("tanwin.readHint", "1"); toast("Нажмите на экран, и появится меню. Ещё раз, и оно исчезнет.", 5000); } } catch {}
   }));
   syncListen();
   setRunning(auto);

@@ -1,4 +1,4 @@
-// Главный экран: «Путь» — этапы и уроки, карточка продолжения, цель дня.
+// Главный экран: «Путь»: этапы и уроки, карточка продолжения, цель дня.
 import { h, ar, icon, ring, modal, plural, mixed, keep, closeX } from "../ui.js";
 import { UNITS, SURAH_PATH, SURAH_UNIT, lessonById } from "../course.js";
 import { store, streakNow, levelInfo, dayGoal, todayDone, srsDue, lessonDone, surahDone, backupDue, backupLater } from "../store.js";
@@ -36,7 +36,7 @@ function statsBar() {
 
 function continueCard() {
   const t = nextTarget();
-  if (!t) return h("div.card.hero-card.done", null, h("div.hero-ar", null, ar("ٱلۡحَمۡدُ لِلَّهِ")), h("h2", null, "Путь пройден!"), h("p", null, "Вы прошли весь курс. Читайте Коран каждый день и повторяйте правила — а ещё прочитайте знающему человеку, чтобы он послушал ваше чтение."), h("a.btn.primary", { href: "#/quran" }, "Открыть мусхаф"));
+  if (!t) return h("div.card.hero-card.done", null, h("div.hero-ar", null, ar("ٱلۡحَمۡدُ لِلَّهِ")), h("h2", null, "Путь пройден!"), h("p", null, "Вы прошли весь курс. Читайте Коран каждый день и повторяйте правила. А ещё прочитайте знающему человеку, чтобы он послушал ваше чтение."), h("a.btn.primary", { href: "#/quran" }, "Открыть мусхаф"));
   if (t.type === "surah") {
     const m = surahMeta(t.n);
     return h("a.card.hero-card", { href: `#/surah/${t.n}`, style: { "--hc": "var(--c-gold)" } },
@@ -53,7 +53,7 @@ function continueCard() {
     h("span.btn.primary.hero-go", null, started ? "Продолжить" : "Начать", icon("right", { size: 18 })));
 }
 
-/** Раз в неделю: «сохраните копию прогресса» — на случай очистки данных браузера или смены телефона. */
+/** Раз в неделю: «сохраните копию прогресса»: на случай очистки данных браузера или смены телефона. */
 function backupCard() {
   if (!backupDue()) return null;
   const card = h("div.card.backup-card", null,
@@ -69,7 +69,7 @@ function backupCard() {
 }
 
 /**
- * На телефоне и планшете в браузере: предложение установить приложение — оно открывается на весь экран, без адресной строки.
+ * На телефоне и планшете в браузере: предложение установить приложение, оно открывается на весь экран, без адресной строки.
  * Показывается один раз: после «Установить» или «Не сейчас» больше не появляется (кнопка остаётся в разделе «Ещё»).
  */
 function installCard() {
@@ -81,7 +81,7 @@ function installCard() {
     h("span.rc-ic", null, icon("down", { size: 24 })),
     h("div", null,
       h("b", null, "Установите TanWin как приложение"),
-      h("div.muted", null, "Значок на главном экране, запуск на весь экран — без адресной строки браузера — и работа без интернета."),
+      h("div.muted", null, "Значок на главном экране, запуск на весь экран (без адресной строки браузера) и работа без интернета."),
       h("div.row.gap.wrap", null,
         h("button.btn.primary.small-btn", { type: "button", onclick: () => { hide(); installApp(); } }, icon("down", { size: 16 }), "Установить"),
         h("button.btn.ghost.small-btn", { type: "button", onclick: hide }, "Не сейчас"))),
@@ -90,8 +90,8 @@ function installCard() {
 }
 
 /**
- * Письмо разработчика «Что нового»: один раз после обновления — тем, кто начал заниматься до него.
- * Закрыли или перешли к списку изменений — больше не показывается.
+ * Письмо разработчика «Что нового»: один раз после обновления, тем, кто начал заниматься до него.
+ * Закрыли или перешли к списку изменений: больше не показывается.
  */
 function newsCard() {
   let seen = false;
@@ -101,10 +101,10 @@ function newsCard() {
   const card = h("div.card.news-card", null,
     h("b.news-h", null, icon("sparkle", { size: 20 }), "TanWin обновился"),
     h("p", null, "Ассаляму алейкум! В приложении изменились подписи и голос букв. Не пугайтесь: ваш прогресс на месте, ничего учить заново не нужно."),
-    h("p", null, "Что изменилось. После тяжёлых букв подпись пишется через «о» и «ы»: «къо», «къы», «ро». Так эти буквы и читаются в Коране. Названия букв и знаки теперь такие, как принято в Чечне: «Хьа», «Хо», «ТӀо», «Къоф». Буквы и слоги читает другой голос — по букварю «Каида Нурания». Как читать новые подписи, написано в «Алфавите»."),
-    h("p", null, "На неточность указал Абдуллах Маматиев. Мы исправили её для всех. Спасибо ему — пусть и ему будет за это награда."),
-    h("p", null, "TanWin бесплатный, и делаем мы его вместе. Нашли ошибку или неточность — напишите: кнопка «Написать разработчику» есть на каждом экране. Мы исправим её для всех и поблагодарим вас в списке версий."),
-    h("p", null, "Лучше всего учиться с преподавателем. Нет преподавателя или времени — занимайтесь по приложению сами."),
+    h("p", null, "Что изменилось. После тяжёлых букв подпись пишется через «о» и «ы»: «къо», «къы», «ро». Так эти буквы и читаются в Коране. Названия букв и знаки теперь такие, как принято в Чечне: «Хьа», «Хо», «ТӀо», «Къоф». Буквы и слоги читает другой голос, по букварю «Каида Нурания». Как читать новые подписи, написано в «Алфавите»."),
+    h("p", null, "На неточность указал Абдуллах Маматиев. Мы исправили её для всех. Спасибо ему. Пусть и ему будет за это награда."),
+    h("p", null, "TanWin бесплатный, и делаем мы его вместе. Нашли ошибку или неточность? Напишите: кнопка «Написать разработчику» есть на каждом экране. Мы исправим её для всех и поблагодарим вас в списке версий."),
+    h("p", null, "Лучше всего учиться с преподавателем. Нет преподавателя или времени? Занимайтесь по приложению сами."),
     h("p.news-sign", null, keep("Хаси Абдуллах, сын Алама")),
     h("div.row.gap.wrap", null,
       h("a.btn.primary.small-btn", { href: "#/letters", onclick: hide }, "Как читать подписи"),
@@ -119,7 +119,7 @@ function reviewCard() {
   if (!due) return null;
   return h("a.card.review-card", { href: "#/practice/review" },
     h("span.rc-ic", null, icon("repeat", { size: 26 })),
-    h("div", null, h("b", null, "Пора повторить"), h("div.muted", null, `${due} ${plural(due, "тема ждёт", "темы ждут", "тем ждут")} повторения — 2–3 минуты`)),
+    h("div", null, h("b", null, "Пора повторить"), h("div.muted", null, `${due} ${plural(due, "тема ждёт", "темы ждут", "тем ждут")} повторения, 2-3 минуты`)),
     icon("right"));
 }
 
@@ -160,7 +160,7 @@ function lessonSheet(l, u) {
       ? h("button.btn.primary.wide", { type: "button", onclick: () => { close(); go(`/learn/${l.id}`); } }, done ? "Пройти ещё раз" : "Начать урок", icon("right", { size: 18 }))
       : h("div", null,
           h("p", null, icon("lock", { size: 16 }), " Сначала пройдите предыдущие уроки."),
-          testOf(u) ? h("button.btn.secondary.wide", { type: "button", onclick: () => { close(); go(`/learn/${testOf(u).id}`); } }, icon("bolt", { size: 18 }), "Уже знаю — сдать проверку этапа") : null)));
+          testOf(u) ? h("button.btn.secondary.wide", { type: "button", onclick: () => { close(); go(`/learn/${testOf(u).id}`); } }, icon("bolt", { size: 18 }), "Уже знаю, сдать проверку этапа") : null)));
 }
 const testOf = (u) => u.lessons.find((l) => l.test);
 
@@ -184,10 +184,10 @@ function surahNode(n, i, target) {
   return node;
 }
 
-// Этапы свёрнуты, кроме текущего. Что пользователь развернул или свернул сам — помним до перезагрузки.
-// Открыт всегда один этап. Какой — выбрал сам ученик (помнится до перезапуска или до входа в урок), иначе этап урока,
+// Этапы свёрнуты, кроме текущего. Что пользователь развернул или свернул сам: помним до перезагрузки.
+// Открыт всегда один этап. Какой: выбрал сам ученик (помнится до перезапуска или до входа в урок), иначе этап урока,
 // который открывали последним, иначе этап следующего шага пути.
-let pickedUnit; // undefined — ученик ещё не выбирал; null — свернул открытый этап
+let pickedUnit; // undefined: ученик ещё не выбирал; null, свернул открытый этап
 const unitOfLast = () => { const x = lastOpen(); return !x ? null : x.t === "surah" ? SURAH_UNIT : unitOfLesson(x.id); };
 function unitBlock(u, target) {
   const p = unitProgress(u);
@@ -210,10 +210,10 @@ function unitBlock(u, target) {
   toggle.addEventListener("click", () => {
     const open = !sec.classList.contains("open");
     pickedUnit = open ? u.id : null;
-    // открыли этап — остальные закрываются
+    // открыли этап: остальные закрываются
     if (open) for (const other of sec.parentNode.querySelectorAll(".unit.open")) other.setOpen(false);
     set(open);
-    if (sec.getBoundingClientRect().top < 0) sec.scrollIntoView({ block: "start" }); // закрылся этап выше — заголовок не должен уехать за край
+    if (sec.getBoundingClientRect().top < 0) sec.scrollIntoView({ block: "start" }); // закрылся этап выше: заголовок не должен уехать за край
   });
   return sec;
 }
@@ -234,11 +234,11 @@ export function HomeView() {
         h("p.home-fb", null, "Нашли ошибку? ", feedbackButton({ cls: "link", label: "Напишите" })),
         h("footer.home-foot", null, h("a", { href: "#/method" }, "Методика"), " · ", h("a", { href: "#/letters" }, "Алфавит"), " · ", h("a", { href: "#/rules" }, "Таджвид"), " · ", h("a", { href: "#/thanks" }, "Благодарности"))),
       h("div.path.home-main", null, ...[...UNITS, SURAH_UNIT].map((u) => unitBlock(u, target)))));
-  // прокрутка к текущему узлу — только на широком экране, где путь в своей колонке.
+  // прокрутка к текущему узлу: только на широком экране, где путь в своей колонке.
   // На телефоне не прыгаем вниз к пути: сверху должна быть видна «Продолжить».
   requestAnimationFrame(() => {
     if (!matchMedia("(min-width: 1200px)").matches) return;
-    // встаём на урок, который открывали последним; его нет в открытом этапе — на следующий шаг пути
+    // встаём на урок, который открывали последним; его нет в открытом этапе: на следующий шаг пути
     const x = pickedUnit === undefined ? lastOpen() : null;
     const cur = (x && page.querySelector(x.t === "surah" ? `.unit.open .node[data-surah="${x.n}"]` : `.unit.open .node[data-lesson="${x.id}"]`)) || page.querySelector(".unit.open .node.current");
     if (cur && Object.keys(store.get().lessons).length > 2) cur.scrollIntoView({ block: "center", behavior: "instant" in document.documentElement.style ? "instant" : "auto" });

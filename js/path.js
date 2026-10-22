@@ -50,7 +50,7 @@ export function courseProgress() {
   const done = ORDER.filter((id) => lessonDone(id)).length + SURAH_PATH.filter((n) => surahDone(n)).length;
   return { done, total, pct: done / total };
 }
-/** Следующий шаг: первый непройденный открытый урок; после ворот — чередуем с сурами. */
+/** Следующий шаг: первый непройденный открытый урок; после ворот: чередуем с сурами. */
 export function nextTarget() {
   const lesson = allOpen() ? afterLast(ORDER, lessonDone) : ORDER.find((id) => !lessonDone(id) && lessonUnlocked(id));
   // когда открыто всё, суры предлагаем только тем, кто реально дошёл до них (иначе «Продолжить» уводит от уроков)
@@ -85,9 +85,9 @@ export function applySkip(testId) {
     }
   });
 }
-/** Что уже пройдено — для подбора упражнений в «Повторении». */
+/** Что уже пройдено: для подбора упражнений в «Повторении». */
 export function learnedLevel() {
-  // слова с сукуном могут содержать мадд и танвин — этот уровень только после уроков слов с маддом
+  // слова с сукуном могут содержать мадд и танвин: этот уровень только после уроков слов с маддом
   const L = [["7.8", "shadda"], ["7.5", "sukun"], ["7.1", "madd"], ["6.4", "tanween"], ["4.3", "damma"], ["4.2", "kasra"], ["4.1", "fatha"]];
   for (const [id, lv] of L) if (lessonDone(id)) return lv;
   return null;

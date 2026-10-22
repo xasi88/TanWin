@@ -92,7 +92,7 @@ function ruleCard(code) {
   return h("div.card.rule-card", { style: { "--rc": `var(--r-${code})` } },
     h("div.rc-head", null, h("span.rc-swatch"), h("div", null, h("h2", null, r.name), h("div.muted", null, rich(r.short)))),
     h("p", null, rich(r.text)),
-    h("div.label", null, "Примеры из Корана — нажмите, чтобы послушать"),
+    h("div.label", null, "Примеры из Корана: нажмите, чтобы послушать"),
     exBox);
 }
 const onlyRuleColored = (w, code) => parseMarkup(w).map(([t, c]) => (c === code ? `[${c}${t}]` : t)).join("");
@@ -186,7 +186,7 @@ async function renderCard(step) {
   return el;
 }
 
-// Слово из конца аята: почему чтец читает его не так, как подписано (w.stop — из data.js, с версии 1.27.0).
+// Слово из конца аята: почему чтец читает его не так, как подписано (w.stop: из data.js, с версии 1.27.0).
 function stopNote(w) {
   const rule = /хӀ$/.test(w.stop) ? "Буква ة на остановке звучит «хӀ»."
     : /н$/.test(w.tr) && /(аа|оо)$/.test(w.stop) ? "Фатхатан на остановке звучит долгим «аа»."
@@ -258,7 +258,7 @@ function speakStep(step, api) {
     h("div.center", null, mic), status,
     h("div.waves", null, ref, mine),
     h("div.row.center.gap", null, playMine),
-    judge); // «Пропустить» — в правом верхнем углу шага (show)
+    judge); // «Пропустить»: в правом верхнем углу шага (show)
   return box;
 }
 
@@ -269,18 +269,18 @@ export function blendScope(st, lesson) {
 }
 
 // ---------- «Смотрите, что вы уже умеете» ----------
-// В конце этапа — настоящее слово или аят Корана, которые ученик теперь читает сам.
+// В конце этапа: настоящее слово или аят Корана, которые ученик теперь читает сам.
 const SHOW_LEVEL = { 4: "damma", 5: "damma", 6: "tanween", 7: "shadda" };
 const SHOW_VERSE = { 8: "1:2", 9: "112:1", 10: "114:1", 11: "1:6", 12: "113:1", 13: "103:1" };
 async function showcase(u) {
   const head = h("div.label", null, icon("sparkle", { size: 16 }), "Смотрите, что вы уже умеете");
-  if (SHOW_VERSE[u.id]) return [head, h("p", null, "Этот аят Корана вы теперь читаете сами — слово за словом. Прочитайте вслух, потом послушайте чтеца."), await verseBlock(SHOW_VERSE[u.id])];
+  if (SHOW_VERSE[u.id]) return [head, h("p", null, "Этот аят Корана вы теперь читаете сами, слово за словом. Прочитайте вслух, потом послушайте чтеца."), await verseBlock(SHOW_VERSE[u.id])];
   if (SHOW_LEVEL[u.id]) {
     const ws = sample(lessonWords({ level: SHOW_LEVEL[u.id], maxLen: 5 }, 3).slice(0, 40), 3);
-    return ws.length ? [head, h("p", null, "Эти слова из Корана вы теперь читаете сами. Прочитайте вслух, потом нажмите на слово — и проверьте себя по чтецу."), wordsRow(ws, { showTr: false })] : null;
+    return ws.length ? [head, h("p", null, "Эти слова из Корана вы теперь читаете сами. Прочитайте вслух, потом нажмите на слово и проверьте себя по чтецу."), wordsRow(ws, { showTr: false })] : null;
   }
   if (u.id === 2 || u.id === 3) return [head,
-    h("p", null, u.id === 2 ? "Это первое слово Корана. Вы уже узнаёте в нём каждую букву: ба, син, мим." : "Это первое слово Корана. Теперь вы видите буквы и внутри слова: ба — в начале, син — в середине, мим — в конце."),
+    h("p", null, u.id === 2 ? "Это первое слово Корана. Вы уже узнаёте в нём каждую букву: ба, син, мим." : "Это первое слово Корана. Теперь вы видите буквы и внутри слова: ба в начале, син в середине, мим в конце."),
     ar("بِسۡمِ", { cls: "card-big" }), lettersRow(["ba", "sin", "mim"])];
   return null;
 }
@@ -288,14 +288,14 @@ async function showcase(u) {
 // ---------- Плеер ----------
 /**
  * Запускает урок в контейнере root. opts: { title, questionsOnly (для повторения), isTest, surah, onExit, id }
- * steps — шаги курса (или готовые вопросы, если questionsOnly).
+ * steps: шаги курса (или готовые вопросы, если questionsOnly).
  */
 export async function playLesson(root, { id, title, steps, isTest = false, onExit, isSurah = false, lesson = null }) {
   stop();
   root.replaceChildren(h("div.lesson-loading", null, h("div.spinner"), h("p", null, "Готовим урок…")));
   // Разворачиваем шаги в экраны
   const screens = [];
-  // Разминка: то, в чём ученик ошибался на прошлом занятии, — первыми вопросами этого урока
+  // Разминка: то, в чём ученик ошибался на прошлом занятии, первыми вопросами этого урока
   const warm = id && !isTest && !isSurah ? store.get().warmup : null;
   for (const key of warm?.keys || []) {
     const st = stepForKey(key);
@@ -327,7 +327,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
   const voice = lessonVoice({ id, isTest, isSurah, title });
   const tutorNote = () => h("p.tutor-note", null, icon("sparkle", { size: 16 }), h("span", null, mixed(voice.intro({ warm: warmLabel }))));
   // слово учителя: над первым шагом каждого вида в уроке (в проверках и уроках сур не нужно).
-  // Первые 3 раза для каждого вида — полностью, потом строка «Как это работает?», которая раскрывается нажатием.
+  // Первые 3 раза для каждого вида: полностью, потом строка «Как это работает?», которая раскрывается нажатием.
   const told = new Set();
   const guideNote = (s) => {
     if (isTest || isSurah) return null;
@@ -502,7 +502,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
     const events = addXp(xp);
     let res = { stars: 0, first: false };
     if (passed && id) res = finishLesson(id, { pct, ms, answers: answered, correct: firstTryOk, isSurah });
-    // проверка этапа сдана — пропущенные уроки засчитываем сразу: итоговый экран могут закрыть, не нажав «Продолжить»
+    // проверка этапа сдана, пропущенные уроки засчитываем сразу: итоговый экран могут закрыть, не нажав «Продолжить»
     if (passed && id && isTest) applySkip(id);
     track(!id ? "practice_done" : isSurah ? "surah_done" : isTest ? (passed ? "test_passed" : "test_failed") : "lesson_done",
       { [isSurah ? "Сура" : id ? "Урок" : "Тренировка"]: id ? `${id}. ${title}` : title, "Точность, %": pct, "Впервые": res.first ? "да" : "нет" });
@@ -511,7 +511,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
     const st = passed ? res.stars : 0;
     const goal = dayGoal(), done = todayDone();
     const note = voice.resultNote({ passed, first: res.first, pct });
-    // личный разбор: что было трудно — с этого начнётся следующий урок
+    // личный разбор: что было трудно, с этого начнётся следующий урок
     const weak = isSurah ? [] : [...new Set(mistakes.map((m) => m.key).filter(Boolean))].slice(0, 3);
     if (usedWarm || weak.length) store.set((s) => { if (usedWarm) delete s.warmup; if (weak.length) s.warmup = { keys: weak, at: Date.now() }; });
     const weakText = weak.length ? weakSpots(weak) : "";
@@ -533,7 +533,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
         stat("Время", fmtTime(ms), "bolt")),
       h("div.res-goal", null, ring(done / goal, { size: 58, stroke: 7, label: done >= goal ? "✓" : `${done}/${goal}` }),
         h("div", null, h("b", null, done >= goal ? "Цель дня выполнена!" : "Цель дня"), h("div.muted", null, done >= goal ? `Уроков сегодня: ${done}` : `Уроков сегодня: ${done} из ${goal}`))),
-      !weakText && mistakes.some((m) => m.key) && !isTest ? h("p.muted.small", null, "Темы с ошибками чаще появятся в «Практике» — так они запомнятся лучше.") : null,
+      !weakText && mistakes.some((m) => m.key) && !isTest ? h("p.muted.small", null, "Темы с ошибками чаще появятся в «Практике»: так они запомнятся лучше.") : null,
       h("div.lp-actions", null,
         !passed ? h("button.btn.secondary.wide", { type: "button", onclick: () => playLesson(root, { id, title, steps, isTest, onExit, isSurah, lesson }) }, "Ещё раз") : null,
         h("button.btn.primary.wide", { type: "button", onclick: () => onExit?.({ passed, pct, events }) }, "Продолжить", icon("right", { size: 18 })))));

@@ -6,8 +6,8 @@ let evt = null;
 const listeners = new Set();
 const emit = () => listeners.forEach((f) => f());
 
-// Вкладка браузера сама не знает, что приложение уже установлено, — запоминаем это при установке.
-// Если браузер снова предлагает установку, значит, приложения на устройстве нет (его удалили) — отметку снимаем.
+// Вкладка браузера сама не знает, что приложение уже установлено, запоминаем это при установке.
+// Если браузер снова предлагает установку, значит, приложения на устройстве нет (его удалили): отметку снимаем.
 const FLAG = "tanwin.installed";
 const setFlag = (on) => { try { if (on) localStorage.setItem(FLAG, "1"); else localStorage.removeItem(FLAG); } catch {} };
 const flag = () => { try { return !!localStorage.getItem(FLAG); } catch { return false; } };
@@ -39,7 +39,7 @@ export async function install() {
 /** Подсказка, если системного окна нет (Safari, Firefox). */
 export function manualHint() {
   if (isIOS()) return "В Safari нажмите «Поделиться» и выберите «На экран „Домой“».";
-  if (/Firefox/.test(ua)) return "Firefox на компьютере не устанавливает сайты как приложения — откройте эту страницу в Chrome, Edge или Яндекс Браузере.";
+  if (/Firefox/.test(ua)) return "Firefox на компьютере не устанавливает сайты как приложения. Откройте эту страницу в Chrome, Edge или Яндекс Браузере.";
   if (/Safari/.test(ua) && !/Chrome|Chromium|Edg/.test(ua)) return "В Safari на Mac: меню «Файл» → «Добавить в Dock».";
   return "Откройте меню браузера (⋮) и выберите «Установить приложение» или «Добавить на главный экран».";
 }

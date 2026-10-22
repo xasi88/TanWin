@@ -39,7 +39,7 @@ function quranReading() {
 
 function lettersGrid() {
   return h("div.card", null,
-    h("div.card-title", null, h("h3", null, "Буквы"), h("span.muted", null, "цвет — насколько прочно запомнено")),
+    h("div.card-title", null, h("h3", null, "Буквы"), h("span.muted", null, "цвет показывает, насколько прочно запомнено")),
     h("div.mastery-grid", null, ...LETTERS.map((l) => {
       const m = Math.max(mastery("L:" + l.id), mastery("M:" + l.id) * 0.8);
       return h("div.m-cell", { style: { "--m": m }, title: `${l.name}: ${Math.round(m * 100)}%` }, ar(l.ch), h("i", { style: { width: m * 100 + "%" } }));

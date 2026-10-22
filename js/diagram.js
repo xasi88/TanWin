@@ -1,5 +1,5 @@
 // Схема речевого аппарата в разрезе (лицо смотрит влево) с 17 точками махраджей.
-// Подписи — «таблички» на выносных линиях, чтобы близкие точки у зубов не слипались.
+// Подписи: «таблички» на выносных линиях, чтобы близкие точки у зубов не слипались.
 import { POINTS, ZONES } from "./letters.js";
 
 // Точка на схеме и место её таблички
@@ -18,13 +18,13 @@ const ZONE_OF = Object.fromEntries(Object.entries(POINTS).map(([k, v]) => [k, v.
 const TIP = ["ta", "sin", "tha"];
 
 /**
- * opts: highlight — id точки, id зоны, "tip" или "all"; interactive — точки кликабельны (onPick(pointId, el));
- * labels — показывать таблички у подсвеченных точек (в интерактивном режиме без подсветки таблички скрыты, чтобы не подсказывать).
+ * opts: highlight: id точки, id зоны, "tip" или "all"; interactive: точки кликабельны (onPick(pointId, el));
+ * labels: показывать таблички у подсвеченных точек (в интерактивном режиме без подсветки таблички скрыты, чтобы не подсказывать).
  */
 export function diagram({ highlight = null, interactive = false, onPick = null, labels = true, small = false, only = null } = {}) {
   const NS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(NS, "svg");
-  // без табличек поле слева не нужно — схема крупнее
+  // без табличек поле слева не нужно: схема крупнее
   svg.setAttribute("viewBox", highlight && labels ? "-122 40 590 410" : "20 60 450 390");
   svg.setAttribute("class", "diagram" + (small ? " small" : "") + (interactive ? " interactive" : ""));
   svg.setAttribute("role", "img");

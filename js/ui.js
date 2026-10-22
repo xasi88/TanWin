@@ -25,11 +25,11 @@ export function h(tag, attrs, ...kids) {
   append(el, kids);
   return el;
 }
-// Подписи, которые видит или слышит ученик, — в них тоже действует обращение на «ты».
+// Подписи, которые видит или слышит ученик, в них тоже действует обращение на «ты».
 const TEXT_ATTRS = new Set(["aria-label", "placeholder", "title"]);
 /** Текст, который нельзя переводить на «ты»: перевод аятов, цитаты. */
 export const keep = (t) => document.createTextNode(t);
-/** «Пропустить ›»: одно место (правый верхний угол) и один вид во всём приложении. label — что именно пропускаем, для чтения с экрана. */
+/** «Пропустить ›»: одно место (правый верхний угол) и один вид во всём приложении. label: что именно пропускаем, для чтения с экрана. */
 export function skipBtn(onclick, { cls = "", label = null } = {}) {
   return h("button.link.skip-btn", { type: "button", class: cls, "aria-label": label, onclick }, "Пропустить", icon("right", { size: 16 }));
 }
@@ -48,7 +48,7 @@ function append(el, kids) {
 export function ar(text, { cls = "", colors = true, tag = "span", size } = {}) {
   if (loneYa(text)) cls = `${cls} ya-dots`.trim(); // буква Йа одна: с точками (см. loneYa)
   const el = h(`${tag}.ar`, { dir: "rtl", lang: "ar", class: cls, style: size ? { "--s": size } : null });
-  // «Кружок — не читается» (U+06DF): в шрифте «Мадина» этого знака нет, тот же кружок в нём — U+0652.
+  // «Кружок, не читается» (U+06DF): в шрифте «Мадина» этого знака нет, тот же кружок в нём, U+0652.
   text = text.replace(/\u06DF/g, "\u0652");
   // Знак без буквы (в объяснениях) ставим на чёрточку-татвиль, чтобы он не «падал» на строку
   if (text.length === 1 && isMarkCh(text)) text = "ـ" + text;
@@ -57,14 +57,14 @@ export function ar(text, { cls = "", colors = true, tag = "span", size } = {}) {
   return el;
 }
 
-/** Слово из кусочков [текст, класс]: кусочки с классом — в <span> (цвет правила, подсветка). */
+/** Слово из кусочков [текст, класс]: кусочки с классом, в <span> (цвет правила, подсветка). */
 export function arParts(el, parts) {
   for (const [t0, c] of splitShaping ? glue(parts) : parts) { const t = t0.replace(/۟/g, "ْ"); el.append(c ? h("span", { class: c }, t) : t); }
   return el;
 }
 
 // ---------- Связность букв ----------
-// Современные браузеры соединяют арабские буквы через границу <span>, а часть версий Safari (iPhone, iPad) — нет:
+// Современные браузеры соединяют арабские буквы через границу <span>, а часть версий Safari (iPhone, iPad): нет:
 // буквы «рассыпаются», огласовка в отдельном span отрывается от своей буквы. Для таких движков границы span
 // переносим между целыми буквами (с их огласовками) и склеиваем соседей невидимым соединителем ZWJ.
 export let splitShaping = false;
@@ -96,7 +96,7 @@ export function fitArabic(root = document.body) {
     for (const el of els) {
       const r = el.getBoundingClientRect();
       if (!r.width) continue;
-      let over = 0, box = r; // box — самый широкий «облегающий» слово блок (кнопка-чип растёт вместе со словом)
+      let over = 0, box = r; // box: самый широкий «облегающий» слово блок (кнопка-чип растёт вместе со словом)
       for (let a = el.parentElement; a; a = a.parentElement) {
         const cs = getComputedStyle(a), ar = a.getBoundingClientRect();
         const left = ar.left + px(cs.borderLeftWidth) + px(cs.paddingLeft), right = ar.right - px(cs.borderRightWidth) - px(cs.paddingRight);
@@ -146,7 +146,7 @@ export function rich(text) {
   return frag;
 }
 
-// Транскрипция: особые звуки выделяются цветом (хь и тӀ — одним, остальные горловые — другим)
+// Транскрипция: особые звуки выделяются цветом (хь и тӀ, одним, остальные горловые, другим)
 export function tr(text, { hidden = false } = {}) {
   const el = h("span.tr", { class: hidden ? "hid" : "" });
   for (const ch of text.match(/хь|хӀ|тӀ|гӀ|къ|.[̀-ͯ]*/gu) || []) {
@@ -235,7 +235,7 @@ export const AR_FONTS = {
 export const arFont = () => (AR_FONTS[store.get().settings.arFont] ? store.get().settings.arFont : "hafs");
 
 // ---------- Цвета таджвида при чтении Корана ----------
-/** Включает или выключает цвета правил в читалке, на странице мусхафа и в режиме чтения (без перерисовки — через класс tj-off). */
+/** Включает или выключает цвета правил в читалке, на странице мусхафа и в режиме чтения (без перерисовки: через класс tj-off). */
 export function setTajweed(on) {
   store.set((s) => { s.settings.tajweed = on; });
   for (const b of document.querySelectorAll("[data-tj-btn]")) { b.classList.toggle("on", on); if (b.matches(".switch")) b.setAttribute("aria-checked", on ? "true" : "false"); }
@@ -278,7 +278,7 @@ function sizePanel(anchor) {
   const el = h("div.size-pop", { role: "dialog", "aria-label": "Размер текста и шрифт" }, row("arScale"), row("uiScale"), h("div.sp-font", null, h("span", null, "Арабский шрифт"), fonts),
     h("div.sp-row.sp-tj", null, h("span", null, "Цвета таджвида"), tj));
   document.body.append(el);
-  // панель — под кнопкой, а если снизу нет места (кнопка внизу экрана) — над ней
+  // панель: под кнопкой, а если снизу нет места (кнопка внизу экрана): над ней
   const place = () => { const r = anchor.getBoundingClientRect(), ph = el.offsetHeight; el.style.top = Math.round(r.bottom + 8 + ph > innerHeight ? Math.max(8, r.top - 8 - ph) : r.bottom + 8) + "px"; el.style.right = Math.max(8, Math.round(innerWidth - r.right)) + "px"; };
   place();
   const outside = (e) => { if (!el.contains(e.target) && !anchor.contains(e.target)) close(); };
@@ -293,15 +293,15 @@ function sizePanel(anchor) {
 
 // ---------- Кнопка «послушать слово» ----------
 /**
- * Транскрипция под словами в карточках теории и в окне буквы — по настройке «Транскрипция» («Ещё» → «Звук и подсказки»):
- * true — видна сразу, false — появляется по нажатию на слово, null — не показывается совсем.
+ * Транскрипция под словами в карточках теории и в окне буквы, по настройке «Транскрипция» («Ещё» → «Звук и подсказки»):
+ * true: видна сразу, false: появляется по нажатию на слово, null: не показывается совсем.
  */
 export const cardTr = () => { const m = store.get().settings.translit; return m === "hide" ? null : m !== "tap"; };
 
-/** Слово Корана с кнопкой звука. key — «SSS_AAA_WWW». showTr — как у cardTr(). */
+/** Слово Корана с кнопкой звука. key: «SSS_AAA_WWW». showTr: как у cardTr(). */
 export function wordChip(w, { showTr = cardTr(), size, big = false, onplay } = {}) {
   const trEl = w.tr && showTr !== null ? tr(w.tr, { hidden: !showTr }) : null;
-  // Запись из конца аята: чтец остановился, и слово звучит иначе, чем подписано (w.stop — из data.js)
+  // Запись из конца аята: чтец остановился, и слово звучит иначе, чем подписано (w.stop: из data.js)
   const stopEl = trEl && w.stop ? h("span.wc-stop", { class: showTr ? "" : "hid" }, "на остановке: ", tr(w.stop)) : null;
   const b = h("button.word-chip", { type: "button", class: big ? "big" : "", "aria-label": "Послушать слово" + (w.tr ? " " + w.tr : "") + (stopEl ? ", на остановке " + w.stop : "") },
     ar(w.d, { size }), trEl, stopEl, h("span.wc-ico", null, icon("vol", { size: 16 })));
@@ -348,7 +348,7 @@ export function modal(content, { onClose, cls = "" } = {}) {
     closed = true;
     wrap.classList.add("out"); setTimeout(() => wrap.remove(), 200);
     document.removeEventListener("keydown", esc); removeEventListener("hashchange", close);
-    // перешли на другой экран — возвращаться некуда; в поле ввода не возвращаем, чтобы не открылась клавиатура
+    // перешли на другой экран: возвращаться некуда; в поле ввода не возвращаем, чтобы не открылась клавиатура
     if (e?.type !== "hashchange" && back?.isConnected && !back.matches("input, textarea, [contenteditable]")) back.focus({ preventScroll: true });
     onClose?.();
   };
@@ -359,7 +359,7 @@ export function modal(content, { onClose, cls = "" } = {}) {
   const wrap = h("div.modal-wrap", { onclick: (e) => e.target === wrap && close() }, box);
   root.append(wrap);
   document.addEventListener("keydown", esc);
-  addEventListener("hashchange", close); // перешли на другой экран — окно не остаётся висеть поверх него
+  addEventListener("hashchange", close); // перешли на другой экран: окно не остаётся висеть поверх него
   requestAnimationFrame(() => box.querySelector("button:not(.modal-x), a")?.focus?.());
   return close;
 }

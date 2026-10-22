@@ -1,4 +1,4 @@
-// Генераторы упражнений. Каждое упражнение — объект вопроса, который показывает плеер урока (lesson.js):
+// Генераторы упражнений. Каждое упражнение, объект вопроса, который показывает плеер урока (lesson.js):
 // { kind, key, prompt(): Node, options?: [{node(), correct, label}], layout, play?(), explain?, after?(): Node, custom?(api): Node }
 import { LETTERS, byId, byChar, SHAPE_FAMILIES, SOUND_PAIRS, HEAVY, forms, ZONES, POINTS } from "./letters.js";
 import { syllRu, clusters, M, translit, analyze, stripStops, waqfTr } from "./arabic.js";
@@ -33,7 +33,7 @@ const target = (lesson, o) => {
   return L_ALL;
 };
 // Список «целей» длиной n: каждая цель встречается, прежде чем повториться
-// пустой список — пустой результат (иначе цикл не закончится и страница зависнет)
+// пустой список: пустой результат (иначе цикл не закончится и страница зависнет)
 const cycle = (arr, n) => { const out = []; while (arr.length && out.length < n) out.push(...shuffle(arr)); return out.slice(0, n); };
 
 // ================= Буквы =================
@@ -42,14 +42,14 @@ G.letterName = (o, lesson) => cycle(target(lesson, o), o.n).map((id) => {
   const l = byId[id];
   return withOpts({ kind: "letterName", key: "L:" + id, layout: "grid2",
     prompt: () => h("div.q-center", null, promptText("Как называется эта буква?"), bigLetter(l.ch)),
-    explain: `Это ${l.name} — ${l.t}. ${l.dots[0].toUpperCase() + l.dots.slice(1)}.`,
+    explain: `Это ${l.name}: ${l.t}. ${l.dots[0].toUpperCase() + l.dots.slice(1)}.`,
   }, [textOpt(l.name, true), ...similarLetters(id, 3).map((x) => textOpt(byId[x].name, false))]);
 });
 G.letterPick = (o, lesson) => cycle(target(lesson, o), o.n).map((id) => {
   const l = byId[id];
   return withOpts({ kind: "letterPick", key: "L:" + id, layout: "grid4",
     prompt: () => promptText(`Найдите букву **${l.name}**`, `Звук: ${l.t}`),
-    explain: `${l.name} — ${l.dots}.`,
+    explain: `${l.name}: ${l.dots}.`,
   }, [letterOpt(id, true), ...similarLetters(id, 3).map((x) => letterOpt(x, false))]);
 });
 G.shape = (o, lesson) => cycle(target(lesson, o).filter((id) => id !== "hamza"), o.n).map((id) => {
@@ -69,12 +69,12 @@ G.listenFirst = (o, lesson) => {
     preloadWord(ex.a);
     return withOpts({ kind: "listenFirst", key: "L:" + id, layout: "grid4",
       play: () => playWord(ex.a),
-      prompt: () => promptText("С какой буквы начинается слово?", "Послушайте чтеца. Первая буква — самая правая."),
+      prompt: () => promptText("С какой буквы начинается слово?", "Послушайте чтеца. Первая буква стоит правее всех."),
       after: () => h("div.after-word", null, wordChip(ex, { showTr: true, big: true })),
     }, [letterOpt(id, true), ...similarLetters(id, 3, ids).map((x) => letterOpt(x, false))]);
   }).filter(Boolean);
 };
-// На слух: название буквы → какая это буква. o.pool — свои варианты ответа (урок 1.1: ب среди непохожих букв, первая лёгкая победа)
+// На слух: название буквы → какая это буква. o.pool: свои варианты ответа (урок 1.1: ب среди непохожих букв, первая лёгкая победа)
 G.letterListen = (o, lesson) => cycle(target(lesson, o).filter((id) => id !== "hamza"), o.n).map((id) => {
   const l = byId[id];
   preloadLetter(id);
@@ -82,7 +82,7 @@ G.letterListen = (o, lesson) => cycle(target(lesson, o).filter((id) => id !== "h
   return withOpts({ kind: "letterListen", key: "L:" + id, layout: wrong.length === 2 ? "grid3" : "grid4",
     play: () => playLetter(id),
     prompt: () => promptText("Какую букву вы слышите?", "Можно слушать сколько угодно раз."),
-    explain: `Это ${l.name} — ${l.dots}.`,
+    explain: `Это ${l.name}: ${l.dots}.`,
   }, [letterOpt(id, true), ...wrong.map((x) => letterOpt(x, false))]);
 });
 // На слух: слог (буква с огласовкой) → какой это слог
@@ -118,7 +118,7 @@ G.blend = (o, lesson) => {
     b.sylls.forEach((x) => preloadLetter(x.id, x.v));
     return { kind: "blend", key: "V:mix", word: b.word || undefined,
       play: () => playBlend(b),
-      prompt: () => h("div.q-center", null, promptText("Соберите слово из слогов", "Послушайте и нажимайте на слоги по порядку — справа налево."), h("div.q-tr.small", null, tr(blendTr(b)))),
+      prompt: () => h("div.q-center", null, promptText("Соберите слово из слогов", "Послушайте и нажимайте на слоги по порядку, справа налево."), h("div.q-tr.small", null, tr(blendTr(b)))),
       explain: `${b.sylls.map((x) => sylRu(x.id, x.v)).join(" + ")} = «${b.tr}»`,
       after: () => (b.word ? wordChip(b.word, { showTr: true, big: true }) : h("div.after-word", null, ar(b.text, { cls: "q-word" }))),
       custom: (api) => blendBoard(b, extra, api.answer) };
@@ -128,7 +128,7 @@ G.pairListen = (o) => {
   const all = minimalPairs();
   const wanted = o.pairs === "all" || !o.pairs ? null : o.pairs.map((p) => p.join("-"));
   const match = (p) => !wanted || wanted.includes(p.a + "-" + p.b) || wanted.includes(p.b + "-" + p.a);
-  // нужные пары вперемешку; если их мало — добавляем другие трудные пары
+  // нужные пары вперемешку; если их мало: добавляем другие трудные пары
   let pool = shuffle(all.filter(match));
   if (pool.length < o.n) pool = [...pool, ...shuffle(all.filter((p) => !match(p)))];
   // по кругу по видам пар, чтобы было разнообразие
@@ -142,7 +142,7 @@ G.pairListen = (o) => {
     preloadWord(w.a);
     return withOpts({ kind: "pairListen", key: `P:${p.a}-${p.b}`, layout: "grid2",
       play: () => playWord(w.a),
-      prompt: () => promptText("Какое слово прозвучало?", `Разница — ${p.label}: ${byId[p.a].ch} или ${byId[p.b].ch}`),
+      prompt: () => promptText("Какое слово прозвучало?", `Разница: ${p.label}, ${byId[p.a].ch} или ${byId[p.b].ch}`),
       after: () => h("div.after-pair", null, wordChip(w, { showTr: true }), wordChip(other, { showTr: true })),
     }, [arOpt(w.d, true), arOpt(other.d, false)]);
   });
@@ -185,7 +185,7 @@ G.heavy = (o) => cycle(L_ALL.filter((x) => !["alif", "ra", "lam", "hamza"].inclu
   const hv = HEAVY.includes(id);
   return withOpts({ kind: "heavy", key: "H:" + id, layout: "grid2",
     prompt: () => h("div.q-center", null, promptText("Тяжёлая или лёгкая буква?"), bigLetter(l.ch)),
-    explain: hv ? `${l.name} — одна из семи тяжёлых: خ ص ض غ ط ق ظ.` : `${l.name} — лёгкая буква.`,
+    explain: hv ? `${l.name} относится к семи тяжёлым: خ ص ض غ ط ق ظ.` : `${l.name}: лёгкая буква.`,
   }, [textOpt("Тяжёлая", hv), textOpt("Лёгкая", !hv)]);
 });
 
@@ -202,7 +202,7 @@ G.formWhere = (o, lesson) => {
     const NAMES = { ini: "В начале слова", med: "В середине", fin: "В конце слова" };
     return withOpts({ kind: "formWhere", key: "F:" + id, layout: "list",
       prompt: () => h("div.q-center", null, promptText(`Где в слове стоит ${l.name} в таком виде?`, "Смотрите, с какой стороны есть соединение."), ar(forms(l)[which], { cls: "q-big form-box" })),
-      explain: "Соединение слева — после буквы есть следующая (начало или середина). Соединение справа — перед ней есть буква (середина или конец).",
+      explain: "Соединение слева: после буквы есть следующая (начало или середина). Соединение справа: перед ней есть буква (середина или конец).",
     }, Object.entries(NAMES).map(([k, t]) => textOpt(t, k === which)));
   });
 };
@@ -219,7 +219,7 @@ const baseLetters = (d) => clusters(d).map((c) => byChar[c.b]?.id || (c.b === "�
 G.firstLetter = (o) => sample(words({ level: "shadda", minLen: 3, maxLen: 5, filter: (w) => w.firstL && w.firstL !== "hamza" }), o.n).map((w) => {
   const id = w.firstL;
   return withOpts({ kind: "firstLetter", key: "L:" + id, layout: "grid4",
-    prompt: () => h("div.q-center", null, promptText("Какая буква в этом слове первая?", "Первая — самая правая."), ar(w.d, { cls: "q-word" })),
+    prompt: () => h("div.q-center", null, promptText("Какая буква в этом слове первая?", "Первая стоит правее всех."), ar(w.d, { cls: "q-word" })),
     after: () => wordChip(w, { showTr: true }),
   }, [letterOpt(id, true), ...similarLetters(id, 3).map((x) => letterOpt(x, false))]);
 });
@@ -238,7 +238,7 @@ G.hasLetter = (o) => sample(words({ level: "shadda", minLen: 3, maxLen: 6 }), o.
 const VOW = { fatha: [M.FATHA, "a"], kasra: [M.KASRA, "i"], damma: [M.DAMMA, "u"], fathatan: [M.FATHATAN, "a", "н"], kasratan: [M.KASRATAN, "i", "н"], dammatan: [M.DAMMATAN, "u", "н"] };
 const SYL_LETTERS = L_ALL.filter((x) => !["alif", "hamza"].includes(x));
 const sylText = (id, v) => { const ch = byId[id].ch; return v === "fathatan" ? ch + M.FATHATAN + (id === "ta" ? "" : "ا") : ch + VOW[v][0]; };
-const sylTr = (id, v) => syllRu(byId[id].ch, VOW[v][1]) + (VOW[v][2] || ""); // гласная зависит от буквы: после тяжёлых — «о» и «ы»
+const sylTr = (id, v) => syllRu(byId[id].ch, VOW[v][1]) + (VOW[v][2] || ""); // гласная зависит от буквы: после тяжёлых, «о» и «ы»
 G.syllable = (o, lesson) => {
   const vs = o.vowels || ["fatha"];
   const own = o.own && Array.isArray(lesson?.letters) ? lesson.letters.filter((x) => SYL_LETTERS.includes(x)) : null;
@@ -260,9 +260,9 @@ G.syllable = (o, lesson) => {
 G.syllableRev = (o) => Array.from({ length: o.n }, () => {
   const vs = o.vowels || ["fatha", "kasra", "damma"];
   const id = pick(SYL_LETTERS), v = pick(vs);
-  // неверные варианты — только с уже пройденными огласовками; не хватает — похожие буквы
+  // неверные варианты: только с уже пройденными огласовками; не хватает: похожие буквы
   const others = vs.filter((x) => x !== v).map((x) => sylText(id, x));
-  // буквы с такой же подписью (ث и س — обе «с») в варианты не идут: иначе верных ответов два
+  // буквы с такой же подписью (ث и س, обе «с») в варианты не идут: иначе верных ответов два
   const sim = similarLetters(id, 28, SYL_LETTERS).filter((x) => sylTr(x, v) !== sylTr(id, v)).slice(0, 3 - others.length).map((x) => sylText(x, v));
   return withOpts({ kind: "syllableRev", key: "V:" + v, layout: "grid4",
     prompt: () => h("div.q-center", null, promptText("Найдите слог"), h("div.q-tr", null, tr(sylTr(id, v)))),
@@ -270,8 +270,8 @@ G.syllableRev = (o) => Array.from({ length: o.n }, () => {
 });
 
 // Неверные варианты чтения: меняем гласную, долготу, удвоение, танвин
-// Какие гласные бывают на месте гласной v после начала слова s: после тяжёлых — «о ы у», после «р» — «о и у», иначе «а и у».
-// «с», «д», «з» бывают и лёгкими, и тяжёлыми (ص ض ظ пишутся так же): тяжёлую выдаёт сама гласная — «о» или «ы».
+// Какие гласные бывают на месте гласной v после начала слова s: после тяжёлых, «о ы у», после «р»: «о и у», иначе «а и у».
+// «с», «д», «з» бывают и лёгкими, и тяжёлыми (ص ض ظ пишутся так же): тяжёлую выдаёт сама гласная, «о» или «ы».
 const vowelsAfter = (s, v = "") => (/р[аиуоы]*$/.test(s) ? ["о", "и", "у"] : "оы".includes(v || "-") || /(тӀ|гӀ|къ|х)[аиуоы]*$/.test(s) ? ["о", "ы", "у"] : ["а", "и", "у"]);
 function mutateTr(t) {
   const out = new Set();
@@ -473,7 +473,7 @@ G.ruleName = async (o) => {
     explain: RULES[c].text, after: () => ruleSnippet(x, c, { colors: true }),
   }, [textOpt(RULES[c].name, true), ...sample(o.codes.filter((k) => k !== c && RULES[k].name !== RULES[c].name), 3).map((k) => textOpt(RULES[k].name, false))]));
 };
-const COUNT = { n: "2 хараката", p: "2, 4 или 6", o: "4–5 харакатов", u: "4–5 харакатов", x: "6 харакатов" };
+const COUNT = { n: "2 хараката", p: "2, 4 или 6", o: "4-5 харакатов", u: "4-5 харакатов", x: "6 харакатов" };
 G.maddCount = async (o) => {
   const items = await pickRuleWords(["n", "p", "o", "u", "x"], o.n);
   return items.map(({ x, c }) => withOpts({ kind: "maddCount", key: "R:" + c, layout: "grid2",
@@ -490,7 +490,7 @@ G.nunRule = async (o) => {
     const next = x.words[x.wi + 1];
     if (!next) continue;
     const p = plain(x.w).replace(/[ۖ-ۜ]/g, "");
-    // нун сакина (в мадинском письме перед идгамом/ихфой — без сукуна) или танвин (при икляб — огласовка с маленькой «м»)
+    // нун сакина (в мадинском письме перед идгамом/ихфой: без сукуна) или танвин (при икляб: огласовка с маленькой «м»)
     const endsNun = /ن[ۡۢ]?$/.test(p) || /[ًٌٍ]ا?$/.test(p) || /[َ-ِ][ۭۢ]ا?$/.test(p);
     for (const c of ["d", "D", "i", "f"]) if (endsNun && parseMarkup(x.w).some(([, cc], i, arr) => cc === c && i === arr.length - 1)) pools[c].push(x);
     if (endsNun && THROAT.includes(plain(next)[0])) pools.izhar.push(x);
@@ -511,7 +511,7 @@ G.nunRule = async (o) => {
       });
       return h("div.q-center", null, b, h("div.verse-ref", null, `Сура ${x.s}, аят ${x.a}`));
     };
-    const why = { izhar: "После нун сакины или танвина — горловая буква: читаем ясно.", d: RULES.d.text, D: RULES.D.text, i: RULES.i.text, f: RULES.f.text }[k];
+    const why = { izhar: "После нун сакины или танвина стоит горловая буква: читаем ясно.", d: RULES.d.text, D: RULES.D.text, i: RULES.i.text, f: RULES.f.text }[k];
     return withOpts({ kind: "nunRule", key: "R:" + (k === "izhar" ? "izhar" : k), layout: "grid2",
       prompt: () => h("div", null, promptText("Какое правило нун сакины / танвина?", "Смотрите на следующую букву."), box()),
       explain: why,
@@ -526,9 +526,9 @@ G.sunMoon = (o) => {
     const solar = !lamSukun && cs[2]?.m.includes(M.SHADDA);
     return withOpts({ kind: "sunMoon", key: "R:l", layout: "list",
       prompt: () => h("div.q-center", null, promptText("Читается ли лям артикля?"), ar(w.d, { cls: "q-word" })),
-      explain: solar ? "Солнечная буква: лям не читается, следующая буква удваивается (шадда)." : "Лунная буква: у лям сукун — она читается.",
+      explain: solar ? "Солнечная буква: лям не читается, следующая буква удваивается (шадда)." : "Лунная буква: у лям сукун, она читается.",
       after: () => wordChip(w, { showTr: true }),
-    }, [textOpt("Да — лунная буква", !solar), textOpt("Нет — солнечная буква", solar)]);
+    }, [textOpt("Да, лунная буква", !solar), textOpt("Нет, солнечная буква", solar)]);
   });
 };
 G.allahLam = async (o) => {
@@ -558,7 +558,7 @@ G.allahLam = async (o) => {
     };
     return withOpts({ kind: "allahLam", key: "R:allah", layout: "grid2",
       prompt: () => h("div", null, promptText("Какая лям в имени Аллаха?", "Смотрите на гласную перед словом."), snippet()),
-      explain: v === "heavy" ? "Перед именем Аллаха фатха или дамма (или начало чтения) — лям тяжёлая." : "Перед именем Аллаха касра — лям лёгкая.",
+      explain: v === "heavy" ? "Перед именем Аллаха фатха или дамма (или начало чтения), значит лям тяжёлая." : "Перед именем Аллаха касра, значит лям лёгкая.",
     }, [textOpt("Тяжёлая", v === "heavy"), textOpt("Лёгкая", v === "light")]);
   });
 };
@@ -591,16 +591,16 @@ G.raRule = (o) => {
     const cs = clusters(w.d);
     const view = () => arParts(h("span.ar.q-word", { dir: "rtl", lang: "ar" }), cs.map((c, j) => [c.b + c.m, j === ri ? "hl" : ""]));
     const c = cs[ri];
-    const why = /[ًٌَُ]/.test(c.m) ? "Ро с фатхой или даммой — тяжёлая."
-      : /[ٍِ]/.test(c.m) ? "Ро с касрой — лёгкая."
-      : v === "heavy" ? "Ро с сукуном после фатхи/даммы, после хамзат-уль-васль или перед тяжёлой буквой — тяжёлая." : "Ро с сукуном после касры — лёгкая.";
+    const why = /[ًٌَُ]/.test(c.m) ? "Ро с фатхой или даммой тяжёлая."
+      : /[ٍِ]/.test(c.m) ? "Ро с касрой лёгкая."
+      : v === "heavy" ? "Ро с сукуном тяжёлая после фатхи/даммы, после хамзат-уль-васль или перед тяжёлой буквой." : "Ро с сукуном после касры лёгкая.";
     return withOpts({ kind: "raRule", key: "R:ra", layout: "grid2",
-      prompt: () => h("div.q-center", null, promptText("Выделенная ро — тяжёлая или лёгкая?"), view()),
+      prompt: () => h("div.q-center", null, promptText("Выделенная ро тяжёлая или лёгкая?"), view()),
       explain: why, after: () => wordChip(w, { showTr: true }),
     }, [textOpt("Тяжёлая", v === "heavy"), textOpt("Лёгкая", v === "light")]);
   });
 };
-// Остановка: как читается слово на вакфе (waqfTr — в arabic.js)
+// Остановка: как читается слово на вакфе (waqfTr: в arabic.js)
 G.waqfForm = (o) => {
   const pool = words({ level: "shadda", minLen: 3, maxLen: 6, filter: (w) => { const s = waqfTr(w); return s && s !== w.tr; } });
   return sample(pool.slice(0, 600), o.n).map((w) => {

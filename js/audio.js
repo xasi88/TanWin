@@ -10,8 +10,8 @@ let current = null; // { id, onEnd, onTime }
 const listeners = new Set();
 export const onPlay = (f) => { listeners.add(f); return () => listeners.delete(f); };
 const emit = () => listeners.forEach((f) => f(current?.id || null));
-// Запись не пришла (нет сети, сервер закрыт) или не начинается дольше SLOW мс — приложение показывает подсказку (app.js).
-// Одна запись — одна подсказка; прерванное и запрещённое браузером воспроизведение сбоем связи не считается.
+// Запись не пришла (нет сети, сервер закрыт) или не начинается дольше SLOW мс: приложение показывает подсказку (app.js).
+// Одна запись: одна подсказка; прерванное и запрещённое браузером воспроизведение сбоем связи не считается.
 const SLOW = 8000;
 const failListeners = new Set();
 export const onFail = (f) => { failListeners.add(f); return () => failListeners.delete(f); };
@@ -28,7 +28,7 @@ document.addEventListener("keydown", unlock, { once: true, capture: true });
 
 el.addEventListener("ended", () => { const c = current; current = null; emit(); c?.onEnd?.(); });
 // У части записей чтеца битый хвост: новый декодер Chromium на последних долях секунды даёт ошибку вместо «ended».
-// Запись при этом прозвучала целиком — считаем её доигранной, иначе чтец встаёт на последнем аяте суры.
+// Запись при этом прозвучала целиком: считаем её доигранной, иначе чтец встаёт на последнем аяте суры.
 el.addEventListener("error", () => {
   const c = current, tail = el.error?.code === 3 && el.duration > 0 && el.duration - el.currentTime < 0.6;
   current = null; emit();
@@ -46,7 +46,7 @@ export const playingId = () => current?.id || null;
 
 export async function playUrl(url, { id = url, rate = 1, onEnd, onTime, onError, onStop } = {}) {
   stop();
-  if (!url) { onError?.(); return false; } // записи нет (алиф с огласовкой) — это не сбой связи
+  if (!url) { onError?.(); return false; } // записи нет (алиф с огласовкой): это не сбой связи
   const me = current = { id, onEnd, onTime, onError, onStop };
   el.src = new URL(url, ROOT).href; // свои записи лежат в корне сайта
   el.playbackRate = rate;
@@ -80,8 +80,8 @@ export const hasSyllAudio = (id, v) => !!letterAudioUrl(id, v);
 export const playLetter = (id, o = {}) => playUrl(letterAudioUrl(id), { id: "l:" + id, ...o });
 export const playSyll = (id, v, o = {}) => playUrl(letterAudioUrl(id, v), { id: `s:${id}:${v}`, ...o });
 /**
- * Проигрывает записи подряд. items: [{ url, id }] ; gap — пауза между ними (мс); onStep(i) — какая запись звучит (−1 — конец).
- * Любое другое воспроизведение или stop() обрывает цепочку. onEnd(done): done — цепочка доиграна до конца.
+ * Проигрывает записи подряд. items: [{ url, id }] ; gap: пауза между ними (мс); onStep(i): какая запись звучит (−1: конец).
+ * Любое другое воспроизведение или stop() обрывает цепочку. onEnd(done): done: цепочка доиграна до конца.
  */
 export function playSeq(items, { gap = 220, onStep, onEnd } = {}) {
   let i = -1, timer = 0, dead = false;
@@ -92,7 +92,7 @@ export function playSeq(items, { gap = 220, onStep, onEnd } = {}) {
     if (i >= items.length) return end(true);
     let once = false;
     const after = () => { if (once || dead) return; once = true; timer = setTimeout(next, gap); };
-    seq = null; // playUrl сам вызывает stop() — цепочку он обрывать не должен
+    seq = null; // playUrl сам вызывает stop(): цепочку он обрывать не должен
     playUrl(items[i].url, { id: items[i].id || items[i].url, rate: items[i].rate || 1, onEnd: after, onError: after });
     seq = end;
     onStep?.(i);
@@ -160,7 +160,7 @@ export async function stopRecording() {
 }
 export const isRecording = () => !!rec;
 
-/** Огибающая громкости записи — для отрисовки «волны» (n столбиков от 0 до 1). */
+/** Огибающая громкости записи: для отрисовки «волны» (n столбиков от 0 до 1). */
 export async function envelope(src, n = 64) {
   const c = ac(); if (!c) return null;
   const buf = src instanceof Blob ? await src.arrayBuffer() : await (await fetch(new URL(src, ROOT))).arrayBuffer();

@@ -16,16 +16,16 @@ export function Onboarding() {
       h("div.ob-logo", null, logo(92)),
       h("div.ob-ar", null, ar("ٱقۡرَأۡ", { cls: "ob-big" })),
       h("h1", null, "Научитесь читать Коран"),
-      h("p.lead", null, "С нуля — до чтения мусхафа по правилам таджвида. Маленькими шагами, по 10 минут в день. Бесплатно."),
-      h("p.muted.small.ob-teacher", null, "Лучше всего учиться с преподавателем. Нет преподавателя или времени — занимайтесь по приложению сами."),
+      h("p.lead", null, "С нуля до чтения мусхафа по правилам таджвида. Маленькими шагами, по 10 минут в день. Бесплатно."),
+      h("p.muted.small.ob-teacher", null, "Лучше всего учиться с преподавателем. Нет преподавателя или времени? Занимайтесь по приложению сами."),
       h("div.ob-points", null,
-        pt("ear", "Живые чтецы", "каждое слово и аят — голосом чтеца"),
+        pt("ear", "Живые чтецы", "каждое слово и аят звучат голосом чтеца"),
         pt("book", "Настоящие слова Корана", "с первых же слогов"),
         pt("chart", "Виден прогресс", "путь, уровни, серия дней, награды")),
       next("Начать")),
     () => h("div.ob-screen", null,
       h("h2", null, "Как к вам обращаться?"),
-      h("p.muted", null, "Необязательно — но так уроки станут личными: мы будем обращаться к вам по имени и отмечать ваши успехи."),
+      h("p.muted", null, "Необязательно, но так уроки станут личными: мы будем обращаться к вам по имени и отмечать ваши успехи."),
       (() => { const i = h("input.text-in.big", { type: "text", value: data.name, placeholder: "Имя", maxlength: "30", "aria-label": "Имя" }); i.addEventListener("input", () => (data.name = i.value.trim())); return i; })(), // без автофокуса: на телефоне клавиатура закрыла бы кнопку «Дальше»
       h("div.ob-ask", null, h("span.set-label", null, "Как обращаться"), choice("form", [["vy", "На «вы»"], ["ty", "На «ты»"]])),
       h("div.ob-ask", null, h("span.set-label", null, "Кто учится"), choice("gender", [["m", "Ученик"], ["f", "Ученица"]])),
@@ -51,7 +51,7 @@ export function Onboarding() {
         startOpt("ٱ", "Я уже читаю", "Проверю чтение аятов и перейду к сурам и таджвиду", "/learn/8.7"))),
   ];
   function pt(ic, t, s) { return h("div.ob-pt", null, h("span.ob-pt-ic", null, icon(ic, { size: 22 })), h("div", null, h("b", null, t), h("small", null, s))); }
-  // обращение и род действуют сразу — уже на следующих экранах знакомства
+  // обращение и род действуют сразу: уже на следующих экранах знакомства
   const saveProfile = () => store.set((st) => { st.profile.name = data.name; st.profile.goalLessons = data.goal; st.profile.form = data.form; st.profile.gender = data.gender; });
   // кнопка прикреплена к низу экрана (.ob-foot): на телефоне она видна сразу, даже если текст длиннее экрана
   function next(label) { return h("div.ob-foot", null, h("button.btn.primary.wide.big", { type: "button", onclick: () => { saveProfile(); if (!step) track("onboard_started"); step++; draw(); } }, label, icon("right", { size: 20 }))); }
@@ -81,7 +81,7 @@ export function Onboarding() {
     return b;
   }
   const draw = () => { root.replaceChildren(h("div.ob-top", null, step ? h("button.icon-btn", { type: "button", "aria-label": "Назад", onclick: () => { step--; draw(); } }, icon("left")) : h("span"), dots(),
-    // «Пропустить» — для тех, кто уже знаком с приложением: без вопросов сразу к выбору, с чего начать
+    // «Пропустить»: для тех, кто уже знаком с приложением: без вопросов сразу к выбору, с чего начать
     step < screens.length - 1 ? skipBtn(() => { saveProfile(); track("onboard_skipped", { Шаг: step + 1 }); step = screens.length - 1; draw(); }, { cls: "ob-skip" }) : h("span")), screens[step]()); };
   draw();
   return root;

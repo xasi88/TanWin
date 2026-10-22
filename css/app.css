@@ -1,9 +1,9 @@
-/* TanWin — стили. Две темы: «пергамент» (светлая) и «ночное небо» (тёмная). */
+/* TanWin: стили. Две темы: «пергамент» (светлая) и «ночное небо» (тёмная). */
 @font-face { font-family: "Amiri Quran"; src: url("../fonts/amiri-quran.woff2") format("woff2"); font-display: swap; }
-/* Арабские шрифты на выбор. Вертикальные метрики приведены к Amiri Quran (+1.40/−0.80 em), размер — к его видимой величине:
+/* Арабские шрифты на выбор. Вертикальные метрики приведены к Amiri Quran (+1.40/−0.80 em), размер, к его видимой величине:
    вёрстка рассчитана на них, и при смене шрифта строки и карточки не «прыгают». Файл загружается, только когда шрифт выбран. */
 @font-face { font-family: "TW Hafs"; src: url("../fonts/hafs.woff2") format("woff2"); font-display: swap; ascent-override: 140%; descent-override: 80%; line-gap-override: 0%; }
-@font-face { font-family: "TW Scheherazade"; src: url("../fonts/scheherazade.woff2") format("woff2"); font-display: swap; ascent-override: 132%; descent-override: 88%; line-gap-override: 0%; size-adjust: 92%; } /* у этого шрифта огласовки под буквой уходят глубже — строка сдвинута вверх */
+@font-face { font-family: "TW Scheherazade"; src: url("../fonts/scheherazade.woff2") format("woff2"); font-display: swap; ascent-override: 132%; descent-override: 88%; line-gap-override: 0%; size-adjust: 92%; } /* у этого шрифта огласовки под буквой уходят глубже, поэтому строка сдвинута вверх */
 @font-face { font-family: "TW Noto Naskh"; src: url("../fonts/noto-naskh.woff2") format("woff2"); font-display: swap; ascent-override: 140%; descent-override: 80%; line-gap-override: 0%; size-adjust: 91%; }
 @font-face { font-family: "Nunito"; src: url("../fonts/nunito.woff2") format("woff2"); font-weight: 200 1000; font-display: swap; }
 
@@ -11,7 +11,7 @@
   --bg: #fbf7ef; --bg-2: #f3ebdb; --card: #ffffff; --card-2: #fffaf2; --card-3: #f6f0e4;
   --ink: #1e1b2e; --ink-2: #5a566e; --ink-3: #716c86; --line: #eadfca; --line-2: #dfd2b8;
   --accent: #0a7559; --accent-2: #085e47; --accent-soft: #d9f4ea; --accent-ink: #fff;
-  --gold: #c68a1c; --gold-2: #e8b440; --gold-soft: #fbefd2; --gold-text: #946310; /* мелкий золотой текст — темнее, чтобы читался */
+  --gold: #c68a1c; --gold-2: #e8b440; --gold-soft: #fbefd2; --gold-text: #946310; /* мелкий золотой текст темнее, чтобы читался */
   --good: #16a765; --good-soft: #dcf7e9; --bad: #e0414d; --bad-soft: #fde4e6;
   --shadow: 0 1px 2px rgba(60, 40, 10, .06), 0 6px 22px rgba(60, 40, 10, .07);
   --shadow-lg: 0 18px 50px rgba(60, 40, 10, .16);
@@ -30,7 +30,7 @@
   /* схема речевого аппарата */
   --z-jawf: #d4a017; --z-halq: #7c3aed; --z-lisan: #0d9488; --z-shafa: #e11d48; --z-khay: #ea580c;
   --dg-skin1: #f8e3cf; --dg-skin2: #efcfb2; --dg-cav: #7a3048; --dg-tongue1: #ef8fa0; --dg-tongue2: #d9667c; --dg-palate: #e9b5a6;
-  /* --ar-k — множитель арабского текста (настройка «арабский» ÷ «текст приложения»), --ui-scale — размер всего остального */
+  /* --ar-k: множитель арабского текста (настройка «арабский» ÷ «текст приложения»), --ui-scale: размер всего остального */
   --ar-k: 1; --ui-scale: 1;
   --nav-h: 66px;
   --radius: 20px;
@@ -122,7 +122,7 @@ input, select { font: inherit; }
   font-family: var(--ar-font, "Amiri Quran"), "Amiri Quran", "Scheherazade New", "Noto Naskh Arabic", serif;
   font-size: calc(var(--s, 1.5em) * var(--ar-k) * var(--fit, 1)); line-height: 2.05; font-weight: 400;
   direction: rtl; unicode-bidi: isolate; font-feature-settings: "calt", "liga";
-  overflow-wrap: normal; word-break: normal; /* слово не рвём посередине — если не влезает, его уменьшит fitArabic() */
+  overflow-wrap: normal; word-break: normal; /* слово не рвём посередине: если не влезает, его уменьшит fitArabic() */
 }
 /* «Мадина» пишет Йа отдельно и в конце слова без точек (как в мусхафе); одна буква Йа в азбуке и вопросах: шрифтом с точками */
 [data-ar-font="hafs"] .ar.ya-dots { font-family: "Amiri Quran", serif; }
@@ -296,7 +296,7 @@ body.fullscreen #view { padding-bottom: 0; }
 .home-foot { text-align: center; color: var(--ink-3); font-size: .9rem; margin: 10px 0 20px; }
 .home-foot a { color: var(--ink-2); font-weight: 700; }
 
-/* Широкий экран: меню, боковая колонка и путь — три части, каждая прокручивается сама по себе */
+/* Широкий экран: меню, боковая колонка и путь, три части, каждая прокручивается сама по себе */
 @media (min-width: 1200px) {
   .page.home { width: min(100%, 1180px); height: 100dvh; padding-top: 0; padding-bottom: 0; overflow: hidden; }
   #view:has(> .page.home) { padding-bottom: 0; }
@@ -312,7 +312,7 @@ body.fullscreen #view { padding-bottom: 0; }
 /* ---------- Путь ---------- */
 .path { display: grid; gap: 10px; padding-bottom: 30px; }
 .unit { margin-top: 12px; }
-/* этап сворачивается: вся шапка — одна большая кнопка */
+/* этап сворачивается: вся шапка, одна большая кнопка */
 .uh-toggle { position: absolute; inset: 0; z-index: 2; width: 100%; margin: 0; padding: 0; border: 0; border-radius: inherit; background: transparent; cursor: pointer; }
 .uh-toggle:focus-visible { outline: 3px solid #fff; outline-offset: -6px; border-radius: 24px; }
 .uh-chev { position: relative; z-index: 1; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: rgba(255, 255, 255, .2); flex: none; transition: transform .3s var(--ease); }
@@ -349,7 +349,7 @@ body.fullscreen #view { padding-bottom: 0; }
   transition: transform .12s, box-shadow .12s;
 }
 .node:active .node-disc { transform: translateY(5px); box-shadow: 0 2px 0 color-mix(in srgb, var(--hc) 62%, #000); }
-.node-ar .ar { --s: 30px; /* кружок узла фиксированного размера — буква тоже */ color: #fff; line-height: 1; text-shadow: 0 2px 0 rgba(0, 0, 0, .15); }
+.node-ar .ar { --s: 30px; /* кружок узла фиксированного размера, буква тоже */ color: #fff; line-height: 1; text-shadow: 0 2px 0 rgba(0, 0, 0, .15); }
 .node.done .node-disc { background: radial-gradient(circle at 35% 30%, var(--gold-2), var(--gold) 70%); box-shadow: 0 7px 0 color-mix(in srgb, var(--gold) 60%, #000), 0 12px 22px color-mix(in srgb, var(--gold) 30%, transparent); }
 .node.locked .node-disc { background: var(--card-3); color: var(--ink-3); box-shadow: 0 7px 0 var(--line-2); }
 .node.test .node-disc { border-radius: 26px; width: 84px; }
@@ -570,7 +570,7 @@ body.fullscreen #toast { bottom: 24px; }
 .q-play:active { transform: translateY(5px); box-shadow: 0 2px 0 color-mix(in srgb, var(--c-sky) 60%, #000); }
 .q-play.pulse { animation: pop .5s; }
 .opts { display: grid; gap: 10px; margin-top: 6px; }
-/* две колонки, а при крупном тексте или узком экране — одна */
+/* две колонки, а при крупном тексте или узком экране: одна */
 .opts.grid2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr)); }
 .opts.grid4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .opts.grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -747,8 +747,8 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 /* высокий интервал: знаки остановки (ۖ ۗ ۚ) стоят выше букв и не должны задевать строку сверху */
 .verses.mushaf { text-align: center; line-height: 2.5; font-size: 1.1rem; }
 .verses.mushaf .ar { --s: 1.95em; line-height: 2.5; }
-/* по ширине — только на широких экранах: на телефоне в строке мало слов, и между ними появлялись дыры */
-@media (min-width: 700px) { :root:not(.ar-big) .verses.mushaf { text-align: justify; text-align-last: center; } } /* крупный арабский — по центру */
+/* по ширине, только на широких экранах: на телефоне в строке мало слов, и между ними появлялись дыры */
+@media (min-width: 700px) { :root:not(.ar-big) .verses.mushaf { text-align: justify; text-align-last: center; } } /* крупный арабский по центру */
 .qw { cursor: pointer; border-radius: 10px; transition: background .2s, box-shadow .2s; padding: 0 1px; }
 .qw:hover { background: var(--card-3); }
 .qw.now { background: var(--gold-soft); box-shadow: 0 0 0 3px var(--gold-soft); }
@@ -1022,7 +1022,7 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .reading-card { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: linear-gradient(90deg, var(--accent-soft), var(--card)); }
 .reading-card .rc-ic { background: var(--accent); }
 @media (max-width: 520px) { .page-nav .btn { padding: 10px 14px; } .page-nav .btn span { display: none; } }
-/* заучивание: скрытое слово — размытая «плашка»; открывается нажатием или когда его читает чтец */
+/* заучивание: скрытое слово, размытая «плашка»; открывается нажатием или когда его читает чтец */
 .verses.hifz .qw.hid:not(.shown):not(.now) .ar { filter: blur(.28em); opacity: .35; }
 .verses.hifz .qw.hid:not(.shown):not(.now) { background: color-mix(in srgb, var(--ink) 6%, transparent); }
 .verses.hifz .qw.hid .ar { transition: filter .25s, opacity .25s; }
@@ -1283,7 +1283,7 @@ button.more-link { width: 100%; text-align: left; font: inherit; cursor: pointer
 .pw-tip b { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
 .pw-tip small { color: var(--ink-3); font-weight: 800; }
 .page-wheel.busy .pw-tip { opacity: 1; }
-/* кнопка «Написать разработчику» в режиме чтения уходит на левый край: справа — колесо страниц */
+/* кнопка «Написать разработчику» в режиме чтения уходит на левый край: справа, колесо страниц */
 body:has(.focus) .fb-tab { right: auto; left: 0; padding: 0 2px 0 0; border-radius: 0 14px 14px 0; border: 1px solid var(--line); border-left: 0; }
 body:has(.focus) .fb-tab::before, body:has(.sura-scrub) .fb-tab::before { inset: -2px -19px -2px 0; }
 /* Порядок закладок: ручка «переместить» */
@@ -1295,7 +1295,7 @@ body:has(.focus) .fb-tab::before, body:has(.sura-scrub) .fb-tab::before { inset:
 .mark-groups { display: grid; gap: 12px; }
 .mark-loose { display: grid; gap: 10px; }
 .mark-loose > .label { margin: 4px 0 -4px; }
-/* «Без группы» без закладок не виден; пока закладку тянут — это место, куда её можно перенести */
+/* «Без группы» без закладок не виден; пока закладку тянут: это место, куда её можно перенести */
 .mark-loose:not(:has(.mark-row)) { display: none; }
 .mark-groups.dragging .mark-loose { display: grid; }
 .mark-groups.dragging .mark-loose .mark-list:empty { min-height: 3.2rem; border: 2px dashed var(--line); border-radius: 18px; }
@@ -1373,7 +1373,7 @@ body:has(.focus) .fb-tab::before, body:has(.sura-scrub) .fb-tab::before { inset:
 @media (max-width: 899px) { .surah-list.scrubbed { padding-right: 24px; } }
 body:has(.sura-scrub) .fb-tab { right: auto; left: 0; padding: 0 2px 0 0; border-radius: 0 14px 14px 0; border: 1px solid var(--line); border-left: 0; }
 
-/* ---------- Чтение: верхняя панель — полное меню (readSession в views/quran.js) ---------- */
+/* ---------- Чтение: верхняя панель, полное меню (readSession в views/quran.js) ---------- */
 .focus-head { position: absolute; z-index: 3; top: 0; left: 0; right: 0; display: grid; justify-items: center; pointer-events: none; }
 .focus-head .focus-juz { position: static; width: 100%; }
 .focus-mode { font-size: .78rem; color: var(--gold-text); text-align: center; }
@@ -1398,7 +1398,7 @@ body:has(.sura-scrub) .fb-tab { right: auto; left: 0; padding: 0 2px 0 0; border
 .fm-tile.fm-go.on { background: var(--gold); color: #fff; }
 .focus-done.todo { color: var(--gold-text); }
 .focus-end .muted { max-width: 30rem; margin: 0; }
-/* «Aa» на нижней панели: крупная и в стороне от кнопок скорости — чтобы попадать пальцем */
+/* «Aa» на нижней панели: крупная и в стороне от кнопок скорости, чтобы попадать пальцем */
 .focus-bar .size-btn.icon-btn { width: 58px; height: 52px; margin-left: 14px; border-radius: 16px; border: 2px solid var(--line-2); background: var(--card-2); color: var(--ink); }
 .focus-bar .size-btn .aa { font-size: 1.3rem; }
 @media (max-width: 480px) { .focus-bar .size-btn.icon-btn { width: 52px; height: 44px; margin-left: 10px; } }

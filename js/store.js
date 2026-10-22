@@ -1,4 +1,4 @@
-// Прогресс ученика: хранится в localStorage этого устройства; перенос — через файл экспорта.
+// Прогресс ученика: хранится в localStorage этого устройства; перенос: через файл экспорта.
 const KEY = "tanwin.v2";
 const listeners = new Set();
 
@@ -8,7 +8,7 @@ const today = (d = new Date()) => {
 };
 const dayDiff = (a, b) => Math.round((new Date(b) - new Date(a)) / 86400000);
 
-// Версия программы курса: 2 — порядок этапов с 1.11.0 (буквы → формы → огласовки → слоги → слова → аяты → махраджи → таджвид).
+// Версия программы курса: 2, порядок этапов с 1.11.0 (буквы → формы → огласовки → слоги → слова → аяты → махраджи → таджвид).
 const COURSE = 2;
 // В 1.11.0 этапы переставлены и уроки получили новые номера: старый номер → новый (остальные не менялись).
 const LESSON_MOVES = {
@@ -67,14 +67,14 @@ const DEFAULT = () => ({
   stats: { answers: 0, correct: 0, ms: 0, lessons: 0 },
   badges: {},
   hard: {},
-  marks: [], // закладки в Коране: [{ id, s, a, p, at, name, g, plan, done, cur }] — план и его выполнение описаны в views/bookmarks.js
+  marks: [], // закладки в Коране: [{ id, s, a, p, at, name, g, plan, done, cur }]. План и его выполнение описаны в views/bookmarks.js
   markGroups: [], // группы закладок: [{ id, name, closed }]
-  qread: { days: {}, goals: 0 }, // чтение Корана: по дням { ms, pages, pp — страницы, прочитанные сегодня } и число выполненных целей
-  readGoal: null, // до 1.18 — общая цель чтения; теперь цели живут в закладках (upgradeGoals)
+  qread: { days: {}, goals: 0 }, // чтение Корана: по дням { ms, pages, pp, страницы, прочитанные сегодня } и число выполненных целей
+  readGoal: null, // до 1.18: общая цель чтения; теперь цели живут в закладках (upgradeGoals)
 });
 
-// Две вкладки приложения (или вкладка и установленное приложение) — два окна с одним хранилищем. Каждое держит прогресс в памяти
-// и записывает его целиком, поэтому перед любым изменением окно берёт из хранилища то, что успело записать другое (pull), —
+// Две вкладки приложения (или вкладка и установленное приложение): два окна с одним хранилищем. Каждое держит прогресс в памяти
+// и записывает его целиком, поэтому перед любым изменением окно берёт из хранилища то, что успело записать другое (pull),:
 // иначе его запись стёрла бы чужую работу: закладку, место чтения, пройденный урок. По той же причине каждое изменение
 // записывается сразу: несохранённое в памяти пропало бы при следующем pull.
 let seen = null; // строка из хранилища, по которой построено то, что сейчас в памяти
@@ -102,7 +102,7 @@ function adopt(target, src) {
 /** Берёт из хранилища запись другого окна. Возвращает true, если данные в памяти обновились. */
 function pull() {
   const raw = stored();
-  if (!raw || raw === seen) return false; // пусто — хранилище очистили: в памяти осталась единственная копия, её и запишем
+  if (!raw || raw === seen) return false; // пусто: хранилище очистили: в памяти осталась единственная копия, её и запишем
   let fresh;
   try { fresh = parse(raw); } catch { return false; }
   adopt(state, fresh);
@@ -111,7 +111,7 @@ function pull() {
 }
 /**
  * 1.18: цели живут в закладках (mark.plan). Старая цель закладки (goal: N страниц за раз) становится планом
- * «читать по порядку, N страниц в день»; общая цель чтения (readGoal) — закладкой «Цель чтения» с таким же планом.
+ * «читать по порядку, N страниц в день»; общая цель чтения (readGoal): закладкой «Цель чтения» с таким же планом.
  */
 function upgradeGoals(s) {
   if (!Array.isArray(s.marks)) s.marks = [];
@@ -123,12 +123,12 @@ function upgradeGoals(s) {
   if (gl && gl.pages) {
     const m = gl.mark && s.marks.find((x) => x.id === gl.mark);
     const page = gl.from + (gl.read || 0) > 604 ? 1 : gl.from + (gl.read || 0);
-    if (m) { // цель закладки: закладка уже стоит на нужном месте, если цель выполнена; иначе — там, где остановились
+    if (m) { // цель закладки: закладка уже стоит на нужном месте, если цель выполнена; иначе, там, где остановились
       m.done = gl.done || 0;
       if (!gl.done && gl.s) Object.assign(m, { s: gl.s, a: gl.a, p: page });
     } else {
       const mark = { id: "goal" + (gl.at || 1).toString(36), s: gl.s || 1, a: gl.a || 1, p: page, at: gl.at || Date.now(), name: "Цель чтения", plan: { k: "seq", unit: "p", n: gl.pages }, done: gl.done || 0 };
-      if (gl.done || !gl.s) mark.byPage = true; // место известно только как страница — сура и аят уточнятся при открытии
+      if (gl.done || !gl.s) mark.byPage = true; // место известно только как страница: сура и аят уточнятся при открытии
       s.marks.unshift(mark);
     }
   }
@@ -144,7 +144,7 @@ function merge(base, x) {
 }
 function save() {
   const raw = JSON.stringify(state);
-  try { localStorage.setItem(KEY, raw); seen = raw; } catch { storageFailed(); } // не записалось — seen прежний: следующий pull не вернёт старое поверх нового
+  try { localStorage.setItem(KEY, raw); seen = raw; } catch { storageFailed(); } // не записалось: seen прежний: следующий pull не вернёт старое поверх нового
   listeners.forEach((f) => f(state));
 }
 // Память браузера закрыта или полна: прогресс живёт только в этом окне и пропадёт вместе с ним. Приложение говорит об этом один раз за запуск.
@@ -158,17 +158,17 @@ export function onStorageFail(fn) { if (failed) fn(); else failListeners.add(fn)
 // Прогресс до загрузки файла: «Вернуть как было» в «Ещё» → «Данные». Одна копия, до возврата или до следующей загрузки.
 const UNDO_KEY = KEY + ".before-import";
 const doneCount = (s) => Object.values(s.lessons || {}).filter((x) => x && x.done && !x.skipped).length;
-/** Прогресс из файла копии; чужой файл — ошибка. */
+/** Прогресс из файла копии; чужой файл: ошибка. */
 function fileState(text) {
   const j = JSON.parse(text);
   const s = j.state || j;
   if (!s || typeof s !== "object" || !("lessons" in s)) throw new Error("Это не файл прогресса TanWin");
   return { state: upgradeGoals(merge(DEFAULT(), migrate(s))), exported: Date.parse(j.exported) || null };
 }
-/** Другое окно записало прогресс — подхватываем сразу (тема, размер текста, закладки), не дожидаясь своей записи. */
+/** Другое окно записало прогресс: подхватываем сразу (тема, размер текста, закладки), не дожидаясь своей записи. */
 function sync() { if (pull()) listeners.forEach((f) => f(state)); }
 globalThis.addEventListener?.("storage", (e) => { if (e.key === KEY || e.key === null) sync(); });
-// окно могло «спать» в памяти телефона и пропустить это событие — сверяемся, когда к нему возвращаются
+// окно могло «спать» в памяти телефона и пропустить это событие: сверяемся, когда к нему возвращаются
 globalThis.addEventListener?.("pageshow", sync);
 globalThis.document?.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") sync(); });
 
@@ -180,9 +180,9 @@ export const store = {
   sync,
   reset() { adopt(state, DEFAULT()); save(); },
   export: () => { pull(); return JSON.stringify({ app: "TanWin", exported: new Date().toISOString(), state }, null, 1); },
-  /** Что в файле копии и что сейчас на устройстве — для вопроса перед заменой. */
+  /** Что в файле копии и что сейчас на устройстве: для вопроса перед заменой. */
   fileInfo(text) { const f = fileState(text); pull(); return { lessons: doneCount(f.state), exported: f.exported, now: doneCount(state) }; },
-  /** Заменяет прогресс файлом. Прежний прогресс сначала откладывается для «Вернуть как было»: не отложился — замены нет. */
+  /** Заменяет прогресс файлом. Прежний прогресс сначала откладывается для «Вернуть как было»: не отложился, замены нет. */
   import(text) {
     const { state: s } = fileState(text);
     pull();
@@ -253,7 +253,7 @@ export function addXp(n) {
   save();
   return ev;
 }
-/** Текущая серия с учётом пропуска: если вчера цель не выполнена — серия обнулилась. */
+/** Текущая серия с учётом пропуска: если вчера цель не выполнена, серия обнулилась. */
 export function streakNow() {
   const s = state.streak;
   if (!s.last) return 0;
@@ -286,7 +286,7 @@ export function readTick(ms, pages = 0) {
   x.ms += ms; x.pages += pages;
   save();
 }
-/** Страница p мусхафа прочитана сегодня. Каждая страница за день считается один раз — и после перезапуска приложения тоже. */
+/** Страница p мусхафа прочитана сегодня. Каждая страница за день считается один раз: и после перезапуска приложения тоже. */
 export function readPage(p) {
   pull();
   const d = today(), x = state.qread.days[d] || (state.qread.days[d] = { ms: 0, pages: 0 });

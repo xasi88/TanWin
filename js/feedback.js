@@ -14,7 +14,7 @@ let screen = { title: "", path: "/" };
 export function setScreen(title, path) { screen = { title: title || "", path: path || "/" }; }
 
 const clip = (t, n = 60) => { t = (t || "").replace(/\s+/g, " ").trim(); return t.length > n ? t.slice(0, n - 1) + "…" : t; };
-/** Описание места: экран, а в уроке — ещё и шаг (заголовок и арабский текст на нём); в Коране — сура и аят. */
+/** Описание места: экран, а в уроке, ещё и шаг (заголовок и арабский текст на нём); в Коране: сура и аят. */
 function where() {
   const parts = [screen.title || screen.path];
   const stage = document.querySelector(".lp-stage");
@@ -39,9 +39,9 @@ function device() {
 // ---------- Окно сообщения ----------
 const KINDS = [
   ["bug", "Ошибка", "Что пошло не так? Например: не играет звук, кнопка не нажимается…"],
-  ["text", "Неточность", "Где неточность — в правиле, транскрипции, переводе, слове?"],
+  ["text", "Неточность", "Где неточность: в правиле, транскрипции, переводе, слове?"],
   ["idea", "Идея", "Что стоит добавить или сделать удобнее?"],
-  ["other", "Другое", "Вопрос, пожелание, отзыв — всё, что хотите сказать"],
+  ["other", "Другое", "Вопрос, пожелание, отзыв: всё, что хотите сказать"],
 ];
 function message(kind, text, place) {
   const name = store.get().profile.name;
@@ -56,7 +56,7 @@ function message(kind, text, place) {
   ].filter((x) => x !== null).join("\n");
 }
 
-/** Окно «Написать разработчику». Экран, шаг урока и версия подставляются сами; отправка — через WhatsApp. */
+/** Окно «Написать разработчику». Экран, шаг урока и версия подставляются сами; отправка: через WhatsApp. */
 export function openFeedback() {
   if (!phone()) { toast("Связь с автором появится в ближайшем обновлении."); return; }
   if (document.querySelector(".fb")) return; // окно уже открыто
@@ -89,10 +89,10 @@ export function openFeedback() {
     sync();
     return h("div.fb", null,
       h("h2", null, "Написать разработчику"),
-      h("p.muted", null, "Ошибка, неточность, идея или пожелание — читаю всё сам. Сообщение откроется в WhatsApp, останется нажать «Отправить»."),
+      h("p.muted", null, "Ошибка, неточность, идея или пожелание: читаю всё сам. Сообщение откроется в WhatsApp, останется нажать «Отправить»."),
       h("div.fb-where", null, icon("target", { size: 16 }), h("span", null, h("b", null, "Вы здесь: "), place)),
       seg, area, send,
-      h("p.muted.small", null, `Экран и версия ${APP_VERSION} добавятся сами — так сразу понятно, о чём речь. Снимок экрана можно приложить уже в WhatsApp.`));
+      h("p.muted.small", null, `Экран и версия ${APP_VERSION} добавятся сами. Так сразу понятно, о чём речь. Снимок экрана можно приложить уже в WhatsApp.`));
   }, { cls: "sheet" });
 }
 
@@ -104,13 +104,13 @@ export function initFeedback() {
   document.body.append(b);
 }
 
-/** Кнопка сообщения автору для страниц (плашка, «Ещё»). Если номер не задан — подсказка вместо кнопки. */
+/** Кнопка сообщения автору для страниц (плашка, «Ещё»). Если номер не задан: подсказка вместо кнопки. */
 export function feedbackButton({ cls = "btn secondary", label = "Сообщить об ошибке" } = {}) {
   if (!phone()) return h("span.muted.small", null, "Связь с автором появится в ближайшем обновлении.");
   return h("button", { type: "button", class: cls, onclick: openFeedback }, icon("chat", { size: 18 }), label);
 }
 
-/** Информационная плашка. dismissible — можно скрыть до следующей версии. */
+/** Информационная плашка. dismissible: можно скрыть до следующей версии. */
 export function devBanner({ dismissible = true } = {}) {
   let hidden = false;
   try { hidden = dismissible && localStorage.getItem(KEY) === APP_VERSION; } catch {}
@@ -119,7 +119,7 @@ export function devBanner({ dismissible = true } = {}) {
     h("span.db-ic", null, icon("bolt", { size: 20 })),
     h("div.db-body", null,
       h("b", null, "Приложение в активной разработке"),
-      h("p", null, `Мы каждый день делаем TanWin лучше. Нашли ошибку, неточность в правиле или неверное слово? Пожалуйста, сообщите ${CONTACT.name} — это очень поможет. Версия ${APP_VERSION}.`),
+      h("p", null, `Мы каждый день делаем TanWin лучше. Нашли ошибку, неточность в правиле или неверное слово? Пожалуйста, сообщите ${CONTACT.name}, это очень поможет. Версия ${APP_VERSION}.`),
       h("div.db-actions", null, feedbackButton({ cls: "btn secondary small-btn" }), h("a.link", { href: "#/changelog" }, "Что нового"))),
     dismissible ? closeX(() => { try { localStorage.setItem(KEY, APP_VERSION); } catch {} box.remove(); }, "Скрыть до следующей версии", "db-x") : null);
   return box;

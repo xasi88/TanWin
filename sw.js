@@ -1,5 +1,5 @@
 // Service worker TanWin: офлайн-режим. Список файлов и версия обновляются командой: node tools/build.mjs
-const VERSION = "2542bf46d3";
+const VERSION = "31ec624d12";
 const CORE = `tanwin-core-${VERSION}`;
 const AUDIO = "tanwin-audio";
 const ROOT = new URL("./", self.location).pathname;
@@ -219,10 +219,10 @@ const AUDIO_HOSTS = ["audio.qurancdn.com", "everyayah.com", "verses.quran.com", 
 const WORDS_HOST = "audio.qurancdn.com"; // записи слов: сохраняются сами при первом прослушивании
 const WORDS_LIMIT = 150 * 1024 * 1024; // предел для них. Суры, скачанные кнопкой, в предел не входят и не удаляются
 
-// На компьютере разработчика код всегда берётся из сети — иначе правки не видны, пока не пересобран список файлов.
+// На компьютере разработчика код всегда берётся из сети: иначе правки не видны, пока не пересобран список файлов.
 const DEV = /^(localhost|127\.\d+\.\d+\.\d+|\[::1\])$/.test(location.hostname);
 
-// Файл для кэша версии: до трёх попыток — на плохой связи один сорвавшийся запрос не должен отменять всю установку.
+// Файл для кэша версии: до трёх попыток, на плохой связи один сорвавшийся запрос не должен отменять всю установку.
 async function grab(c, f) {
   for (let i = 0; ; i++) {
     try {
@@ -242,7 +242,7 @@ self.addEventListener("install", (e) => {
     const c = await caches.open(CORE);
     for (let i = 0; i < FILES.length; i += 8) await Promise.all(FILES.slice(i, i + 8).map((f) => grab(c, f)));
     await keepFonts(c).catch(() => {});
-    // приложение нигде не открыто (открыта только страница для поисковиков или вообще ничего) — прерывать нечего, включаемся сразу
+    // приложение нигде не открыто (открыта только страница для поисковиков или вообще ничего): прерывать нечего, включаемся сразу
     const wins = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     if (!wins.some((w) => APP_PAGES.includes(new URL(w.url).pathname))) self.skipWaiting();
   })());
@@ -345,7 +345,7 @@ self.addEventListener("fetch", (e) => {
   }
   if (url.origin !== location.origin) return;
 
-  // Озвучка букв и слогов: сначала кэш (ответ частями — для Safari)
+  // Озвучка букв и слогов: сначала кэш (ответ частями, для Safari)
   if (url.pathname.includes("/audio/")) {
     e.respondWith(caches.match(url.origin + url.pathname).then((hit) => (hit ? rangeResponse(req, hit) : fetch(req))));
     return;
@@ -355,17 +355,17 @@ self.addEventListener("fetch", (e) => {
     e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((r) => { if (r.ok) { const cp = r.clone(); caches.open(CORE).then((c) => c.put(req, cp)); } return r; })));
     return;
   }
-  // Отдельного приложения «Мой Коран» больше нет (было в 1.22.0–1.22.1): его адрес открывает раздел «Мой Коран» в TanWin
+  // Отдельного приложения «Мой Коран» больше нет (было в 1.22.0-1.22.1): его адрес открывает раздел «Мой Коран» в TanWin
   if (req.mode === "navigate" && url.pathname.startsWith(ROOT + "quran/")) {
     e.respondWith(Response.redirect(ROOT + "#/quran"));
     return;
   }
-  // Страницы для поисковиков (/alfavit/…) — не часть приложения: берём из сети, без связи отправляем в приложение
+  // Страницы для поисковиков (/alfavit/…), не часть приложения: берём из сети, без связи отправляем в приложение
   if (req.mode === "navigate" && !APP_PAGES.includes(url.pathname)) {
     e.respondWith(fetch(req).catch(() => Response.redirect(ROOT)));
     return;
   }
-  // Код, стили и страницы: из кэша этой версии — приложение открывается сразу и не зависит от качества связи.
+  // Код, стили и страницы: из кэша этой версии, приложение открывается сразу и не зависит от качества связи.
   // Обновление приходит целиком: браузер сам проверяет sw.js, новая версия скачивает все файлы и подменяет старую.
   if (!DEV) {
     e.respondWith((async () => {
