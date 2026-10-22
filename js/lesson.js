@@ -8,7 +8,7 @@ import { RULES, parseMarkup, plain, rulesIn } from "./rules.js";
 import { M, syllRu, stripStops } from "./arabic.js";
 import { diagram } from "./diagram.js";
 import { playWord, playAyah, stop, sfx, canRecord, startRecording, stopRecording, envelope, playUrl, playLetter, playSyll } from "./audio.js";
-import { letterIntro, letterForms, harakatTiles, syllTile, blendCard, blendsFor, playAllVowels, spellNote, V3, SYLL_IDS } from "./syllables.js";
+import { letterIntro, letterForms, harakatTiles, syllTile, blendCard, blendsFor, playAllVowels, spellNote, V3, SYLL_IDS, quranWordCard } from "./syllables.js";
 import { knownLetters, UNITS, ALL_LESSONS } from "./course.js";
 import { isInstalled } from "./install.js";
 import { store, addXp, srsSeen, finishLesson, dayGoal, todayDone, hardSeen, lessonDone } from "./store.js";
@@ -155,7 +155,8 @@ async function renderCard(step) {
   const el = h("div.card.theory");
   if (step.icon) el.append(h("div.card-icon", null, step.icon));
   el.append(h("h2", null, mixed(step.title)));
-  for (const p of step.body || []) el.append(h("p", null, rich(p)));
+  // абзац из одного арабского текста в фигурных скобках (строка «Джазарийи» и т. п.) стоит отдельно, справа налево
+  for (const p of step.body || []) el.append(/^\{[^}]+\}$/.test(p) ? h("p.ar-line", { dir: "rtl" }, rich(p)) : h("p", null, rich(p)));
   const extras = h("div.card-extras");
   if (step.big) extras.append(ar(step.big, { cls: "card-big" }));
   if (step.caption) extras.append(h("p.caption", null, step.caption));
@@ -191,7 +192,7 @@ function stopNote(w) {
     : /н$/.test(w.tr) && /(аа|оо)$/.test(w.stop) ? "Фатхатан на остановке звучит долгим «аа»."
     : /н$/.test(w.tr) ? "Танвин на остановке не звучит."
     : "Последняя огласовка на остановке не звучит.";
-  return `Это слово стоит в конце аята, и чтец на нём останавливается. ${rule}`;
+  return mixed(`Это слово стоит в конце аята, и чтец на нём останавливается. ${rule}`); // mixed: буква ة арабским шрифтом
 }
 
 // ---------- Чтение и запись голоса ----------
@@ -312,6 +313,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
       const blends = blendsFor({ ...blendScope(st, lesson), n: st.n || 3 });
       if (blends.length) screens.push({ type: "blend", st, blends });
     }
+    else if (st.t === "quranWord") { if (bank()?.byKey.has(st.key)) screens.push({ type: "quranWord", st }); }
     else screens.push({ type: st.t, st });
   }
   if (!screens.length) { root.replaceChildren(h("div.card", null, h("p", null, "Не удалось подготовить упражнения. Проверьте подключение к интернету."))); return; }
@@ -405,6 +407,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
     else if (s.type === "letter") body = letterCard(s.st.id, { mini: s.st.mini });
     else if (s.type === "letterIntro") body = letterIntro(s.st.id, { more: (id) => { stop(); modal(letterCard(id), { cls: "wide" }); } });
     else if (s.type === "forms") body = letterForms(s.st.id);
+    else if (s.type === "quranWord") body = quranWordCard(s.st.key);
     else if (s.type === "blend") body = blendCard(s.blends, { title: s.st.title, text: s.st.text });
     else if (s.type === "zone") body = zoneCard(s.st.id);
     else if (s.type === "rule") body = ruleCard(s.st.code);

@@ -1,11 +1,11 @@
 // Буква → её звуки → слоги → слова: экраны урока и «кирпичики» для них.
 // Порядок как в классических букварях: сначала сама буква и её формы, потом буква с тремя огласовками,
 // потом слоги складываются в слово. Звук — записи букв и слогов (audio/letters), слова — чтец Корана.
-import { h, ar, tr, icon, rich, modal, gone, shuffle } from "./ui.js";
+import { h, ar, arParts, tr, icon, rich, modal, gone, shuffle } from "./ui.js";
 import { byId, byChar, forms, LETTERS } from "./letters.js";
 import { M, syllRu, clusters } from "./arabic.js";
-import { words } from "./data.js";
-import { playLetter, playSyll, playSeq, syllItem, wordItem, letterAudioUrl, onPlay, playingId, stop } from "./audio.js";
+import { words, bank } from "./data.js";
+import { playLetter, playSyll, playSeq, syllItem, wordItem, letterAudioUrl, onPlay, playingId, stop, playWord } from "./audio.js";
 
 export const VOWELS = {
   fatha: { mark: M.FATHA, ru: "а", name: "фатха", where: "чёрточка сверху" },
@@ -108,6 +108,29 @@ export function letterForms(id) {
     h("div", null,
       h("div.label", null, l.nc ? "В слове: после неё — разрыв" : "Три подряд: начало, середина, конец"),
       h("div.forms-demo", null, ar(demo))));
+}
+
+// ---------- Слово из Корана в конце уроков 3.2-3.8 (с версии 1.35.0, решение автора от 2026-10-22) ----------
+/** Настоящее слово из уже знакомых форм букв: каждая буква своим цветом, под словом те же буквы отдельно.
+ *  Нажатая буква звучит и мигает в слове. Это показ, не задание: отметки не меняются. key: место слова в Коране, как в банке. */
+export function quranWordCard(key) {
+  const w = bank()?.byKey.get(key);
+  if (!w) return null;
+  const [s, a] = key.split("_").map(Number);
+  const cs = clusters(w.d);
+  const ids = [...new Set(cs.map((c) => byChar[c.b]?.id).filter(Boolean))];
+  const word = arParts(h("span.ar.qw-word", { dir: "rtl", lang: "ar" }), cs.map((c) => [c.b + c.m, `qw-c${ids.indexOf(byChar[c.b]?.id)}`]));
+  const blink = (i) => word.querySelectorAll(".qw-c" + i).forEach((el) => { el.classList.remove("blink"); void el.offsetWidth; el.classList.add("blink"); });
+  const tiles = ids.map((id, i) => soundTile(byId[id].ch, null, { play: () => { playLetter(id); blink(i); }, cls: `qw-tile qw-c${i}`, hint: byId[id].name, label: `${byId[id].name}: показать в слове` }));
+  const card = h("div.card.quran-word", null,
+    h("div.li-kicker", null, "Слово из Корана"),
+    h("p", null, "Узнаёте буквы? Это слово из Корана. Читать его пока не нужно. Найдите знакомые буквы. Значки над буквами вы узнаете позже."),
+    h("div.qw-box", null, word, tr(w.tr),
+      h("div.qw-foot", null, h("small.muted", null, `Сура ${s}, аят ${a}`), listenBtn("Послушать", () => playWord(w.a), "w:" + w.a))),
+    h("div.label", null, "Буквы этого слова"),
+    h("div.snd-row.qw-letters", { dir: "rtl", style: { "--n": tiles.length } }, ...tiles));
+  card.autoplay = () => playWord(w.a);
+  return card;
 }
 
 // ---------- Буква с тремя огласовками ----------

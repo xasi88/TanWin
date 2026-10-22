@@ -10,7 +10,7 @@
 :root {
   --bg: #fbf7ef; --bg-2: #f3ebdb; --card: #ffffff; --card-2: #fffaf2; --card-3: #f6f0e4;
   --ink: #1e1b2e; --ink-2: #5a566e; --ink-3: #716c86; --line: #eadfca; --line-2: #dfd2b8;
-  --accent: #0e9f78; --accent-2: #0a7d5e; --accent-soft: #d9f4ea; --accent-ink: #fff;
+  --accent: #0a7559; --accent-2: #085e47; --accent-soft: #d9f4ea; --accent-ink: #fff;
   --gold: #c68a1c; --gold-2: #e8b440; --gold-soft: #fbefd2; --gold-text: #946310; /* мелкий золотой текст — темнее, чтобы читался */
   --good: #16a765; --good-soft: #dcf7e9; --bad: #e0414d; --bad-soft: #fde4e6;
   --shadow: 0 1px 2px rgba(60, 40, 10, .06), 0 6px 22px rgba(60, 40, 10, .07);
@@ -21,6 +21,7 @@
   --c-emerald: #10b981; --c-teal: #0d9488; --c-sky: #0284c7; --c-indigo: #4f46e5; --c-violet: #7c3aed; --c-fuchsia: #c026d3;
   --c-rose: #e11d48; --c-orange: #ea580c; --c-amber: #d97706; --c-lime: #65a30d; --c-green: #16a34a; --c-red: #dc2626;
   --c-cyan: #0891b2; --c-slate: #475569; --c-gold: #c68a1c;
+  --hero-dim: 62%; /* сколько цвета этапа остаётся под белым текстом (остальное чёрный): контраст не меньше 4,5:1 */
   /* цвета таджвида */
   --r-w: #8a8799; --r-l: #8a8799; --r-s: #8a8799;
   --r-n: #b8730a; --r-p: #e46c0a; --r-o: #d21f3c; --r-u: #e0445f; --r-x: #8a0f2a;
@@ -48,7 +49,7 @@
     --logo-in: #0a0f1f; --pattern-op: .07;
     --c-emerald: #34d399; --c-teal: #2dd4bf; --c-sky: #38bdf8; --c-indigo: #818cf8; --c-violet: #a78bfa; --c-fuchsia: #e879f9;
     --c-rose: #fb7185; --c-orange: #fb923c; --c-amber: #fbbf24; --c-lime: #a3e635; --c-green: #4ade80; --c-red: #f87171;
-    --c-cyan: #22d3ee; --c-slate: #94a3b8; --c-gold: #e9b949;
+    --c-cyan: #22d3ee; --c-slate: #94a3b8; --c-gold: #e9b949; --hero-dim: 48%;
     --r-w: #7d84a3; --r-l: #7d84a3; --r-s: #7d84a3;
     --r-n: #f2b640; --r-p: #ff9a3d; --r-o: #ff5c6c; --r-u: #ff7f94; --r-x: #ff3d7a;
     --r-q: #5aa9ff; --r-g: #3ddc84; --r-f: #b38cff; --r-F: #f070e8; --r-i: #37d0f0;
@@ -68,7 +69,7 @@
   --logo-in: #0a0f1f; --pattern-op: .07;
   --c-emerald: #34d399; --c-teal: #2dd4bf; --c-sky: #38bdf8; --c-indigo: #818cf8; --c-violet: #a78bfa; --c-fuchsia: #e879f9;
   --c-rose: #fb7185; --c-orange: #fb923c; --c-amber: #fbbf24; --c-lime: #a3e635; --c-green: #4ade80; --c-red: #f87171;
-  --c-cyan: #22d3ee; --c-slate: #94a3b8; --c-gold: #e9b949;
+  --c-cyan: #22d3ee; --c-slate: #94a3b8; --c-gold: #e9b949; --hero-dim: 48%;
   --r-w: #7d84a3; --r-l: #7d84a3; --r-s: #7d84a3;
   --r-n: #f2b640; --r-p: #ff9a3d; --r-o: #ff5c6c; --r-u: #ff7f94; --r-x: #ff3d7a;
   --r-q: #5aa9ff; --r-g: #3ddc84; --r-f: #b38cff; --r-F: #f070e8; --r-i: #37d0f0;
@@ -274,7 +275,7 @@ body.fullscreen #view { padding-bottom: 0; }
   --hc: var(--accent);
   position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 18px; align-items: center; overflow: hidden;
   color: #fff; text-decoration: none !important; border: 0; padding: 22px;
-  background: radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--hc) 70%, #fff) 0%, var(--hc) 45%, color-mix(in srgb, var(--hc) 65%, #000) 100%);
+  background: radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--hc) var(--hero-dim), #000) 0%, color-mix(in srgb, var(--hc) calc(var(--hero-dim) - 15%), #000) 100%);
   box-shadow: 0 10px 30px color-mix(in srgb, var(--hc) 35%, transparent), inset 0 -5px 0 rgba(0, 0, 0, .15);
   transition: transform .2s var(--ease);
 }
@@ -285,7 +286,7 @@ body.fullscreen #view { padding-bottom: 0; }
 .hero-ar .ar { --s: 2.1rem; color: #fff; line-height: 1; }
 .hero-body h2 { margin: 2px 0 2px; color: #fff; }
 .hero-body p { margin: 0; opacity: .9; }
-.hero-go { grid-column: 2; justify-self: start; --b: #fff !important; --bi: color-mix(in srgb, var(--hc) 80%, #000) !important; --bs: rgba(0, 0, 0, .25) !important; background: #fff !important; border-color: #fff !important; color: color-mix(in srgb, var(--hc) 75%, #000) !important; margin-top: 8px; position: relative; z-index: 1; }
+.hero-go { grid-column: 2; justify-self: start; --b: #fff !important; --bi: color-mix(in srgb, var(--hc) var(--hero-dim), #000) !important; --bs: rgba(0, 0, 0, .25) !important; background: #fff !important; border-color: #fff !important; color: color-mix(in srgb, var(--hc) var(--hero-dim), #000) !important; margin-top: 8px; position: relative; z-index: 1; }
 .hero-card.done { display: block; text-align: center; color: var(--ink); background: var(--card); box-shadow: var(--shadow); }
 .hero-card.done .hero-ar { margin: 0 auto 10px; width: auto; padding: 0 20px; background: var(--gold-soft); border-color: var(--line); }
 .hero-card.done .hero-ar .ar { color: var(--gold); }
@@ -323,7 +324,7 @@ body.fullscreen #view { padding-bottom: 0; }
 .unit-head {
   --hc: var(--accent);
   position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; padding: 18px 16px 18px 22px; border-radius: 24px; color: #fff;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--hc) 88%, #fff), color-mix(in srgb, var(--hc) 80%, #000));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--hc) var(--hero-dim), #000), color-mix(in srgb, var(--hc) calc(var(--hero-dim) - 12%), #000));
   box-shadow: 0 8px 24px color-mix(in srgb, var(--hc) 28%, transparent), inset 0 -4px 0 rgba(0, 0, 0, .14);
 }
 .uh-text { flex: 1; min-width: 0; position: relative; z-index: 1; }
@@ -1156,6 +1157,24 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .snd-row.forms4 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .snd-tile.form-tile .ar { --s: 2.7rem; line-height: 1.9; }
 .snd-tile.form-tile.iso { background: var(--card-2); }
+/* Абзац карточки из одного арабского текста: строка «Джазарийи» в уроках таджвида */
+.card p.ar-line { text-align: center; margin-block: 2px; }
+.card p.ar-line .ar { --s: 1.5em; }
+/* Слово из Корана в конце уроков 3.2-3.8: у каждой буквы свой цвет, в слове и в плитке под ним */
+.quran-word .qw-box { display: grid; justify-items: center; gap: 2px; padding: 6px 10px 10px; margin: 6px 0 12px; border-radius: 20px; background: var(--card-2); }
+.qw-word { --s: 3.6rem; line-height: 1.7; }
+.qw-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 14px; margin-top: 6px; }
+.qw-foot .listen-btn { min-height: 44px; padding: 6px 14px; }
+.snd-row.qw-letters { grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 8px; } /* буквы слова всегда в один ряд */
+.snd-tile.qw-tile .ar { --s: 2.2rem; line-height: 1.7; }
+.qw-word .qw-c0, .qw-tile.qw-c0 .ar { color: var(--c-rose); }
+.qw-word .qw-c1, .qw-tile.qw-c1 .ar { color: var(--c-sky); }
+.qw-word .qw-c2, .qw-tile.qw-c2 .ar { color: var(--c-violet); }
+.qw-word .qw-c3, .qw-tile.qw-c3 .ar { color: var(--c-teal); }
+.qw-word .qw-c4, .qw-tile.qw-c4 .ar { color: var(--c-orange); }
+.qw-word .blink { animation: qwBlink .5s ease-in-out 3; }
+@keyframes qwBlink { 50% { opacity: .12; } }
+@media (prefers-reduced-motion: reduce) { .qw-word .blink { animation-duration: 1.2s; animation-iteration-count: 1; } }
 .forms-demo { display: grid; place-items: center; padding: 6px 12px 10px; border-radius: 18px; background: var(--gold-soft); border: 1px solid color-mix(in srgb, var(--gold) 40%, var(--line)); }
 .forms-demo .ar { --s: 3.2rem; line-height: 1.9; }
 @media (max-width: 380px) { .snd-row.forms4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

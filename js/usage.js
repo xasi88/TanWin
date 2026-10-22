@@ -49,7 +49,15 @@ export function initMetrika(o = {}) {
   if (opts) return;
   opts = o;
   start();
-  store.on(start);
+  store.on(() => { start(); pause(); });
+}
+// Выключили статистику посреди визита: Метрика сама дописывает карту нажатий и время на странице, поэтому
+// останавливаем и её, и PostHog сразу (до 1.35.0 они молчали только со следующего запуска). Включили снова: продолжают.
+function pause() {
+  if (!started || LOCAL) return;
+  const off = !allowed();
+  try { if (METRIKA_ID) window["disableYaCounter" + METRIKA_ID] = off; } catch {}
+  try { if (phReady) off ? window.posthog?.opt_out_capturing() : window.posthog?.opt_in_capturing(); } catch {}
 }
 function start() {
   if (started || !allowed()) return;
@@ -67,7 +75,10 @@ function start() {
     // просмотры экранов отправляем сами. Данные хранятся в localStorage, без cookie.
     if (POSTHOG_KEY) import("./posthog-loader.js").then(() => {
       window.posthog.init(POSTHOG_KEY, { api_host: POSTHOG_HOST, defaults: "2026-05-30", person_profiles: "identified_only", autocapture: false, capture_pageview: false, capture_pageleave: false, disable_session_recording: true, disable_surveys: true, capture_dead_clicks: false, persistence: "localStorage" });
+      // отказ (pause) PostHog помнит в localStorage; раз start() идёт, статистика снова включена
+      if (window.posthog.has_opted_out_capturing?.()) window.posthog.opt_in_capturing();
       phReady = true;
+      pause();
       for (const [method, args] of phQueue.splice(0)) try { toPosthog(method, args); } catch {}
     }).catch(() => {}); // заглушку закрыл блокировщик — работаем без PostHog
   }

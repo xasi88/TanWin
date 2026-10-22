@@ -5,7 +5,7 @@
 
 :root {
   --bg: #fbf7ef; --card: #ffffff; --card-3: #f6f0e4; --ink: #1e1b2e; --ink-2: #5a566e; --line: #eadfca;
-  --accent: #0e9f78; --accent-2: #0a7d5e; --accent-soft: #d9f4ea; --accent-ink: #fff; --gold: #c68a1c; --gold-soft: #fbefd2;
+  --accent: #0a7559; --accent-2: #085e47; --accent-soft: #d9f4ea; --accent-ink: #fff; --gold: #c68a1c; --gold-soft: #fbefd2;
   --shadow: 0 1px 2px rgba(60, 40, 10, .06), 0 6px 22px rgba(60, 40, 10, .07);
 }
 @media (prefers-color-scheme: dark) {
@@ -90,6 +90,7 @@ p .ar, li .ar, summary .ar { font-size: 1.4em; line-height: 1.9; padding: 0 .1em
 h1 .ar, h2 .ar, .lead .ar, .topics .ar, .pager .ar { font-size: 1.25em; line-height: 1.7; padding: 0 .1em; }
 section.card { margin-top: 18px; }
 .theory > :last-child, .rule > :last-child { margin-bottom: 0; }
+.theory p.ar-line { text-align: center; } /* строка «Мукаддимы» отдельной строкой, как в приложении */
 .big { text-align: center; color: var(--gold); margin: 6px 0; }
 .big .ar { font-size: 3rem; line-height: 1.7; }
 .label { font-size: .85rem; font-weight: 800; color: var(--ink-2); margin: 14px 0 8px; }
