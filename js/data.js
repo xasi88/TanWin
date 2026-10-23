@@ -36,7 +36,7 @@ export async function loadBank() {
 }
 let RARE = null;
 /** Примеры редких правил со всего Корана (в учебных сурах их мало). */
-export const rareExamples = (code) => (RARE?.[code] || []).map(([s, a, wi, ws]) => ({ s, a, wi, w: ws[wi], words: ws, codes: rulesIn(ws[wi]) }));
+export const rareExamples = (code) => (RARE?.[code] || []).map(([s, a, wi, ws, seg]) => ({ s, a, wi, w: ws[wi], words: ws, codes: rulesIn(ws[wi]), seg }));
 export const bank = () => BANK;
 
 /**
@@ -104,3 +104,21 @@ export const RECITERS = {
   afasy: { name: "Мишари Рашид аль-Афаси", note: "муратталь, обычный темп", url: (s, a) => `https://verses.quran.com/Alafasy/mp3/${pad(s)}${pad(a)}.mp3`, seg: 3 },
 };
 export { pad };
+
+// Кусок аята голосом Хусари (2.0): пример мадда звучит так, как его читают в аяте. В записи отдельного слова
+// разделённый мадд не тянется: хамзы после него там нет (قَالُوٓا۟ в записи слова 0,9 с, у Хусари перед хамзой 2,4 с).
+// Так же правила нун и мим на стыке слов: в записи отдельного слова нун звучит ясно. Какие правила: SPAN_CODES (js/rules.js).
+// seg: время слов Хусари из data/q (поле 2: начало и конец каждого слова, мс). from, to: номера слов с 0.
+// Возвращает [начало, конец] в мс или null, если время сомнительное: чтец остановился между словами
+// (тогда разделённый мадд не тянется) или повторил слово после паузы (у слова слишком долгое время).
+export function husarySpan(seg, from, to = from, long = false) {
+  if (!seg) return null;
+  for (let i = from; i <= to; i++) {
+    const a = seg[i * 2], b = seg[i * 2 + 1];
+    if (!(a >= 0 && b > a) || b - a > (long ? 9000 : 5000)) return null;
+    if (i > from && a - seg[i * 2 - 1] > 300) return null;
+  }
+  if (seg[to * 2 + 1] - seg[from * 2] > (long ? 12000 : 8000)) return null;
+  return [Math.max(0, seg[from * 2] - 40), seg[to * 2 + 1] + 60];
+}
+export const husaryUrl = (s, a) => RECITERS.husary.url(s, a);

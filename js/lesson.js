@@ -3,11 +3,11 @@ import { h, ar, rich, tr, icon, wordChip, cardTr, playBtn, toast, confetti, ring
 import { build, quiz, ruleIndex, stepForKey } from "./exercises.js";
 import { g, you } from "./speech.js";
 import { byId, forms, POINTS, ZONES, LETTERS } from "./letters.js";
-import { letterExamples, lessonWords, words, minimalPairs, loadSurah, wordKey, rareExamples, bank, alifMaddExamples } from "./data.js";
-import { RULES, parseMarkup, plain, rulesIn } from "./rules.js";
+import { letterExamples, lessonWords, words, minimalPairs, loadSurah, wordKey, rareExamples, bank, alifMaddExamples, husarySpan } from "./data.js";
+import { RULES, plain, rulesIn, onlyRule, causeMarkup, CAUSE_CODES, CAUSE_NOTE, SPAN_CODES } from "./rules.js";
 import { M, syllRu, stripStops } from "./arabic.js";
 import { diagram } from "./diagram.js";
-import { playWord, playAyah, stop, sfx, canRecord, startRecording, stopRecording, envelope, playUrl, playLetter, playSyll } from "./audio.js";
+import { playWord, playAyah, playSpan, stop, sfx, canRecord, startRecording, stopRecording, envelope, playUrl, playLetter, playSyll } from "./audio.js";
 import { letterIntro, letterForms, harakatTiles, syllTile, blendCard, blendsFor, playAllVowels, spellNote, V3, SYLL_IDS, quranWordCard } from "./syllables.js";
 import { knownLetters, UNITS, ALL_LESSONS } from "./course.js";
 import { isInstalled } from "./install.js";
@@ -73,29 +73,54 @@ function zoneCard(id) {
     h("p", null, rich(z.text)));
 }
 
-async function ruleExamples(code, n = 4) {
+async function ruleExamples(code, n = 4, keep = null) {
   const idx = await ruleIndex();
-  let cand = idx.filter((x) => x.codes.includes(code));
-  if (cand.length < n * 2) cand = [...cand, ...rareExamples(code)];
+  let cand = idx.filter((x) => x.codes.includes(code) && (!keep || keep(x)));
+  if (cand.length < n * 2) cand = [...cand, ...rareExamples(code).filter((x) => !keep || keep(x))]; // редкие правила: со всего Корана
   const seen = new Set();
   return shuffle(cand).filter((x) => { const p = plain(x.w); if (seen.has(p)) return false; seen.add(p); return true; }).slice(0, n);
 }
+// Мадд и правила на стыке слов (2.0): пример звучит куском аята голосом Хусари, вместе со следующим словом, если
+// причина в нём. Берутся только примеры с надёжным временем слов (js/data.js → husarySpan).
+const maddSpan = (x, code, c) => husarySpan(x.seg, x.wi, x.wi + (c?.next ? 1 : 0), code === "x");
 function ruleCard(code) {
   const r = RULES[code];
   const exBox = h("div.words-row", null, h("div.skeleton"));
-  ruleExamples(code).then((xs) => exBox.replaceChildren(...xs.map((x) => {
+  const madd = SPAN_CODES.has(code);
+  const keep = CAUSE_CODES.has(code) || madd ? (x) => { const c = causeOf(x, code); return (!CAUSE_CODES.has(code) || !!c) && (!madd || !!maddSpan(x, code, c)); } : null;
+  ruleExamples(code, 4, keep).then((xs) => exBox.replaceChildren(...xs.map((x) => {
     const key = wordKey(x.s, x.a, x.wi + 1);
-    const b = h("button.word-chip.rule-ex", { type: "button" }, ar(stripStops(onlyRuleColored(x.w, code))), h("span.ref", null, `${x.s}:${x.a}`));
-    b.addEventListener("click", () => playWord(key));
+    const c = causeOf(x, code);
+    const text = c ? c.d + (c.next ? " " + c.next : "") : onlyRule(x.w, code);
+    const b = h("button.word-chip.rule-ex", { type: "button" }, ar(stripStops(text)), h("span.ref", null, `${x.s}:${x.a}`));
+    b.addEventListener("click", () => madd ? playSpan(x.s, x.a, x.wi, x.wi + (c?.next ? 1 : 0), { seg: x.seg, long: code === "x" })
+      : playWord(key, c?.next ? { onEnd: () => playWord(wordKey(x.s, x.a, x.wi + 2)) } : {}));
     return b;
   })));
   return h("div.card.rule-card", { style: { "--rc": `var(--r-${code})` } },
     h("div.rc-head", null, h("span.rc-swatch"), h("div", null, h("h2", null, r.name), h("div.muted", null, rich(r.short)))),
     h("p", null, rich(r.text)),
     h("div.label", null, "Примеры из Корана: нажмите, чтобы послушать"),
-    exBox);
+    exBox,
+    CAUSE_CODES.has(code) ? h("p.cause-note", null, CAUSE_NOTE[code]) : null);
 }
-const onlyRuleColored = (w, code) => parseMarkup(w).map(([t, c]) => (c === code ? `[${c}${t}]` : t)).join("");
+// Буква-причина (2.0): хамза мадда, буква с шаддой после обязательного мадда, последняя буква при остановке;
+// у разделённого мадда рядом следующее слово (js/rules.js).
+const causeOf = (x, code) => causeMarkup(x.w, x.words?.[x.wi + 1], code);
+
+// Пример в карточках 2.0: слово (или два слова, если хамза в следующем) звучит по нажатию.
+// Слова из одного аята подряд звучат куском аята голосом Хусари: так слышно правило на стыке слов и длину мадда.
+// solo: записью отдельного слова, как в начале чтения (хамзат-уль-васль звучит только так).
+function exChip(x) {
+  const ws = Array.isArray(x) ? x : [x];
+  const b = h("button.word-chip.case-ex", { type: "button", "aria-label": "Послушать" },
+    ar(ws.map((w) => w.d).join(" ")), h("span.wc-ico", null, icon("vol", { size: 16 })));
+  const k = ws.map((w) => w.a.split("_").map(Number));
+  const one = !ws.some((w) => w.solo) && k.every(([s, a, w], i) => s === k[0][0] && a === k[0][1] && w === k[0][2] + i);
+  const play = (i) => playWord(ws[i].a, i + 1 < ws.length ? { onEnd: () => play(i + 1) } : {});
+  b.addEventListener("click", () => (one ? playSpan(k[0][0], k[0][1], k[0][2] - 1, k[0][2] - 2 + ws.length, { long: !!x.long }) : play(0)));
+  return b;
+}
 
 const MUQ = [["ا[xلٓمٓ]", "002_001_001", "алиф-ляям-миим"], ["ا[xلٓ]ر", "010_001_001", "алиф-ляям-роо"], ["[xكٓ]هي[xعٓصٓ]", "019_001_001", "кааф-хӀаа-йаа-Ӏайн-соод"], ["طه", "020_001_001", "тӀоо-хӀаа"], ["ط[xسٓمٓ]", "026_001_001", "тӀоо-сиин-миим"], ["ي[xسٓ]", "036_001_001", "йаа-сиин"], ["[xصٓ]", "038_001_001", "соод"], ["ح[xمٓ]", "040_001_001", "хьаа-миим"], ["[xعٓسٓقٓ]", "042_002_001", "Ӏайн-сиин-къооф"], ["[xقٓ]", "050_001_001", "къооф"], ["[xنٓ]", "068_001_001", "нуун"]];
 const STOP_SIGNS = [["ۘ", "мим", "обязательная остановка"], ["ۙ", "ля", "не останавливаться"], ["ۚ", "джим", "равнозначно"], ["ۖ", "сыля", "лучше продолжить"], ["ۗ", "кыля", "лучше остановиться"], ["ۛ", "муӀанака", "на одном из двух мест"]];
@@ -154,6 +179,7 @@ function wordsForCard(o) {
 async function renderCard(step) {
   const el = h("div.card.theory");
   if (step.icon) el.append(h("div.card-icon", null, step.icon));
+  if (step.kicker) el.append(h("div.kicker", null, step.kicker));
   el.append(h("h2", null, mixed(step.title)));
   // абзац из одного арабского текста в фигурных скобках (строка «Джазарийи» и т. п.) стоит отдельно, справа налево
   for (const p of step.body || []) el.append(/^\{[^}]+\}$/.test(p) ? h("p.ar-line", { dir: "rtl" }, rich(p)) : h("p", null, rich(p)));
@@ -182,7 +208,16 @@ async function renderCard(step) {
     ...[["Изхар", "ء ه ع ح غ خ", "ясно", "izhar"], ["Идгам", "ي ر م ل و ن", "слияние", "d"], ["Икляб", "ب", "н → м", "i"], ["Ихфа", "15 букв", "скрыто", "f"]]
       .map(([n, l, s, c]) => h("div.rw-cell", { style: { "--rc": c === "izhar" ? "var(--ink-2)" : `var(--r-${c})` } }, h("b", null, n), ar(l), h("small", null, s)))));
   if (step.verse) extras.append(await verseBlock(step.verse, { tapWords: step.tapWords }));
+  // 2.0: примеры в ряд, сравнение (плитки с длиной) и случаи (название, пояснение, примеры)
+  if (step.examples) extras.append(h("div.words-row", null, ...step.examples.map(exChip)));
+  if (step.compare) extras.append(h("div.cmp", { style: { "--n": step.cols || step.compare.length } }, ...step.compare.map((c) =>
+    h("div.cmp-tile", { style: { "--rc": c.code ? `var(--r-${c.code})` : "var(--ink-2)" } }, // без кода: изхар, цветом не отмечается
+      h("div.cmp-num", null, c.num), h("div.cmp-unit", null, c.unit), h("div.cmp-when", null, rich(c.when)), c.ex ? exChip(c.ex) : null))));
+  if (step.cases) extras.append(h("div.cases", null, ...step.cases.map((c) =>
+    h("div.case", { style: { "--rc": c.code ? `var(--r-${c.code})` : "var(--ink-2)" } },
+      h("div.case-txt", null, h("b", null, mixed(c.name)), h("small", null, rich(c.note))), c.ex?.length ? h("div.case-ex", null, ...c.ex.map(exChip)) : null))));
   if (extras.childNodes.length) el.append(extras);
+  if (step.note) el.append(h("p.card-note", null, rich(step.note)));
   return el;
 }
 
@@ -528,7 +563,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
       h("p.muted", null, passed ? (isTest ? "Проверка сдана: следующий этап открыт." : "Новые знания уже в «Практике».") : "Для проверки нужно 80% верных ответов с первой попытки. Повторите и попробуйте снова: вы справитесь."),
       !passed && isTest && id ? easierTest(id, { fromWelcome, events }) : null,
       h("div.res-stats", null,
-        stat("Точность", pct + "%", "target"),
+        stat("Точ­ность", pct + "%", "target"), // мягкий перенос: на 320 точках с крупным текстом слово не влезает в плитку
         stat("Нур", "+" + xp, "nur"),
         stat("Время", fmtTime(ms), "bolt")),
       h("div.res-goal", null, ring(done / goal, { size: 58, stroke: 7, label: done >= goal ? "✓" : `${done}/${goal}` }),

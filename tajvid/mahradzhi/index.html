@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Карта звуков: 5 областей речи | Таджвид</title>
-  <meta name="description" content="Каждая арабская буква рождается в определённом месте речевого аппарата. Это её махрадж.">
+  <meta name="description" content="Нет. У каждой буквы своё место выхода: махрадж.">
   <link rel="canonical" href="https://tanwin.xasi88.ru/tajvid/mahradzhi/">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="TanWin">
   <meta property="og:title" content="Карта звуков: 5 областей речи | Таджвид">
-  <meta property="og:description" content="Каждая арабская буква рождается в определённом месте речевого аппарата. Это её махрадж.">
+  <meta property="og:description" content="Нет. У каждой буквы своё место выхода: махрадж.">
   <meta property="og:url" content="https://tanwin.xasi88.ru/tajvid/mahradzhi/">
   <meta property="og:locale" content="ru_RU">
   <meta property="og:image" content="https://tanwin.xasi88.ru/icons/og.png">
@@ -34,6 +34,15 @@
       <h1>Карта звуков</h1>
       <p class="lead">5 областей речи</p>
       <section class="card theory">
+        <p class="kicker">Частая ошибка</p>
+        <h2>Арабские буквы звучат как русские?</h2>
+        <p>Нет. У каждой буквы своё место выхода: <b>махрадж</b>.</p>
+        <p>Если буква вышла не из своего места, получается другой звук, а нередко и другое слово.</p>
+        <div class="words"><button class="word" type="button" data-play="https://audio.qurancdn.com/wbw/003_091_020.mp3"><span class="ar" lang="ar" dir="rtl"><span class="tj r-C">أَ</span>لِيمٌ</span></button><button class="word" type="button" data-play="https://audio.qurancdn.com/wbw/016_070_019.mp3"><span class="ar" lang="ar" dir="rtl"><span class="tj r-C">عَ‍</span>‍لِيمٌ</span></button></div>
+        <p class="note"><span class="ar" lang="ar" dir="rtl">أَلِيمٌ</span>: «мучительный», <span class="ar" lang="ar" dir="rtl">عَلِيمٌ</span>: «знающий». Смысл меняет одна буква.</p>
+      </section>
+      <section class="card theory">
+        <p class="kicker">Главное правило</p>
         <h2>Махрадж: «место выхода»</h2>
         <p>Каждая арабская буква рождается в определённом месте речевого аппарата. Это её <b>махрадж</b>.</p>
         <p>По мнению Ибн аль-Джазари и большинства учёных таджвида, областей <b>5</b>, а точек <b>17</b>. Есть и другие мнения о числе точек. Если буква вышла «не из своего места», это уже другой звук, а нередко и другое слово.</p>
@@ -94,10 +103,17 @@
   </footer>
   <script>
 (function () {
-  var a = new Audio();
+  var a = new Audio(), tick = 0;
   document.addEventListener("click", function (e) {
     var b = e.target.closest("[data-play]");
-    if (b) { a.src = b.getAttribute("data-play"); a.play().catch(function () {}); }
+    if (b) {
+      var nx = b.getAttribute("data-next"); // два слова подряд: хамза разделённого мадда в следующем слове
+      var from = +b.getAttribute("data-from") || 0, to = +b.getAttribute("data-to") || 0; // кусок аята, мс
+      clearInterval(tick);
+      if (to) tick = setInterval(function () { if (a.currentTime * 1000 >= to) { a.pause(); clearInterval(tick); } }, 20);
+      a.onended = nx ? function () { a.onended = null; a.src = nx; a.play().catch(function () {}); } : null;
+      a.src = b.getAttribute("data-play") + (from ? "#t=" + (from / 1000).toFixed(2) : ""); a.play().catch(function () {});
+    }
     if (e.target.closest("[data-app]")) {
       if (window.ym) ym(113307386, "reachGoal", "page_to_app", { "Страница": location.pathname });
       if (window.posthog) posthog.capture("page_to_app", { "Страница": location.pathname });

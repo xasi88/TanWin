@@ -1,5 +1,6 @@
 // Правила таджвида, отмеченные в разметке Quran.com (мусхаф Мадина, Хафс от Асыма через аш-Шатыбию).
 // Коды совпадают с tools/qdata/build.mjs (RULE_CODES). Цвета: CSS-переменные --r-<код> в app.css.
+import { isMarkCh, stripStops } from "./arabic.js";
 
 export const RULES = {
   w: { name: "Хамзат-уль-васль", short: "Не читается при слитном чтении", fam: "silent",
@@ -66,3 +67,82 @@ export function parseMarkup(s) {
 }
 export const plain = (s) => s.replace(/\[[a-zA-Z]/g, "").replace(/\]/g, "");
 export const rulesIn = (s) => [...new Set([...s.matchAll(/\[([a-zA-Z])/g)].map((m) => m[1]))];
+export const onlyRule = (w, code) => parseMarkup(w).map(([t, c]) => (c === code ? `[${c}${t}]` : t)).join("");
+
+// Буква-причина (2.0): хамза, из-за которой мадд тянется на 4-5 харакатов, в разметке [C…] (подсветка в css).
+// Слово w раскрашено только правилом code. Хамза разделённого мадда стоит в начале следующего слова next:
+// оно возвращается рядом. Нет такой хамзы: null. Разделённый мадд «по смыслу» (يَـٰٓأَيُّهَا, هَـٰٓؤُلَآءِ:
+// хамза в том же написании, tools/qdata/build.mjs) в обычные примеры не идёт: он путает новичка.
+// Обязательный мадд (x): причина в букве с шаддой или сукуном после буквы мадда. Мадд при остановке (p): в последней
+// букве слова, она получает сукун. Буквы в начале сур (الٓمٓ) причины не показывают: там мадд в названии буквы.
+// Нун сакина и танвин (f, i, d, D), мим сакина (F, h): причина в следующей букве. На стыке слов это первая буква
+// следующего слова (оно возвращается рядом), в одном слове: буква после нун (أَنتُمۡ). Слово, где правило только
+// начинается (вторая половина стыка, [fش]َرِّ), примером не бывает: нун там нет.
+export const NEXT_CODES = new Set(["f", "i", "d", "D", "F", "h"]);
+// Солнечная лям (l): причина в букве после лям, она с шаддой: ٱلشَّمۡسُ.
+// Слияние однородных и близких букв (j, k): причина в следующей букве с шаддой, в том же слове или в следующем.
+export const MERGE_CODES = new Set(["j", "k"]);
+export const CAUSE_CODES = new Set(["o", "u", "x", "p", "l", ...NEXT_CODES, ...MERGE_CODES]);
+// Примеры этих правил звучат куском аята голосом Хусари (js/data.js → husarySpan): мадды и правила на стыке слов
+export const SPAN_CODES = new Set(["n", "p", "o", "u", "x", ...NEXT_CODES, ...MERGE_CODES]);
+const NUN_NOTE = "Подсвечена буква после нун: она решает, как читается нун.";
+const MIM_NOTE = "Подсвечена буква после мим: она решает, как читается мим.";
+export const CAUSE_NOTE = {
+  o: "Подсвечена хамза: из-за неё гласная тянется дольше.",
+  u: "Подсвечена хамза: из-за неё гласная тянется дольше.",
+  x: "Подсвечена буква с шаддой или сукуном: из-за неё мадд тянется на 6 харакатов.",
+  p: "Подсвечена последняя буква: на остановке она получает сукун, поэтому мадд можно тянуть дольше.",
+  l: "Подсвечена буква после лям: она получает шадду, а лям не читается.",
+  j: "Подсвечена буква с шаддой: в неё переходит первая буква.",
+  k: "Подсвечена буква с шаддой: в неё переходит первая буква.",
+  f: NUN_NOTE, i: NUN_NOTE, d: NUN_NOTE, D: NUN_NOTE, F: MIM_NOTE, h: MIM_NOTE,
+};
+const HAMZA = /[ءأإؤئ]/;
+const withMarks = (s, i) => { let j = i + 1; while (j < s.length && isMarkCh(s[j])) j++; return j; };
+// Первая буква начиная с i: огласовки, татвиль и скобки разметки пропускаются
+function letterAt(s, i) {
+  while (i < s.length && (isMarkCh(s[i]) || s[i] === "ـ" || s[i] === "‌" || s[i] === "]" || (s[i] === "[" && /[a-zA-Z]/.test(s[i + 1] || "")))) i += s[i] === "[" ? 2 : 1;
+  return i < s.length ? i : -1;
+}
+// Буква со своими знаками в первом слове строки p (разметка уже снята): «[Cش]َرِّ»
+const firstC = (p) => { const i = letterAt(p, 0); if (i < 0) return null; const j = withMarks(p, i); return `${p.slice(0, i)}[C${p.slice(i, j)}]${p.slice(j)}`; };
+export function causeMarkup(word, next, code) {
+  if (!CAUSE_CODES.has(code)) return null;
+  const w = onlyRule(word, code);
+  if (NEXT_CODES.has(code)) {
+    const a = w.lastIndexOf("[" + code), b = w.indexOf("]", a);
+    if (a < 0 || b < 0) return null;
+    const head = plain(w.slice(0, a)), run = w.slice(a + 2, b); // раньше в слове цветом только это правило
+    // буквы правила; алиф или алиф максура после танвина (رًا) отдельной буквой не считаются
+    const k = [...run].map((c, i) => (isMarkCh(c) || (/[اى]/.test(c) && /[ًٌٍۭۢ]/.test(run.slice(0, i))) ? -1 : i)).filter((i) => i >= 0);
+    if (k.length >= 2) { // в одном слове: [fنت]ُمۡ → [fن][Cتُ]مۡ (буква после нун и её огласовки)
+      const c = k[k.length - 1], j = withMarks(w, b + 1);
+      return { d: `${head}[${code}${run.slice(0, c)}][C${run.slice(c)}${w.slice(b + 1, j)}]${w.slice(j)}` };
+    }
+    if (letterAt(w, b + 1) >= 0 || !/[نمًٌٍۭۢ]/.test(run)) return null; // нун или мим (танвин) не в конце слова
+    const n = next ? firstC(stripStops(plain(next))) : null; // правило на стыке слов
+    return n ? { d: head + w.slice(a), next: n } : null;
+  }
+  if (MERGE_CODES.has(code)) {
+    const a = w.lastIndexOf("[" + code), b = w.indexOf("]", a);
+    const i = b < 0 ? -1 : letterAt(w, b + 1);
+    if (i >= 0) { const j = withMarks(w, i), mark = w.slice(i, j); return mark.includes("ّ") ? { d: `${w.slice(0, i)}[C${mark}]${w.slice(j)}` } : null; }
+    const n = next ? firstC(stripStops(plain(next))) : null;
+    return n && /\[C[^\]]*ّ/.test(n) ? { d: w, next: n } : null;
+  }
+  if (code !== "u") {
+    const end = w.indexOf("]");
+    const i = end < 0 ? -1 : letterAt(w, end + 1);
+    if (i < 0) return null;
+    const j = withMarks(w, i), mark = w.slice(i, j);
+    if (code === "o" && !HAMZA.test(w[i])) return null;
+    if (code === "x" && !/[ّْۡ]/.test(mark)) return null;
+    if (code === "l" && !mark.includes("ّ")) return null;
+    if (code === "p" && letterAt(w, j) >= 0) return null; // после неё ещё буквы: это не последняя
+    return { d: `${w.slice(0, i)}[C${mark}]${w.slice(j)}` };
+  }
+  const p = next ? stripStops(plain(next)) : "";
+  if (!HAMZA.test(p[0] || "")) return null;
+  const j = withMarks(p, 0);
+  return { d: w, next: `[C${p.slice(0, j)}]${p.slice(j)}` };
+}

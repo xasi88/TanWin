@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Мадда ـٓ: Волнистая черта | Таджвид</title>
-  <meta name="description" content="Волнистая черта ٓ над буквой мадда означает долгое удлинение, больше двух харакатов: جَآءَ, ٱلسَّمَآءِ, ٱلضَّآلِّينَ.">
+  <meta name="description" content="Знак мадда: волнистая черта над буквой мадда значит, что гласную тянут дольше двух харакатов, на 4, 5 или 6.">
   <link rel="canonical" href="https://tanwin.xasi88.ru/tajvid/madda/">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="TanWin">
   <meta property="og:title" content="Мадда ـٓ: Волнистая черта | Таджвид">
-  <meta property="og:description" content="Волнистая черта ٓ над буквой мадда означает долгое удлинение, больше двух харакатов: جَآءَ, ٱلسَّمَآءِ, ٱلضَّآلِّينَ.">
+  <meta property="og:description" content="Знак мадда: волнистая черта над буквой мадда значит, что гласную тянут дольше двух харакатов, на 4, 5 или 6.">
   <meta property="og:url" content="https://tanwin.xasi88.ru/tajvid/madda/">
   <meta property="og:locale" content="ru_RU">
   <meta property="og:image" content="https://tanwin.xasi88.ru/icons/og.png">
@@ -34,9 +34,21 @@
       <h1>Мадда <span class="ar" lang="ar" dir="rtl">ـٓ</span></h1>
       <p class="lead">Волнистая черта</p>
       <section class="card theory">
+        <p class="kicker">Частая ошибка</p>
+        <h2>Волнистая черта: обычные 2 хараката?</h2>
+        <p>Нет. Знак <span class="ar" lang="ar" dir="rtl">ـٓ</span> над буквой мадда значит: тянуть <b>дольше</b> двух харакатов.</p>
+        <div class="words"><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/002030.mp3" data-from="970" data-to="1960"><span class="ar" lang="ar" dir="rtl">قَ‍<span class="tj r-n">‍ا</span>لَ</span></button><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/110001.mp3" data-from="1100" data-to="3190"><span class="ar" lang="ar" dir="rtl"><span class="tj r-o">جَآ</span>ءَ</span></button></div>
+      </section>
+      <section class="card theory">
+        <p class="kicker">Главное правило</p>
+        <h2>Без знака и со знаком</h2>
+        
+        <div class="cmp" style="--n:2"><div style="--rc:var(--r-n)"><b>2</b><small>хараката</small><span>Без знака</span><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/002030.mp3" data-from="970" data-to="1960"><span class="ar" lang="ar" dir="rtl">قَ‍<span class="tj r-n">‍ا</span>لَ</span></button></div><div style="--rc:var(--r-o)"><b>4-6</b><small>харакатов</small><span>Со знаком <span class="ar" lang="ar" dir="rtl">ـٓ</span></span><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/110001.mp3" data-from="1100" data-to="3190"><span class="ar" lang="ar" dir="rtl"><span class="tj r-o">جَآ</span>ءَ</span></button></div></div>
+        <p class="note">Сколько именно, 4, 5 или 6, разберём в разделе «Мадды».</p>
+      </section>
+      <section class="card theory">
         <h2>Знак мадда</h2>
-        <p>Волнистая черта <span class="ar" lang="ar" dir="rtl">ـٓ</span> над буквой мадда означает <b>долгое удлинение</b>, больше двух харакатов: <span class="ar" lang="ar" dir="rtl">جَآءَ</span>, <span class="ar" lang="ar" dir="rtl">ٱلسَّمَآءِ</span>, <span class="ar" lang="ar" dir="rtl">ٱلضَّآلِّينَ</span>.</p>
-        <p>Сколько именно тянуть (4, 5 или 6 харакатов), разберём в этапе «Мадды».</p>
+        
         
       </section>
       <section class="card cta">
@@ -57,10 +69,17 @@
   </footer>
   <script>
 (function () {
-  var a = new Audio();
+  var a = new Audio(), tick = 0;
   document.addEventListener("click", function (e) {
     var b = e.target.closest("[data-play]");
-    if (b) { a.src = b.getAttribute("data-play"); a.play().catch(function () {}); }
+    if (b) {
+      var nx = b.getAttribute("data-next"); // два слова подряд: хамза разделённого мадда в следующем слове
+      var from = +b.getAttribute("data-from") || 0, to = +b.getAttribute("data-to") || 0; // кусок аята, мс
+      clearInterval(tick);
+      if (to) tick = setInterval(function () { if (a.currentTime * 1000 >= to) { a.pause(); clearInterval(tick); } }, 20);
+      a.onended = nx ? function () { a.onended = null; a.src = nx; a.play().catch(function () {}); } : null;
+      a.src = b.getAttribute("data-play") + (from ? "#t=" + (from / 1000).toFixed(2) : ""); a.play().catch(function () {});
+    }
     if (e.target.closest("[data-app]")) {
       if (window.ym) ym(113307386, "reachGoal", "page_to_app", { "Страница": location.pathname });
       if (window.posthog) posthog.capture("page_to_app", { "Страница": location.pathname });

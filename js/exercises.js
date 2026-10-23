@@ -2,11 +2,11 @@
 // { kind, key, prompt(): Node, options?: [{node(), correct, label}], layout, play?(), explain?, after?(): Node, custom?(api): Node }
 import { LETTERS, byId, byChar, SHAPE_FAMILIES, SOUND_PAIRS, HEAVY, forms, ZONES, POINTS } from "./letters.js";
 import { syllRu, clusters, M, translit, analyze, stripStops, waqfTr } from "./arabic.js";
-import { words, lessonWords, letterExamples, minimalPairs, loadSurah, bank, rareExamples } from "./data.js";
-import { RULES, parseMarkup, plain, rulesIn } from "./rules.js";
+import { words, lessonWords, letterExamples, minimalPairs, loadSurah, bank, rareExamples, husarySpan } from "./data.js";
+import { RULES, parseMarkup, plain, rulesIn, causeMarkup, NEXT_CODES, SPAN_CODES } from "./rules.js";
 import { SURAH_PATH, knownLetters } from "./course.js";
 import { h, ar, arParts, tr, icon, shuffle, pick, sample, wordChip, rich } from "./ui.js";
-import { playWord, preloadWord, playLetter, playSyll, preloadLetter } from "./audio.js";
+import { playWord, playSpan, preloadWord, playLetter, playSyll, preloadLetter } from "./audio.js";
 import { syllText as sylAr, syllTr as sylRu, blendsFor, blendBoard, blendTr, playBlend, V3, VOWELS, SYLL_IDS } from "./syllables.js";
 import { diagram, spreadChoices } from "./diagram.js";
 
@@ -391,7 +391,7 @@ export async function ruleIndex() {
   if (IDX) return IDX;
   const out = [];
   const surahs = await Promise.all(SURAH_PATH.map((s) => loadSurah(s).then((d) => [s, d])));
-  for (const [s, d] of surahs) d.v.forEach((v, ai) => v[0].forEach((w, wi) => out.push({ s, a: ai + 1, wi, w, words: v[0], codes: rulesIn(w) })));
+  for (const [s, d] of surahs) d.v.forEach((v, ai) => v[0].forEach((w, wi) => out.push({ s, a: ai + 1, wi, w, words: v[0], codes: rulesIn(w), seg: v[2] })));
   IDX = out;
   return out;
 }
@@ -402,7 +402,7 @@ G.ruleSpot = async (o) => {
   const idx = await ruleIndex();
   // аяты, где правило есть, но не во всех словах, и аят не слишком длинный
   const verses = new Map();
-  for (const x of idx) { const k = x.s + ":" + x.a; if (!verses.has(k)) verses.set(k, { s: x.s, a: x.a, words: x.words }); }
+  for (const x of idx) { const k = x.s + ":" + x.a; if (!verses.has(k)) verses.set(k, { s: x.s, a: x.a, words: x.words, seg: x.seg }); }
   const cand = [...verses.values()].filter((v) => {
     if (o.surah && v.s !== o.surah) return false;
     const hits = v.words.filter((w) => rulesIn(w).includes(o.code)).length;
@@ -424,7 +424,10 @@ G.ruleSpot = async (o) => {
             if (rulesIn(ww).includes(o.code)) { bb.replaceChildren(ar(stripStops(onlyRule(ww, o.code)))); bb.classList.add("hit"); }
           });
           if (!has) b.classList.add("miss");
-          playWord(wkey(v, wi));
+          // мадд и правила на стыке слов звучат куском аята голосом Хусари, со следующим словом (js/data.js → husarySpan)
+          const two = has && (o.code === "u" || !!causeMarkup(w, v.words[wi + 1], o.code)?.next) && wi + 1 < v.words.length;
+          if (SPAN_CODES.has(o.code)) playSpan(v.s, v.a, wi, wi + (two ? 1 : 0), { seg: v.seg, long: o.code === "x" });
+          else playWord(wkey(v, wi));
           api.answer(has);
         });
         box.append(b);
@@ -443,6 +446,10 @@ const pickRuleWords = async (codes, n) => {
   for (const c of per) {
     let cand = idx.filter((x) => x.codes.includes(c));
     if (cand.length < 6) cand = [...cand, ...rareExamples(c)];
+    // нун и мим: только слова, где правило начинается (нун или мим в этом слове), а не вторая половина стыка
+    if (NEXT_CODES.has(c)) { const ok = cand.filter((x) => causeMarkup(x.w, x.words[x.wi + 1], c)); if (ok.length) cand = ok; }
+    // мадд и правила на стыке: только примеры, которые звучат куском аята с надёжным временем слов
+    if (SPAN_CODES.has(c)) { const ok = cand.filter((x) => husarySpan(x.seg, x.wi, x.wi + (c === "u" || NEXT_CODES.has(c) ? 1 : 0), c === "x")); if (ok.length) cand = ok; }
     const x = pick(cand);
     if (x) out.push({ x, c });
   }
@@ -458,10 +465,12 @@ function ruleSnippet(x, code, { colors = false } = {}) {
   if (!cross && prev && Math.random() < 0.3) seq.push([prev, x.wi - 1, false]);
   seq.push([x.w, x.wi, true]);
   if (cross && next) seq.push([next, x.wi + 1, true]);
+  // мадд и правила на стыке: любое слово отрывка проигрывает весь отрывок куском аята голосом Хусари
+  const span = () => playSpan(x.s, x.a, seq[0][1], seq[seq.length - 1][1], { seg: x.seg, long: code === "x" });
   for (const [w, wi, main] of seq) {
     const el = arParts(h("span.sn-word"), parseMarkup(stripStops(w)).map(([t, c]) => [t, c === code && main ? (colors ? `tj r-${c}` : "hl") : ""]));
     const b = h("button.sn-btn", { type: "button", "aria-label": "Послушать" }, h("span.ar", { dir: "rtl", lang: "ar" }, el));
-    b.addEventListener("click", () => playWord(wkey(x, wi)));
+    b.addEventListener("click", () => (SPAN_CODES.has(code) ? span() : playWord(wkey(x, wi))));
     box.append(b);
   }
   return h("div.q-center", null, box, h("div.verse-ref", null, `Сура ${x.s}, аят ${x.a}`));
@@ -506,7 +515,7 @@ G.nunRule = async (o) => {
         const parts = parseMarkup(stripStops(w));
         const el = arParts(h("span.sn-word"), parts.map(([t], i) => [t, (j === 0 && i === parts.length - 1) || (j === 1 && i === 0 && k !== "izhar") ? "hl" : ""]));
         const btn = h("button.sn-btn", { type: "button" }, h("span.ar", { dir: "rtl", lang: "ar" }, el));
-        btn.addEventListener("click", () => playWord(wkey(x, wi)));
+        btn.addEventListener("click", () => playSpan(x.s, x.a, x.wi, x.wi + 1, { seg: x.seg })); // правило на стыке: оба слова куском аята
         b.append(btn);
       });
       return h("div.q-center", null, b, h("div.verse-ref", null, `Сура ${x.s}, аят ${x.a}`));

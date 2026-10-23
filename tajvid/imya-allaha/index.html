@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Имя Аллаха: Тяжёлая и лёгкая лям | Таджвид</title>
-  <meta name="description" content="После фатхи или даммы лям в имени Аллаха тяжёлая, глубокая: قَالَ ٱللَّهُ «къоола-ЛЛОХӀу», هُوَ ٱللَّهُ.">
+  <meta name="description" content="Лям в имени Аллаха: после фатхи или даммы и в начале чтения тяжёлая, после касры лёгкая. Всё решает гласная перед словом.">
   <link rel="canonical" href="https://tanwin.xasi88.ru/tajvid/imya-allaha/">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="TanWin">
   <meta property="og:title" content="Имя Аллаха: Тяжёлая и лёгкая лям | Таджвид">
-  <meta property="og:description" content="После фатхи или даммы лям в имени Аллаха тяжёлая, глубокая: قَالَ ٱللَّهُ «къоола-ЛЛОХӀу», هُوَ ٱللَّهُ.">
+  <meta property="og:description" content="Лям в имени Аллаха: после фатхи или даммы и в начале чтения тяжёлая, после касры лёгкая. Всё решает гласная перед словом.">
   <meta property="og:url" content="https://tanwin.xasi88.ru/tajvid/imya-allaha/">
   <meta property="og:locale" content="ru_RU">
   <meta property="og:image" content="https://tanwin.xasi88.ru/icons/og.png">
@@ -34,11 +34,16 @@
       <h1>Имя Аллаха</h1>
       <p class="lead">Тяжёлая и лёгкая лям</p>
       <section class="card theory">
-        <h2>Лям в слове «Аллах»</h2>
-        <p>После <b>фатхи</b> или <b>даммы</b> лям в имени Аллаха тяжёлая, глубокая: <span class="ar" lang="ar" dir="rtl">قَالَ ٱللَّهُ</span> «къоола-ЛЛОХӀу», <span class="ar" lang="ar" dir="rtl">هُوَ ٱللَّهُ</span>.</p>
-        <p>После <b>касры</b> лёгкая, тонкая: <span class="ar" lang="ar" dir="rtl">بِسۡمِ ٱللَّهِ</span> «бисми-лляхӀи», <span class="ar" lang="ar" dir="rtl">لِلَّهِ</span>.</p>
-        <p>В начале чтения (<span class="ar" lang="ar" dir="rtl">ٱللَّهُ</span>) тяжёлая.</p>
-        <div class="big"><span class="ar" lang="ar" dir="rtl">ٱللَّهُ   لِلَّهِ</span></div>
+        <p class="kicker">Частая ошибка</p>
+        <h2>Лям в слове «Аллах» всегда звучит одинаково?</h2>
+        <p>Нет. Она бывает тяжёлой и лёгкой. Всё решает гласная <b>перед</b> словом.</p>
+        <div class="words"><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/112001.mp3" data-from="680" data-to="2510"><span class="ar" lang="ar" dir="rtl">هُ‍<span class="tj r-C">‍وَ</span> ٱللَّهُ</span></button><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/001001.mp3" data-from="0" data-to="1580"><span class="ar" lang="ar" dir="rtl">بِسۡ‍<span class="tj r-C">‍مِ</span> ٱللَّهِ</span></button></div>
+      </section>
+      <section class="card theory">
+        <p class="kicker">Главное правило</p>
+        <h2>Тяжёлая или лёгкая</h2>
+        
+        <div class="cases"><div class="case" style="--rc:var(--ink-2)"><b>Тяжёлая, глубокая</b><small>После фатхи или даммы и в начале чтения</small><div class="words"><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/112001.mp3" data-from="680" data-to="2510"><span class="ar" lang="ar" dir="rtl">هُ‍<span class="tj r-C">‍وَ</span> ٱللَّهُ</span></button></div></div><div class="case" style="--rc:var(--ink-2)"><b>Лёгкая, тонкая</b><small>После касры: <span class="ar" lang="ar" dir="rtl">بِسۡمِ ٱللَّهِ</span> «бисми-лляхӀи»</small><div class="words"><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/001001.mp3" data-from="0" data-to="1580"><span class="ar" lang="ar" dir="rtl">بِسۡ‍<span class="tj r-C">‍مِ</span> ٱللَّهِ</span></button><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/001002.mp3" data-from="1030" data-to="2010"><span class="ar" lang="ar" dir="rtl"><span class="tj r-C">لِ‍</span>‍لَّهِ</span></button></div></div></div>
       </section>
       <section>
         <h2>Проверьте себя</h2>
@@ -63,10 +68,17 @@
   </footer>
   <script>
 (function () {
-  var a = new Audio();
+  var a = new Audio(), tick = 0;
   document.addEventListener("click", function (e) {
     var b = e.target.closest("[data-play]");
-    if (b) { a.src = b.getAttribute("data-play"); a.play().catch(function () {}); }
+    if (b) {
+      var nx = b.getAttribute("data-next"); // два слова подряд: хамза разделённого мадда в следующем слове
+      var from = +b.getAttribute("data-from") || 0, to = +b.getAttribute("data-to") || 0; // кусок аята, мс
+      clearInterval(tick);
+      if (to) tick = setInterval(function () { if (a.currentTime * 1000 >= to) { a.pause(); clearInterval(tick); } }, 20);
+      a.onended = nx ? function () { a.onended = null; a.src = nx; a.play().catch(function () {}); } : null;
+      a.src = b.getAttribute("data-play") + (from ? "#t=" + (from / 1000).toFixed(2) : ""); a.play().catch(function () {});
+    }
     if (e.target.closest("[data-app]")) {
       if (window.ym) ym(113307386, "reachGoal", "page_to_app", { "Страница": location.pathname });
       if (window.posthog) posthog.capture("page_to_app", { "Страница": location.pathname });

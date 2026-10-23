@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Гунна в نّ и مّ: Носовой звук | Таджвид</title>
-  <meta name="description" content="Когда шадда стоит на ن или م, звук тянется через нос на 2 хараката. Это гунна: إِنَّ «ин-н-на», ثُمَّ «сум-м-ма».">
+  <meta name="description" content="Нет. На ن и م шадда даёт гунну: звук тянется через нос на 2 хараката.">
   <link rel="canonical" href="https://tanwin.xasi88.ru/tajvid/gunna/">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="TanWin">
   <meta property="og:title" content="Гунна в نّ и مّ: Носовой звук | Таджвид">
-  <meta property="og:description" content="Когда шадда стоит на ن или م, звук тянется через нос на 2 хараката. Это гунна: إِنَّ «ин-н-на», ثُمَّ «сум-м-ма».">
+  <meta property="og:description" content="Нет. На ن и م шадда даёт гунну: звук тянется через нос на 2 хараката.">
   <meta property="og:url" content="https://tanwin.xasi88.ru/tajvid/gunna/">
   <meta property="og:locale" content="ru_RU">
   <meta property="og:image" content="https://tanwin.xasi88.ru/icons/og.png">
@@ -34,10 +34,17 @@
       <h1>Гунна в <span class="ar" lang="ar" dir="rtl">نّ</span> и <span class="ar" lang="ar" dir="rtl">مّ</span></h1>
       <p class="lead">Носовой звук</p>
       <section class="card theory">
-        <h2>Шадда + гунна</h2>
-        <p>Когда шадда стоит на <span class="ar" lang="ar" dir="rtl">ن</span> или <span class="ar" lang="ar" dir="rtl">م</span>, звук тянется через нос на <b>2 хараката</b>. Это <b>гунна</b>: <span class="ar" lang="ar" dir="rtl">إِنَّ</span> «ин-н-на», <span class="ar" lang="ar" dir="rtl">ثُمَّ</span> «сум-м-ма».</p>
-        <p>Проверка: зажмите нос, и звук должен «упереться».</p>
-        <div class="big"><span class="ar" lang="ar" dir="rtl">إِنَّ  ثُمَّ</span></div>
+        <p class="kicker">Частая ошибка</p>
+        <h2>Шадда на <span class="ar" lang="ar" dir="rtl">ن</span> и <span class="ar" lang="ar" dir="rtl">م</span> как у других букв?</h2>
+        <p>Нет. На <span class="ar" lang="ar" dir="rtl">ن</span> и <span class="ar" lang="ar" dir="rtl">م</span> шадда даёт <b>гунну</b>: звук тянется через нос на 2 хараката.</p>
+        <div class="words"><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/108003.mp3" data-from="160" data-to="1360"><span class="ar" lang="ar" dir="rtl">إِ<span class="tj r-g">نَّ</span></span></button><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/102004.mp3" data-from="260" data-to="1420"><span class="ar" lang="ar" dir="rtl">ثُ‍<span class="tj r-g">‍مَّ</span></span></button><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/114001.mp3" data-from="3020" data-to="4880"><span class="ar" lang="ar" dir="rtl">ٱل‍<span class="tj r-g">‍نَّ‍</span>‍اسِ</span></button></div>
+      </section>
+      <section class="card theory">
+        <p class="kicker">Главное правило</p>
+        <h2>Носовой звук</h2>
+        
+        <div class="cmp" style="--n:1"><div style="--rc:var(--r-g)"><b>2</b><small>хараката гунны</small><span><span class="ar" lang="ar" dir="rtl">نّ</span> или <span class="ar" lang="ar" dir="rtl">مّ</span></span><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/108003.mp3" data-from="160" data-to="1360"><span class="ar" lang="ar" dir="rtl">إِ<span class="tj r-g">نَّ</span></span></button></div></div>
+        <p class="note">Проверка: зажмите нос, и звук должен «упереться».</p>
       </section>
       <section class="card rule" style="--rc:var(--r-g)">
         <div class="rule-head"><i></i><div><h2>Гунна</h2><div class="muted">Носовой звук 2 хараката</div></div></div>
@@ -63,10 +70,17 @@
   </footer>
   <script>
 (function () {
-  var a = new Audio();
+  var a = new Audio(), tick = 0;
   document.addEventListener("click", function (e) {
     var b = e.target.closest("[data-play]");
-    if (b) { a.src = b.getAttribute("data-play"); a.play().catch(function () {}); }
+    if (b) {
+      var nx = b.getAttribute("data-next"); // два слова подряд: хамза разделённого мадда в следующем слове
+      var from = +b.getAttribute("data-from") || 0, to = +b.getAttribute("data-to") || 0; // кусок аята, мс
+      clearInterval(tick);
+      if (to) tick = setInterval(function () { if (a.currentTime * 1000 >= to) { a.pause(); clearInterval(tick); } }, 20);
+      a.onended = nx ? function () { a.onended = null; a.src = nx; a.play().catch(function () {}); } : null;
+      a.src = b.getAttribute("data-play") + (from ? "#t=" + (from / 1000).toFixed(2) : ""); a.play().catch(function () {});
+    }
     if (e.target.closest("[data-app]")) {
       if (window.ym) ym(113307386, "reachGoal", "page_to_app", { "Страница": location.pathname });
       if (window.posthog) posthog.capture("page_to_app", { "Страница": location.pathname });

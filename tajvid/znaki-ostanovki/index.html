@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Знаки остановки: Подсказки в мусхафе | Таджвид</title>
-  <meta name="description" content="ۘ (мим): обязательная остановка: продолжать нельзя, исказится смысл.">
+  <meta name="description" content="Нет. Остановка посреди фразы может исказить смысл.">
   <link rel="canonical" href="https://tanwin.xasi88.ru/tajvid/znaki-ostanovki/">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="TanWin">
   <meta property="og:title" content="Знаки остановки: Подсказки в мусхафе | Таджвид">
-  <meta property="og:description" content="ۘ (мим): обязательная остановка: продолжать нельзя, исказится смысл.">
+  <meta property="og:description" content="Нет. Остановка посреди фразы может исказить смысл.">
   <meta property="og:url" content="https://tanwin.xasi88.ru/tajvid/znaki-ostanovki/">
   <meta property="og:locale" content="ru_RU">
   <meta property="og:image" content="https://tanwin.xasi88.ru/icons/og.png">
@@ -34,6 +34,14 @@
       <h1>Знаки остановки</h1>
       <p class="lead">Подсказки в мусхафе</p>
       <section class="card theory">
+        <p class="kicker">Частая ошибка</p>
+        <h2>Останавливаться можно где угодно?</h2>
+        <p>Нет. Остановка посреди фразы может исказить смысл.</p>
+        <p>Мусхаф подсказывает знаками над строкой, где останавливаться.</p>
+        
+      </section>
+      <section class="card theory">
+        <p class="kicker">Главное правило</p>
         <h2>Знаки над строкой</h2>
         <p><span class="ar" lang="ar" dir="rtl">ـۘ</span> (мим): <b>обязательная</b> остановка: продолжать нельзя, исказится смысл.</p>
         <p><span class="ar" lang="ar" dir="rtl">ـۙ</span> (ля): <b>не останавливайтесь</b> здесь.</p>
@@ -43,6 +51,12 @@
         <p><span class="ar" lang="ar" dir="rtl">ۛ … ۛ</span> (три точки дважды): остановитесь <b>на одном</b> из двух мест, не на обоих.</p>
         <p>Круг с номером <span class="ar" lang="ar" dir="rtl">۝</span>: конец аята. Многие учёные считают остановку на конце аята сунной: так в хадисе Умм Салямы о чтении Пророка ﷺ (ат-Тирмизи, 2927; Абу Дауд, 4001). В оценке достоверности этого хадиса учёные расходятся.</p>
         <div class="stops"><div><span class="ar" lang="ar" dir="rtl">ـۘـ</span><b>мим</b><small>обязательная остановка</small></div><div><span class="ar" lang="ar" dir="rtl">ـۙـ</span><b>ля</b><small>не останавливаться</small></div><div><span class="ar" lang="ar" dir="rtl">ـۚـ</span><b>джим</b><small>равнозначно</small></div><div><span class="ar" lang="ar" dir="rtl">ـۖـ</span><b>сыля</b><small>лучше продолжить</small></div><div><span class="ar" lang="ar" dir="rtl">ـۗـ</span><b>кыля</b><small>лучше остановиться</small></div><div><span class="ar" lang="ar" dir="rtl">ـۛـ</span><b>муӀанака</b><small>на одном из двух мест</small></div></div>
+      </section>
+      <section class="card theory">
+        <p class="kicker">Не перепутайте</p>
+        <h2>Сыля или кыля?</h2>
+        
+        <div class="cases"><div class="case" style="--rc:var(--ink-2)"><b>Сыля</b><small>Лучше продолжить. Сокращение от «аль-васлю авля»: «продолжить лучше»</small></div><div class="case" style="--rc:var(--ink-2)"><b>Кыля</b><small>Лучше остановиться. Сокращение от «аль-вакфу авля»: «остановиться лучше»</small></div></div>
       </section>
       <section class="card cta">
         <h2>Закрепите на упражнениях</h2>
@@ -62,10 +76,17 @@
   </footer>
   <script>
 (function () {
-  var a = new Audio();
+  var a = new Audio(), tick = 0;
   document.addEventListener("click", function (e) {
     var b = e.target.closest("[data-play]");
-    if (b) { a.src = b.getAttribute("data-play"); a.play().catch(function () {}); }
+    if (b) {
+      var nx = b.getAttribute("data-next"); // два слова подряд: хамза разделённого мадда в следующем слове
+      var from = +b.getAttribute("data-from") || 0, to = +b.getAttribute("data-to") || 0; // кусок аята, мс
+      clearInterval(tick);
+      if (to) tick = setInterval(function () { if (a.currentTime * 1000 >= to) { a.pause(); clearInterval(tick); } }, 20);
+      a.onended = nx ? function () { a.onended = null; a.src = nx; a.play().catch(function () {}); } : null;
+      a.src = b.getAttribute("data-play") + (from ? "#t=" + (from / 1000).toFixed(2) : ""); a.play().catch(function () {});
+    }
     if (e.target.closest("[data-app]")) {
       if (window.ym) ym(113307386, "reachGoal", "page_to_app", { "Страница": location.pathname });
       if (window.posthog) posthog.capture("page_to_app", { "Страница": location.pathname });

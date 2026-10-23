@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Язык: кончик: ت د ط · ث ذ ظ · ز س ص | Таджвид</title>
-  <meta name="description" content="ت د ط: кончик языка у основания верхних резцов.">
+  <meta name="description" content="Нет. ث межзубная: кончик языка у краёв верхних резцов.">
   <link rel="canonical" href="https://tanwin.xasi88.ru/tajvid/yazyk-konchik/">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="TanWin">
   <meta property="og:title" content="Язык: кончик: ت د ط · ث ذ ظ · ز س ص | Таджвид">
-  <meta property="og:description" content="ت د ط: кончик языка у основания верхних резцов.">
+  <meta property="og:description" content="Нет. ث межзубная: кончик языка у краёв верхних резцов.">
   <meta property="og:url" content="https://tanwin.xasi88.ru/tajvid/yazyk-konchik/">
   <meta property="og:locale" content="ru_RU">
   <meta property="og:image" content="https://tanwin.xasi88.ru/icons/og.png">
@@ -34,6 +34,14 @@
       <h1>Язык: кончик</h1>
       <p class="lead"><span class="ar" lang="ar" dir="rtl">ت د ط</span> · <span class="ar" lang="ar" dir="rtl">ث ذ ظ</span> · <span class="ar" lang="ar" dir="rtl">ز س ص</span></p>
       <section class="card theory">
+        <p class="kicker">Частая ошибка</p>
+        <h2><span class="ar" lang="ar" dir="rtl">ث</span> и <span class="ar" lang="ar" dir="rtl">س</span>: обе «с»?</h2>
+        <p>Нет. <span class="ar" lang="ar" dir="rtl">ث</span> межзубная: кончик языка у краёв верхних резцов.</p>
+        <p><span class="ar" lang="ar" dir="rtl">س</span> со свистом: кончик языка у нижних резцов.</p>
+        <div class="words"><button class="word" type="button" data-play="https://audio.qurancdn.com/wbw/017_076_010.mp3"><span class="ar" lang="ar" dir="rtl">يَلۡبَ‍<span class="tj r-C">‍ثُ‍</span>‍ونَ</span></button><button class="word" type="button" data-play="https://audio.qurancdn.com/wbw/044_053_001.mp3"><span class="ar" lang="ar" dir="rtl">يَلۡبَ‍<span class="tj r-C">‍سُ‍</span>‍ونَ</span></button></div>
+      </section>
+      <section class="card theory">
+        <p class="kicker">Главное правило</p>
         <h2>Три тройки</h2>
         <p><span class="ar" lang="ar" dir="rtl">ت د ط</span>: кончик языка у <b>основания</b> верхних резцов.</p>
         <p><span class="ar" lang="ar" dir="rtl">ث ذ ظ</span>: кончик языка у <b>краёв</b> верхних резцов (межзубные).</p>
@@ -58,10 +66,17 @@
   </footer>
   <script>
 (function () {
-  var a = new Audio();
+  var a = new Audio(), tick = 0;
   document.addEventListener("click", function (e) {
     var b = e.target.closest("[data-play]");
-    if (b) { a.src = b.getAttribute("data-play"); a.play().catch(function () {}); }
+    if (b) {
+      var nx = b.getAttribute("data-next"); // два слова подряд: хамза разделённого мадда в следующем слове
+      var from = +b.getAttribute("data-from") || 0, to = +b.getAttribute("data-to") || 0; // кусок аята, мс
+      clearInterval(tick);
+      if (to) tick = setInterval(function () { if (a.currentTime * 1000 >= to) { a.pause(); clearInterval(tick); } }, 20);
+      a.onended = nx ? function () { a.onended = null; a.src = nx; a.play().catch(function () {}); } : null;
+      a.src = b.getAttribute("data-play") + (from ? "#t=" + (from / 1000).toFixed(2) : ""); a.play().catch(function () {});
+    }
     if (e.target.closest("[data-app]")) {
       if (window.ym) ym(113307386, "reachGoal", "page_to_app", { "Страница": location.pathname });
       if (window.posthog) posthog.capture("page_to_app", { "Страница": location.pathname });

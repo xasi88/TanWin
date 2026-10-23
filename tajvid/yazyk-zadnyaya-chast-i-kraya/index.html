@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Язык: задняя часть и края: ق ك · ج ش ي · ض ل ن ر | Таджвид</title>
-  <meta name="description" content="ق: самая задняя часть языка у мягкого нёба. ك: чуть ближе ко рту.">
+  <meta name="description" content="Нет. ق рождается в самой задней части языка, у мягкого нёба. ك чуть ближе ко рту.">
   <link rel="canonical" href="https://tanwin.xasi88.ru/tajvid/yazyk-zadnyaya-chast-i-kraya/">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="TanWin">
   <meta property="og:title" content="Язык: задняя часть и края: ق ك · ج ش ي · ض ل ن ر | Таджвид">
-  <meta property="og:description" content="ق: самая задняя часть языка у мягкого нёба. ك: чуть ближе ко рту.">
+  <meta property="og:description" content="Нет. ق рождается в самой задней части языка, у мягкого нёба. ك чуть ближе ко рту.">
   <meta property="og:url" content="https://tanwin.xasi88.ru/tajvid/yazyk-zadnyaya-chast-i-kraya/">
   <meta property="og:locale" content="ru_RU">
   <meta property="og:image" content="https://tanwin.xasi88.ru/icons/og.png">
@@ -34,6 +34,13 @@
       <h1>Язык: задняя часть и края</h1>
       <p class="lead"><span class="ar" lang="ar" dir="rtl">ق ك</span> · <span class="ar" lang="ar" dir="rtl">ج ش ي</span> · <span class="ar" lang="ar" dir="rtl">ض ل ن ر</span></p>
       <section class="card theory">
+        <p class="kicker">Частая ошибка</p>
+        <h2><span class="ar" lang="ar" dir="rtl">ق</span> и <span class="ar" lang="ar" dir="rtl">ك</span>: одна буква?</h2>
+        <p>Нет. <span class="ar" lang="ar" dir="rtl">ق</span> рождается в самой задней части языка, у мягкого нёба. <span class="ar" lang="ar" dir="rtl">ك</span> чуть ближе ко рту.</p>
+        <div class="words"><button class="word" type="button" data-play="https://audio.qurancdn.com/wbw/007_176_013.mp3"><span class="ar" lang="ar" dir="rtl">ٱلۡ‍<span class="tj r-C">‍كَ‍</span>‍لۡبِ</span></button><button class="word" type="button" data-play="https://audio.qurancdn.com/wbw/003_159_011.mp3"><span class="ar" lang="ar" dir="rtl">ٱلۡ‍<span class="tj r-C">‍قَ‍</span>‍لۡبِ</span></button></div>
+      </section>
+      <section class="card theory">
+        <p class="kicker">Главное правило</p>
         <h2>От корня языка к кончику</h2>
         <p><span class="ar" lang="ar" dir="rtl">ق</span>: самая задняя часть языка у мягкого нёба. <span class="ar" lang="ar" dir="rtl">ك</span>: чуть ближе ко рту.</p>
         <p><span class="ar" lang="ar" dir="rtl">ج ش ي</span>: середина языка и твёрдое нёбо.</p>
@@ -59,10 +66,17 @@
   </footer>
   <script>
 (function () {
-  var a = new Audio();
+  var a = new Audio(), tick = 0;
   document.addEventListener("click", function (e) {
     var b = e.target.closest("[data-play]");
-    if (b) { a.src = b.getAttribute("data-play"); a.play().catch(function () {}); }
+    if (b) {
+      var nx = b.getAttribute("data-next"); // два слова подряд: хамза разделённого мадда в следующем слове
+      var from = +b.getAttribute("data-from") || 0, to = +b.getAttribute("data-to") || 0; // кусок аята, мс
+      clearInterval(tick);
+      if (to) tick = setInterval(function () { if (a.currentTime * 1000 >= to) { a.pause(); clearInterval(tick); } }, 20);
+      a.onended = nx ? function () { a.onended = null; a.src = nx; a.play().catch(function () {}); } : null;
+      a.src = b.getAttribute("data-play") + (from ? "#t=" + (from / 1000).toFixed(2) : ""); a.play().catch(function () {});
+    }
     if (e.target.closest("[data-app]")) {
       if (window.ym) ym(113307386, "reachGoal", "page_to_app", { "Страница": location.pathname });
       if (window.posthog) posthog.capture("page_to_app", { "Страница": location.pathname });

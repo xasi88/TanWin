@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Губы и нос: ف · ب م و · гунна | Таджвид</title>
-  <meta name="description" content="ف: нижняя губа касается кончиков верхних зубов.">
+  <meta name="description" content="Русскоязычные часто читают و как русское «в», с зубами. В арабском зубы не участвуют: губы округляются, как для «у», как в английском w.">
   <link rel="canonical" href="https://tanwin.xasi88.ru/tajvid/guby-i-nos/">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="TanWin">
   <meta property="og:title" content="Губы и нос: ف · ب م و · гунна | Таджвид">
-  <meta property="og:description" content="ف: нижняя губа касается кончиков верхних зубов.">
+  <meta property="og:description" content="Русскоязычные часто читают و как русское «в», с зубами. В арабском зубы не участвуют: губы округляются, как для «у», как в английском w.">
   <meta property="og:url" content="https://tanwin.xasi88.ru/tajvid/guby-i-nos/">
   <meta property="og:locale" content="ru_RU">
   <meta property="og:image" content="https://tanwin.xasi88.ru/icons/og.png">
@@ -34,6 +34,14 @@
       <h1>Губы и нос</h1>
       <p class="lead"><span class="ar" lang="ar" dir="rtl">ف</span> · <span class="ar" lang="ar" dir="rtl">ب م و</span> · гунна</p>
       <section class="card theory">
+        <p class="kicker">Частая ошибка</p>
+        <h2>Не русское «в»</h2>
+        <p>Русскоязычные часто читают <span class="ar" lang="ar" dir="rtl">و</span> как русское «в», с зубами. В арабском зубы не участвуют: губы округляются, как для «у», как в английском w.</p>
+        <p>В подписях мы пишем «в», но читайте его губами. Послушайте: <span class="ar" lang="ar" dir="rtl">وَ</span> «ва».</p>
+        
+      </section>
+      <section class="card theory">
+        <p class="kicker">Главное правило</p>
         <h2>Губные буквы</h2>
         <p><span class="ar" lang="ar" dir="rtl">ف</span>: нижняя губа касается кончиков верхних зубов.</p>
         <p><span class="ar" lang="ar" dir="rtl">ب</span>: губы плотно смыкаются. <span class="ar" lang="ar" dir="rtl">م</span>: смыкаются мягко, с гунной. <span class="ar" lang="ar" dir="rtl">و</span>: губы округляются и не смыкаются.</p>
@@ -43,12 +51,6 @@
         <h2>Носовая полость</h2>
         <p class="muted">Аль-Хайшум</p>
         <p>Отсюда выходит гунна, носовой призвук у <span class="ar" lang="ar" dir="rtl">ن</span> и <span class="ar" lang="ar" dir="rtl">م</span>. Попробуйте зажать нос, произнося «нннн»: звук оборвётся. Значит, он идёт через нос.</p>
-      </section>
-      <section class="card theory">
-        <h2>Не русское «в»</h2>
-        <p>Русскоязычные часто читают <span class="ar" lang="ar" dir="rtl">و</span> как русское «в», с зубами. В арабском зубы не участвуют: губы округляются, как для «у», как в английском w.</p>
-        <p>В подписях мы пишем «в», но читайте его губами. Послушайте: <span class="ar" lang="ar" dir="rtl">وَ</span> «ва».</p>
-        
       </section>
       <section class="card cta">
         <h2>Закрепите на упражнениях</h2>
@@ -68,10 +70,17 @@
   </footer>
   <script>
 (function () {
-  var a = new Audio();
+  var a = new Audio(), tick = 0;
   document.addEventListener("click", function (e) {
     var b = e.target.closest("[data-play]");
-    if (b) { a.src = b.getAttribute("data-play"); a.play().catch(function () {}); }
+    if (b) {
+      var nx = b.getAttribute("data-next"); // два слова подряд: хамза разделённого мадда в следующем слове
+      var from = +b.getAttribute("data-from") || 0, to = +b.getAttribute("data-to") || 0; // кусок аята, мс
+      clearInterval(tick);
+      if (to) tick = setInterval(function () { if (a.currentTime * 1000 >= to) { a.pause(); clearInterval(tick); } }, 20);
+      a.onended = nx ? function () { a.onended = null; a.src = nx; a.play().catch(function () {}); } : null;
+      a.src = b.getAttribute("data-play") + (from ? "#t=" + (from / 1000).toFixed(2) : ""); a.play().catch(function () {});
+    }
     if (e.target.closest("[data-app]")) {
       if (window.ym) ym(113307386, "reachGoal", "page_to_app", { "Страница": location.pathname });
       if (window.posthog) posthog.capture("page_to_app", { "Страница": location.pathname });

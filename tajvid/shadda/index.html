@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Шадда ـّ: Двойная буква | Таджвид</title>
-  <meta name="description" content="Значок ّ (маленькая «w») называется шадда. Буква произносится дважды: первый раз с сукуном, второй со своей огласовкой.">
+  <meta name="description" content="Нет. Шадда удваивает букву: первый раз с сукуном, второй со своей огласовкой.">
   <link rel="canonical" href="https://tanwin.xasi88.ru/tajvid/shadda/">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="TanWin">
   <meta property="og:title" content="Шадда ـّ: Двойная буква | Таджвид">
-  <meta property="og:description" content="Значок ّ (маленькая «w») называется шадда. Буква произносится дважды: первый раз с сукуном, второй со своей огласовкой.">
+  <meta property="og:description" content="Нет. Шадда удваивает букву: первый раз с сукуном, второй со своей огласовкой.">
   <meta property="og:url" content="https://tanwin.xasi88.ru/tajvid/shadda/">
   <meta property="og:locale" content="ru_RU">
   <meta property="og:image" content="https://tanwin.xasi88.ru/icons/og.png">
@@ -34,10 +34,16 @@
       <h1>Шадда <span class="ar" lang="ar" dir="rtl">ـّ</span></h1>
       <p class="lead">Двойная буква</p>
       <section class="card theory">
-        <h2>Шадда: удвоение</h2>
-        <p>Значок <span class="ar" lang="ar" dir="rtl">ـّ</span> (маленькая «w») называется <b>шадда</b>. Буква произносится дважды: первый раз с сукуном, второй со своей огласовкой.</p>
+        <p class="kicker">Частая ошибка</p>
+        <h2>Шадда: просто украшение?</h2>
+        <p>Нет. Шадда удваивает букву: первый раз с сукуном, второй со своей огласовкой.</p>
+        <div class="words"><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/001002.mp3" data-from="1920" data-to="2720"><span class="ar" lang="ar" dir="rtl">رَبِّ</span></button></div>
+      </section>
+      <section class="card theory">
+        <p class="kicker">Главное правило</p>
+        <h2>Буква звучит два раза</h2>
         <p><span class="ar" lang="ar" dir="rtl">رَبِّ</span> = <span class="ar" lang="ar" dir="rtl">رَبۡ</span> + <span class="ar" lang="ar" dir="rtl">بِ</span> → «роб-би». Задержитесь на удвоенном звуке.</p>
-        <div class="big"><span class="ar" lang="ar" dir="rtl">رَبِّ  ثُمَّ  إِنَّ</span></div>
+        <div class="cmp" style="--n:1"><div style="--rc:var(--ink-2)"><b>2</b><small>раза звучит буква</small><span>Шадда <span class="ar" lang="ar" dir="rtl">ـّ</span></span><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/001002.mp3" data-from="1920" data-to="2720"><span class="ar" lang="ar" dir="rtl">رَبِّ</span></button></div></div>
       </section>
       <section class="card theory">
         <h2>Слова с шаддой</h2>
@@ -66,10 +72,17 @@
   </footer>
   <script>
 (function () {
-  var a = new Audio();
+  var a = new Audio(), tick = 0;
   document.addEventListener("click", function (e) {
     var b = e.target.closest("[data-play]");
-    if (b) { a.src = b.getAttribute("data-play"); a.play().catch(function () {}); }
+    if (b) {
+      var nx = b.getAttribute("data-next"); // два слова подряд: хамза разделённого мадда в следующем слове
+      var from = +b.getAttribute("data-from") || 0, to = +b.getAttribute("data-to") || 0; // кусок аята, мс
+      clearInterval(tick);
+      if (to) tick = setInterval(function () { if (a.currentTime * 1000 >= to) { a.pause(); clearInterval(tick); } }, 20);
+      a.onended = nx ? function () { a.onended = null; a.src = nx; a.play().catch(function () {}); } : null;
+      a.src = b.getAttribute("data-play") + (from ? "#t=" + (from / 1000).toFixed(2) : ""); a.play().catch(function () {});
+    }
     if (e.target.closest("[data-app]")) {
       if (window.ym) ym(113307386, "reachGoal", "page_to_app", { "Страница": location.pathname });
       if (window.posthog) posthog.capture("page_to_app", { "Страница": location.pathname });

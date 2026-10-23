@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Калькаля: «Отскок» ق ط ب ج د | Таджвид</title>
-  <meta name="description" content="Пять букв ق ط ب ج د при сукуне звучат с лёгким эхом-отскоком, иначе звук «проглатывается». Подсказка: قُطۡبُ جَدٍّ.">
+  <meta name="description" content="Не у этих пяти букв. ق ط ب ج د при сукуне звучат с лёгким отскоком, иначе звук пропадает.">
   <link rel="canonical" href="https://tanwin.xasi88.ru/tajvid/kalkalya/">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="TanWin">
   <meta property="og:title" content="Калькаля: «Отскок» ق ط ب ج د | Таджвид">
-  <meta property="og:description" content="Пять букв ق ط ب ج د при сукуне звучат с лёгким эхом-отскоком, иначе звук «проглатывается». Подсказка: قُطۡبُ جَدٍّ.">
+  <meta property="og:description" content="Не у этих пяти букв. ق ط ب ج د при сукуне звучат с лёгким отскоком, иначе звук пропадает.">
   <meta property="og:url" content="https://tanwin.xasi88.ru/tajvid/kalkalya/">
   <meta property="og:locale" content="ru_RU">
   <meta property="og:image" content="https://tanwin.xasi88.ru/icons/og.png">
@@ -34,10 +34,22 @@
       <h1>Калькаля</h1>
       <p class="lead">«Отскок» <span class="ar" lang="ar" dir="rtl">ق ط ب ج د</span></p>
       <section class="card theory">
+        <p class="kicker">Частая ошибка</p>
+        <h2>Буква с сукуном звучит глухо?</h2>
+        <p>Не у этих пяти букв. <span class="ar" lang="ar" dir="rtl">ق ط ب ج د</span> при сукуне звучат с лёгким отскоком, иначе звук пропадает.</p>
+        <div class="words"><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/112003.mp3" data-from="600" data-to="1700"><span class="ar" lang="ar" dir="rtl">يَلِ‍<span class="tj r-q">‍دۡ</span></span></button></div>
+      </section>
+      <section class="card theory">
+        <p class="kicker">Главное правило</p>
         <h2>Звук, который «отскакивает»</h2>
         <p>Пять букв <span class="ar" lang="ar" dir="rtl">ق ط ب ج د</span> при сукуне звучат с лёгким эхом-отскоком, иначе звук «проглатывается». Подсказка: <span class="ar" lang="ar" dir="rtl">قُطۡبُ جَدٍّ</span>.</p>
-        <p>Отскок не гласная! Не добавляйте «а» или «е»: <span class="ar" lang="ar" dir="rtl">يَلِدۡ</span> читается «йалид» с толчком на «д», а не «йалидэ».</p>
         <div class="big"><span class="ar" lang="ar" dir="rtl">قُطۡبُ جَدٍّ</span></div>
+      </section>
+      <section class="card theory">
+        <p class="kicker">Не перепутайте</p>
+        <h2>Отскок, а не гласная</h2>
+        <p>Не добавляйте «а» или «е»: <span class="ar" lang="ar" dir="rtl">يَلِدۡ</span> читается «йалид» с толчком на «д», а не «йалидэ».</p>
+        <div class="words"><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/112003.mp3" data-from="600" data-to="1700"><span class="ar" lang="ar" dir="rtl">يَلِ‍<span class="tj r-q">‍دۡ</span></span></button></div>
       </section>
       <section class="card rule" style="--rc:var(--r-q)">
         <div class="rule-head"><i></i><div><h2>Калькаля</h2><div class="muted">«Отскок» звука</div></div></div>
@@ -63,10 +75,17 @@
   </footer>
   <script>
 (function () {
-  var a = new Audio();
+  var a = new Audio(), tick = 0;
   document.addEventListener("click", function (e) {
     var b = e.target.closest("[data-play]");
-    if (b) { a.src = b.getAttribute("data-play"); a.play().catch(function () {}); }
+    if (b) {
+      var nx = b.getAttribute("data-next"); // два слова подряд: хамза разделённого мадда в следующем слове
+      var from = +b.getAttribute("data-from") || 0, to = +b.getAttribute("data-to") || 0; // кусок аята, мс
+      clearInterval(tick);
+      if (to) tick = setInterval(function () { if (a.currentTime * 1000 >= to) { a.pause(); clearInterval(tick); } }, 20);
+      a.onended = nx ? function () { a.onended = null; a.src = nx; a.play().catch(function () {}); } : null;
+      a.src = b.getAttribute("data-play") + (from ? "#t=" + (from / 1000).toFixed(2) : ""); a.play().catch(function () {});
+    }
     if (e.target.closest("[data-app]")) {
       if (window.ym) ym(113307386, "reachGoal", "page_to_app", { "Страница": location.pathname });
       if (window.posthog) posthog.capture("page_to_app", { "Страница": location.pathname });

@@ -113,6 +113,27 @@ export function fitArabic(root = document.body) {
       el.style.setProperty("--fit", f.toFixed(3));
     }
   }
+  fitVerses(root);
+}
+// Строка мусхафа и аята: слово, которое шире всей строки (крупный арабский на узком экране), уменьшается само.
+// Соседние слова и выравнивание строки не меняются. В джузе тысячи слов: сначала читаем все размеры, потом пишем.
+const VERSE_BOX = ".verses.mushaf, .verses .ar-line";
+function fitVerses(root) {
+  for (let pass = 0; pass < 2; pass++) {
+    const todo = [];
+    for (const box of root.querySelectorAll(VERSE_BOX)) {
+      const cs = getComputedStyle(box), room = box.clientWidth - px(cs.paddingLeft) - px(cs.paddingRight) - 4; // 4: поля слова .qw
+      if (room <= 0) continue;
+      for (const el of box.querySelectorAll(".qw > .ar")) {
+        const w = el.getBoundingClientRect().width;
+        if (!w) continue;
+        const f = +el.style.getPropertyValue("--fit") || 1, nf = Math.min(1, (f * room) / w);
+        if (nf < 1 ? w > room + 0.5 || nf > f + 0.01 : f < 1) todo.push([el, nf]);
+      }
+    }
+    if (!todo.length) break;
+    for (const [el, f] of todo) f < 1 ? el.style.setProperty("--fit", f.toFixed(3)) : el.style.removeProperty("--fit");
+  }
 }
 let fitQueued = 0;
 export const queueFit = () => { if (!fitQueued) fitQueued = requestAnimationFrame(() => { fitQueued = 0; fitArabic(); }); };

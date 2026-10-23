@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Слова с сукуном: Закрытые слоги внутри слова | Таджвид</title>
-  <meta name="description" content="Буква с сукуном читается вместе с предыдущим слогом: نَعۡبُدُ «наӀ-бу-ду», أَنۡعَمۡتَ «ан-Ӏам-та».">
+  <meta name="description" content="Нет. Она читается вместе с предыдущим слогом: نَعۡبُدُ «наӀ-бу-ду».">
   <link rel="canonical" href="https://tanwin.xasi88.ru/tajvid/slova-s-sukunom/">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="TanWin">
   <meta property="og:title" content="Слова с сукуном: Закрытые слоги внутри слова | Таджвид">
-  <meta property="og:description" content="Буква с сукуном читается вместе с предыдущим слогом: نَعۡبُدُ «наӀ-бу-ду», أَنۡعَمۡتَ «ан-Ӏам-та».">
+  <meta property="og:description" content="Нет. Она читается вместе с предыдущим слогом: نَعۡبُدُ «наӀ-бу-ду».">
   <meta property="og:url" content="https://tanwin.xasi88.ru/tajvid/slova-s-sukunom/">
   <meta property="og:locale" content="ru_RU">
   <meta property="og:image" content="https://tanwin.xasi88.ru/icons/og.png">
@@ -34,14 +34,16 @@
       <h1>Слова с сукуном</h1>
       <p class="lead">Закрытые слоги внутри слова</p>
       <section class="card theory">
-        <h2>Слоги с сукуном</h2>
-        <p>Буква с сукуном читается <b>вместе</b> с предыдущим слогом: <span class="ar" lang="ar" dir="rtl">نَعۡبُدُ</span> «наӀ-бу-ду», <span class="ar" lang="ar" dir="rtl">أَنۡعَمۡتَ</span> «ан-Ӏам-та».</p>
-        
+        <p class="kicker">Частая ошибка</p>
+        <h2>Буква с сукуном читается отдельно?</h2>
+        <p>Нет. Она читается <b>вместе</b> с предыдущим слогом: <span class="ar" lang="ar" dir="rtl">نَعۡبُدُ</span> «наӀ-бу-ду».</p>
+        <div class="words"><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/001005.mp3" data-from="1350" data-to="2380"><span class="ar" lang="ar" dir="rtl">نَعۡبُدُ</span></button><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/001007.mp3" data-from="2040" data-to="3220"><span class="ar" lang="ar" dir="rtl">أَنۡعَمۡتَ</span></button></div>
       </section>
       <section class="card theory">
-        <h2>Лин: «ай» и «ав»</h2>
-        <p>Если <span class="ar" lang="ar" dir="rtl">و</span> или <span class="ar ya-dots" lang="ar" dir="rtl">ي</span> с сукуном стоят после фатхи, получается мягкое «ав» и «ай»: <span class="ar" lang="ar" dir="rtl">يَوۡمِ</span> «йавми», <span class="ar" lang="ar" dir="rtl">عَلَيۡهِمۡ</span> «ӀалайхӀим». Это буквы <b>лин</b> («мягкие»).</p>
+        <p class="kicker">Главное правило</p>
+        <h2>Сукун и лин</h2>
         
+        <div class="cases"><div class="case" style="--rc:var(--ink-2)"><b>Сукун</b><small>Буква без гласной закрывает слог: <span class="ar" lang="ar" dir="rtl">أَنۡعَمۡتَ</span> «ан-Ӏам-та»</small><div class="words"><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/001007.mp3" data-from="2040" data-to="3220"><span class="ar" lang="ar" dir="rtl">أَنۡعَمۡتَ</span></button></div></div><div class="case" style="--rc:var(--ink-2)"><b>Лин: «ав» и «ай»</b><small><span class="ar" lang="ar" dir="rtl">و</span> или <span class="ar ya-dots" lang="ar" dir="rtl">ي</span> с сукуном после фатхи: <span class="ar" lang="ar" dir="rtl">يَوۡمِ</span> «йавми», <span class="ar" lang="ar" dir="rtl">عَلَيۡهِمۡ</span> «ӀалайхӀим»</small><div class="words"><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/001004.mp3" data-from="1130" data-to="1860"><span class="ar" lang="ar" dir="rtl">يَوۡمِ</span></button><button class="word" type="button" data-play="https://everyayah.com/data/Husary_Muallim_128kbps/001007.mp3" data-from="3130" data-to="4360"><span class="ar" lang="ar" dir="rtl">عَلَيۡهِمۡ</span></button></div></div></div>
       </section>
       <section class="card cta">
         <h2>Закрепите на упражнениях</h2>
@@ -61,10 +63,17 @@
   </footer>
   <script>
 (function () {
-  var a = new Audio();
+  var a = new Audio(), tick = 0;
   document.addEventListener("click", function (e) {
     var b = e.target.closest("[data-play]");
-    if (b) { a.src = b.getAttribute("data-play"); a.play().catch(function () {}); }
+    if (b) {
+      var nx = b.getAttribute("data-next"); // два слова подряд: хамза разделённого мадда в следующем слове
+      var from = +b.getAttribute("data-from") || 0, to = +b.getAttribute("data-to") || 0; // кусок аята, мс
+      clearInterval(tick);
+      if (to) tick = setInterval(function () { if (a.currentTime * 1000 >= to) { a.pause(); clearInterval(tick); } }, 20);
+      a.onended = nx ? function () { a.onended = null; a.src = nx; a.play().catch(function () {}); } : null;
+      a.src = b.getAttribute("data-play") + (from ? "#t=" + (from / 1000).toFixed(2) : ""); a.play().catch(function () {});
+    }
     if (e.target.closest("[data-app]")) {
       if (window.ym) ym(113307386, "reachGoal", "page_to_app", { "Страница": location.pathname });
       if (window.posthog) posthog.capture("page_to_app", { "Страница": location.pathname });

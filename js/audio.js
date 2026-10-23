@@ -1,5 +1,5 @@
 // Звук: записи чтецов (слова и аяты), звуки ответов (синтез в браузере) и запись своего голоса.
-import { wordAudioUrl, RECITERS } from "./data.js";
+import { wordAudioUrl, wordKey, RECITERS, loadSurah, husarySpan, husaryUrl } from "./data.js";
 import { store } from "./store.js";
 import { track } from "./usage.js";
 import { ROOT } from "./env.js";
@@ -37,21 +37,33 @@ el.addEventListener("error", () => {
 el.addEventListener("timeupdate", () => current?.onTime?.(el.currentTime * 1000));
 
 let seq = null; // отмена цепочки записей (playSeq)
+let gen = 0; // счётчик остановок: пока playSpan ждёт данные суры, другое нажатие отменяет его
 export function stop() {
+  gen++;
   seq?.();
   el.pause();
   if (current) { const c = current; current = null; emit(); c.onStop?.(); }
 }
 export const playingId = () => current?.id || null;
 
-export async function playUrl(url, { id = url, rate = 1, onEnd, onTime, onError, onStop } = {}) {
+// from, until (мс): звучит только кусок записи (пример из аята, playSpan). Начало: метка #t= в адресе.
+export async function playUrl(url, { id = url, rate = 1, from = 0, until = 0, onEnd, onTime, onError, onStop } = {}) {
   stop();
   if (!url) { onError?.(); return false; } // записи нет (алиф с огласовкой): это не сбой связи
   const me = current = { id, onEnd, onTime, onError, onStop };
-  el.src = new URL(url, ROOT).href; // свои записи лежат в корне сайта
+  el.src = new URL(url, ROOT).href + (from ? `#t=${(from / 1000).toFixed(2)}` : ""); // свои записи лежат в корне сайта
   el.playbackRate = rate;
   emit();
   setTimeout(() => { if (current === me && !el.currentTime) fail(me); }, SLOW);
+  if (until) {
+    // конец куска: проверяем часто, timeupdate приходит слишком редко (раз в 250 мс)
+    const t = setInterval(() => {
+      if (current !== me) return clearInterval(t);
+      if (from && el.currentTime * 1000 < from - 300 && !el.paused) el.currentTime = from / 1000; // браузер не понял #t=
+      if (el.currentTime * 1000 < until) return;
+      clearInterval(t); el.pause(); current = null; emit(); me.onEnd?.();
+    }, 20);
+  }
   try { await el.play(); return true; }
   catch (e) {
     if (current === me) { current = null; emit(); }
@@ -60,6 +72,21 @@ export async function playUrl(url, { id = url, rate = 1, onEnd, onTime, onError,
   }
 }
 export const playWord = (key, o = {}) => playUrl(wordAudioUrl(key), { id: "w:" + key, ...o });
+/**
+ * Пример из аята (2.0): слова from..to (номера с 0) аята s:a звучат куском записи Хусари (js/data.js → husarySpan).
+ * Так слышна настоящая длина мадда. Время слов сомнительное: звучат записи слов по очереди, как раньше.
+ * seg: время слов, если уже есть под рукой; иначе берётся из данных суры.
+ */
+export async function playSpan(s, a, from, to = from, { seg = null, long = false, ...o } = {}) {
+  stop();
+  const g = gen;
+  if (!seg) try { seg = (await loadSurah(s)).v[a - 1]?.[2]; } catch {}
+  if (g !== gen) return false;
+  const t = husarySpan(seg, from, to, long);
+  if (t) return playUrl(husaryUrl(s, a), { id: `p:${s}:${a}:${from}:${to}`, from: t[0], until: t[1], ...o });
+  const word = (i) => playWord(wordKey(s, a, i + 1), i < to ? { onStop: o.onStop, onEnd: () => word(i + 1) } : o);
+  return word(from);
+}
 export function playAyah(s, a, o = {}) {
   const rec = RECITERS[store.get().settings.reciter] || RECITERS.husary;
   return playUrl(rec.url(s, a), { id: `a:${s}:${a}`, rate: store.get().settings.rate || 1, ...o });

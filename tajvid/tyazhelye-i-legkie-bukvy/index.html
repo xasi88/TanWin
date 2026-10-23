@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Тяжёлые и лёгкие: Буквы исти'ля | Таджвид</title>
-  <meta name="description" content="При этих буквах задняя часть языка поднимается к нёбу, и звук становится «толстым», глубоким. Это буквы исти'ля: خ ص ض غ ط ق ظ.">
+  <meta name="description" content="Нет. ص тяжёлая: задняя часть языка поднята к нёбу, звук глубокий. س лёгкая: звук светлый.">
   <link rel="canonical" href="https://tanwin.xasi88.ru/tajvid/tyazhelye-i-legkie-bukvy/">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="TanWin">
   <meta property="og:title" content="Тяжёлые и лёгкие: Буквы исти'ля | Таджвид">
-  <meta property="og:description" content="При этих буквах задняя часть языка поднимается к нёбу, и звук становится «толстым», глубоким. Это буквы исти'ля: خ ص ض غ ط ق ظ.">
+  <meta property="og:description" content="Нет. ص тяжёлая: задняя часть языка поднята к нёбу, звук глубокий. س лёгкая: звук светлый.">
   <meta property="og:url" content="https://tanwin.xasi88.ru/tajvid/tyazhelye-i-legkie-bukvy/">
   <meta property="og:locale" content="ru_RU">
   <meta property="og:image" content="https://tanwin.xasi88.ru/icons/og.png">
@@ -34,6 +34,13 @@
       <h1>Тяжёлые и лёгкие</h1>
       <p class="lead">Буквы исти'ля</p>
       <section class="card theory">
+        <p class="kicker">Частая ошибка</p>
+        <h2><span class="ar" lang="ar" dir="rtl">ص</span> и <span class="ar" lang="ar" dir="rtl">س</span>: одна буква?</h2>
+        <p>Нет. <span class="ar" lang="ar" dir="rtl">ص</span> тяжёлая: задняя часть языка поднята к нёбу, звук глубокий. <span class="ar" lang="ar" dir="rtl">س</span> лёгкая: звук светлый.</p>
+        <div class="words"><button class="word" type="button" data-play="https://audio.qurancdn.com/wbw/002_216_007.mp3"><span class="ar" lang="ar" dir="rtl">وَعَ‍<span class="tj r-C">‍سَ‍</span>‍ىٰٓ</span></button><button class="word" type="button" data-play="https://audio.qurancdn.com/wbw/020_121_012.mp3"><span class="ar" lang="ar" dir="rtl">وَعَ‍<span class="tj r-C">‍صَ‍</span>‍ىٰٓ</span></button></div>
+      </section>
+      <section class="card theory">
+        <p class="kicker">Главное правило</p>
         <h2>Семь тяжёлых букв</h2>
         <p>При этих буквах задняя часть языка <b>поднимается к нёбу</b>, и звук становится «толстым», глубоким. Это буквы <b>исти'ля</b>: <span class="ar" lang="ar" dir="rtl">خ ص ض غ ط ق ظ</span>.</p>
         <p>Запомнить их помогает фраза <span class="ar" lang="ar" dir="rtl">خُصَّ ضَغْطٍ قِظْ</span>: «хуссо догӀтӀын къыз».</p>
@@ -64,10 +71,17 @@
   </footer>
   <script>
 (function () {
-  var a = new Audio();
+  var a = new Audio(), tick = 0;
   document.addEventListener("click", function (e) {
     var b = e.target.closest("[data-play]");
-    if (b) { a.src = b.getAttribute("data-play"); a.play().catch(function () {}); }
+    if (b) {
+      var nx = b.getAttribute("data-next"); // два слова подряд: хамза разделённого мадда в следующем слове
+      var from = +b.getAttribute("data-from") || 0, to = +b.getAttribute("data-to") || 0; // кусок аята, мс
+      clearInterval(tick);
+      if (to) tick = setInterval(function () { if (a.currentTime * 1000 >= to) { a.pause(); clearInterval(tick); } }, 20);
+      a.onended = nx ? function () { a.onended = null; a.src = nx; a.play().catch(function () {}); } : null;
+      a.src = b.getAttribute("data-play") + (from ? "#t=" + (from / 1000).toFixed(2) : ""); a.play().catch(function () {});
+    }
     if (e.target.closest("[data-app]")) {
       if (window.ym) ym(113307386, "reachGoal", "page_to_app", { "Страница": location.pathname });
       if (window.posthog) posthog.capture("page_to_app", { "Страница": location.pathname });
