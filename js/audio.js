@@ -1,5 +1,5 @@
 // Звук: записи чтецов (слова и аяты), звуки ответов (синтез в браузере) и запись своего голоса.
-import { wordAudioUrl, wordKey, RECITERS, loadSurah, husarySpan, husaryUrl } from "./data.js";
+import { wordAudioUrl, wordKey, RECITERS, reciterOf, loadSurah, husarySpan, husaryUrl } from "./data.js";
 import { store } from "./store.js";
 import { track } from "./usage.js";
 import { ROOT } from "./env.js";
@@ -88,7 +88,7 @@ export async function playSpan(s, a, from, to = from, { seg = null, long = false
   return word(from);
 }
 export function playAyah(s, a, o = {}) {
-  const rec = RECITERS[store.get().settings.reciter] || RECITERS.husary;
+  const rec = RECITERS[reciterOf(store.get().settings.reciter)];
   return playUrl(rec.url(s, a), { id: `a:${s}:${a}`, rate: store.get().settings.rate || 1, ...o });
 }
 
@@ -160,6 +160,10 @@ export const sfx = {
   tap() { if (!on()) return; tone(1320, 0, 0.04, { vol: 0.04 }); },
   finish() { if (!on()) return; [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, i * 0.09, 0.42, { type: "triangle", vol: 0.12 })); },
   level() { if (!on()) return; [392, 523, 659, 784, 1047].forEach((f, i) => { tone(f, i * 0.07, 0.5, { type: "sine", vol: 0.1 }); tone(f * 1.5, i * 0.07 + 0.03, 0.4, { type: "triangle", vol: 0.05 }); }); },
+  // кино-режим (ветка kino): наклейка выскочила, что-то пролетело, части сцепились
+  pop() { if (!on()) return; tone(520, 0, 0.09, { type: "triangle", vol: 0.08, to: 900 }); },
+  whoosh() { if (!on()) return; tone(900, 0, 0.32, { type: "sine", vol: 0.05, to: 180 }); },
+  snap() { if (!on()) return; tone(1500, 0, 0.05, { type: "square", vol: 0.03 }); tone(700, 0.04, 0.12, { type: "triangle", vol: 0.08 }); },
 };
 
 // ---------- Запись своего голоса ----------

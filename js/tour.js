@@ -31,7 +31,10 @@ export function startTour(steps) {
     Object.assign(hole.style, { top: r.top - pad + "px", left: r.left - pad + "px", width: r.width + pad * 2 + "px", height: r.height + pad * 2 + "px" });
     const bh = bubble.offsetHeight, gap = 14;
     const below = r.bottom + pad + gap;
-    const top = below + bh <= innerHeight - 8 ? below : Math.max(8, r.top - pad - gap - bh);
+    let top = below + bh <= innerHeight - 8 ? below : Math.max(8, r.top - pad - gap - bh);
+    // облачко всегда на экране, даже если место уехало за край (широкий низкий экран, «Путь» прокручивается внутри
+    // панели): иначе кнопки «Дальше» и «Пропустить» были за кадром, и выйти из подсказки было нельзя (разбор 2026-10-25)
+    top = Math.min(Math.max(8, top), Math.max(8, innerHeight - bh - 8));
     bubble.style.top = top + "px";
     // на широком экране облачко стоит у своего места (меню слева), на телефоне во всю ширину
     bubble.style.left = Math.max(16, Math.min(r.left + r.width / 2 - bubble.offsetWidth / 2, innerWidth - bubble.offsetWidth - 16)) + "px";
@@ -42,9 +45,10 @@ export function startTour(steps) {
     body.replaceChildren(h("h3", null, fill(s.title)), h("p", null, fill(s.text))); // через h(): текст переводится на «ты», если ученик так выбрал
     count.textContent = `${i + 1} из ${steps.length}`;
     next.replaceChildren(i < steps.length - 1 ? "Дальше" : "Понятно", icon("right", { size: 18 }));
-    // элемент вне места над облачком (путь на телефоне): прокручиваем, чтобы он встал вверху, а облачко под ним
+    // элемент вне места над облачком (путь на телефоне): прокручиваем, чтобы он встал вверху, а облачко под ним.
+    // scrollIntoView, а не прокрутка окна: на широком экране «Путь» прокручивается внутри своей панели, и окно не помогало
     const r = s.el.getBoundingClientRect();
-    if (!s.fixed && (r.top < 60 || r.bottom > innerHeight - bubble.offsetHeight - 40)) window.scrollBy(0, r.top - 80);
+    if (!s.fixed && (r.top < 60 || r.bottom > innerHeight - bubble.offsetHeight - 40)) s.el.scrollIntoView({ block: "start", behavior: "instant" });
     requestAnimationFrame(place);
     next.focus({ preventScroll: true });
   }

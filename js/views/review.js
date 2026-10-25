@@ -3,6 +3,7 @@ import { h, ar, icon, plural, shuffle, rich } from "../ui.js";
 import { store, srsDue, lessonDone, hardWords } from "../store.js";
 import { bank } from "../data.js";
 import { learnedLevel, allOpen } from "../path.js";
+import { lessonById } from "../course.js";
 import { playLesson } from "../lesson.js";
 import { stepForKey } from "../exercises.js";
 import { go, celebrate } from "../app.js";
@@ -25,21 +26,21 @@ function mixedSteps() {
 }
 
 const DRILLS = [
-  { id: "review", icon: "repeat", title: "Повторение", text: "То, что пора освежить в памяти", need: null },
-  { id: "hard", icon: "target", title: "Трудные слова", text: "Слова, в которых вы ошибались", need: null, hard: true, steps: () => {
+  { id: "review", tone: "lime", icon: "repeat", title: "Повторение", text: "То, что пора освежить в памяти", need: null },
+  { id: "hard", tone: "pink", icon: "target", title: "Трудные слова", text: "Слова, в которых вы ошибались", need: null, hard: true, steps: () => {
     const ws = hardWords().map((k) => bank()?.byKey.get(k)).filter(Boolean).slice(0, 10);
     return ws.flatMap((w, i) => [{ t: "ex", k: i % 2 ? "listenWord" : "readWord", n: 1, words: [w] }]);
   } },
-  { id: "letters", icon: "sparkle", title: "Буквы", text: "Названия, формы, звуки", need: "2.9", steps: () => [{ t: "ex", k: "letterName", n: 4, from: "all" }, { t: "ex", k: "letterPick", n: 4, from: "all" }, { t: "ex", k: "formPick", n: 3 }, { t: "ex", k: "listenFirst", n: 3, from: "all" }] },
-  { id: "ear", icon: "ear", title: "Тренажёр слуха", text: "Трудные пары: {س} и {ص}, {ت} и {ط}, {ه} и {ح}…", need: "9.4", steps: () => [{ t: "ex", k: "pairListen", n: 10, pairs: "all" }] },
-  { id: "makharij", icon: "target", title: "Махраджи", text: "Откуда выходит звук", need: "9.8", steps: () => [{ t: "ex", k: "pointPick", n: 5, letters: "all" }, { t: "ex", k: "heavy", n: 4 }, { t: "ex", k: "zonePick", n: 3 }] },
-  { id: "fluency", icon: "book", title: "Беглое чтение", text: "Слова Корана вашего уровня", need: "6.1", steps: () => [{ t: "read", level: learnedLevel() || "fatha", n: 12 }] },
-  { id: "listen", icon: "vol", title: "Слова на слух", text: "Узнайте слово по чтецу", need: "6.1", steps: () => [{ t: "ex", k: "listenWord", n: 10, level: learnedLevel() || "fatha" }] },
-  { id: "voice", icon: "mic", title: "Мой голос", text: "Запишите себя и сравните с чтецом", need: "6.1", steps: () => Array.from({ length: 3 }, () => ({ t: "speak", level: learnedLevel() || "fatha" })) },
-  { id: "tajweed", icon: "palette", title: "Найди правило", text: "Правила таджвида в аятах", need: "10.4", steps: () => [
+  { id: "letters", tone: "sky", icon: "sparkle", title: "Буквы", text: "Названия, формы, звуки", need: "2.9", steps: () => [{ t: "ex", k: "letterName", n: 4, from: "all" }, { t: "ex", k: "letterPick", n: 4, from: "all" }, { t: "ex", k: "formPick", n: 3 }, { t: "ex", k: "listenFirst", n: 3, from: "all" }] },
+  { id: "ear", tone: "yellow", icon: "ear", title: "Тренажёр слуха", text: "Трудные пары: {س} и {ص}, {ت} и {ط}, {ه} и {ح}…", need: "9.4", steps: () => [{ t: "ex", k: "pairListen", n: 10, pairs: "all" }] },
+  { id: "makharij", tone: "mint", icon: "target", title: "Махраджи", text: "Откуда выходит звук", need: "9.8", steps: () => [{ t: "ex", k: "pointPick", n: 5, letters: "all" }, { t: "ex", k: "heavy", n: 4 }, { t: "ex", k: "zonePick", n: 3 }] },
+  { id: "fluency", tone: "peach", icon: "book", title: "Беглое чтение", text: "Слова Корана вашего уровня", need: "6.1", steps: () => [{ t: "read", level: learnedLevel() || "fatha", n: 12 }] },
+  { id: "listen", tone: "sky", icon: "vol", title: "Слова на слух", text: "Узнайте слово по чтецу", need: "6.1", steps: () => [{ t: "ex", k: "listenWord", n: 10, level: learnedLevel() || "fatha" }] },
+  { id: "voice", tone: "pink", icon: "mic", title: "Мой голос", text: "Запишите себя и сравните с чтецом", need: "6.1", steps: () => Array.from({ length: 3 }, () => ({ t: "speak", level: learnedLevel() || "fatha" })) },
+  { id: "tajweed", tone: "violet", icon: "palette", title: "Найди правило", text: "Правила таджвида в аятах", need: "10.4", steps: () => [
     ...["f", "i", "d", "D", "g", "q", "n", "o", "u"].filter(() => Math.random() < 0.7).slice(0, 6).map((c) => ({ t: "ex", k: "ruleSpot", n: 1, code: c })),
     { t: "ex", k: "nunRule", n: 4 }] },
-  { id: "madd", icon: "slow", title: "Сколько тянуть?", text: "Мадды: 2, 4-5, 6", need: "11.5", steps: () => [{ t: "ex", k: "maddCount", n: 10 }] },
+  { id: "madd", tone: "yellow", icon: "slow", title: "Сколько тянуть?", text: "Мадды: 2, 4-5, 6", need: "11.5", steps: () => [{ t: "ex", k: "maddCount", n: 10 }] },
 ];
 
 export function ReviewView() {
@@ -50,13 +51,13 @@ export function ReviewView() {
     const open = d.hard ? nHard > 0 : !d.need || lessonDone(d.need) || allOpen();
     const main = d.id === "review";
     const sub = main ? (due ? `${due} ${plural(due, "тема ждёт", "темы ждут", "тем ждут")} повторения` : total ? "Сейчас всё свежо в памяти. Можно потренироваться." : "Пройдите первые уроки, и здесь появятся повторения.") : d.hard ? `${nHard} ${plural(nHard, "слово", "слова", "слов")}: повторяйте, пока не станут лёгкими` : d.text;
-    return h(open ? "a.drill" : "div.drill", { href: open ? `#/practice/${d.id}` : null, class: (open ? "" : "locked ") + (main ? "main" : "") },
-      h("span.dr-ic", null, icon(open ? d.icon : "lock", { size: 26 })),
-      h("div", null, h("b", null, d.title), h("div.muted", null, open ? rich(sub) : d.hard ? "Здесь появятся слова, в которых вы ошибётесь в уроках" : "Откроется по мере прохождения пути")),
+    return h(open ? "a.drill" : "div.drill", { href: open ? `#/practice/${d.id}` : null, class: (open ? "" : "locked ") + (main ? "main " : "") + "t-" + d.tone },
+      h("span.dr-ic", null, icon(open ? d.icon : "lock", { size: 26, sw: 2.2 })),
+      h("div", null, h("b", null, d.title), h("div.muted", null, open ? rich(sub) : d.hard ? "Здесь появятся слова, в которых вы ошибётесь в уроках" : `Откроется после урока «${(lessonById[d.need]?.title || "").replace(/[؀-ۿـ]+/g, "").replace(/s+/g, " ").trim()}»`)),
       main && due ? h("span.badge", null, due) : d.hard && nHard ? h("span.badge", null, nHard) : null);
   });
   return h("div.page", null,
-    h("header.page-head", null, h("h1", null, "Практика"), h("p.muted", null, "Интервальное повторение: приложение запоминает, что вы начинаете забывать, и возвращает это как раз вовремя. Пять минут здесь в день закрепляют пройденное надолго.")),
+    h("header.page-head", null, h("h1", null, "Практика"), h("p.muted", null, "Приложение помнит, что вы начинаете забывать, и возвращает это вовремя. Пять минут в день, и пройденное не забудется.")),
     h("div.drills", null, ...cards));
 }
 

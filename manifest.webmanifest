@@ -9,9 +9,13 @@
   "orientation": "any",
   "lang": "ru",
   "dir": "ltr",
-  "background_color": "#fbf7ef",
-  "theme_color": "#0e9f78",
+  "background_color": "#6b3ff0",
+  "theme_color": "#6b3ff0",
   "categories": ["education", "books"],
+  "related_applications": [
+    { "platform": "webapp", "url": "https://tanwin.xasi88.ru/manifest.webmanifest" },
+    { "platform": "webapp", "url": "https://xasi88.github.io/tanwin-3/manifest.webmanifest" }
+  ],
   "icons": [
     { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

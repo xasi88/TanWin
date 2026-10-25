@@ -16,26 +16,28 @@
   <meta property="og:description" content="Бесплатно: научитесь читать Коран с нуля по правилам таджвида. Живые чтецы, короткие уроки, видимый прогресс.">
   <meta property="og:url" content="https://tanwin.xasi88.ru/">
   <meta property="og:locale" content="ru_RU">
-  <meta property="og:image" content="https://tanwin.xasi88.ru/icons/og.png">
+  <meta property="og:image" content="https://tanwin.xasi88.ru/icons/og-3.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="TanWin: путь к чтению Корана">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://tanwin.xasi88.ru/icons/og.png">
-  <meta name="theme-color" content="#fbf7ef">
+  <meta name="twitter:image" content="https://tanwin.xasi88.ru/icons/og-3.png">
+  <meta name="theme-color" content="#6b3ff0">
   <meta name="color-scheme" content="light dark">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="TanWin">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="preload" href="fonts/hafs.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/amiri-quran.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="fonts/nunito.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/manrope.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/unbounded.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/app.css">
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"TanWin","alternateName":"TanWin: путь к чтению Корана","url":"https://tanwin.xasi88.ru/","description":"Научитесь читать Коран с нуля по правилам таджвида: арабские буквы, огласовки, слоги, слова, аяты и суры. Каждое слово и аят звучат голосом чтеца.","applicationCategory":"EducationalApplication","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"RUB"},"operatingSystem":"Any","inLanguage":"ru","image":"https://tanwin.xasi88.ru/icons/og.png"}</script>
+  <link rel="stylesheet" href="css/kino.css"><!-- кино-режим (ветка kino): действует только внутри .kino -->
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"TanWin","alternateName":"TanWin: путь к чтению Корана","url":"https://tanwin.xasi88.ru/","description":"Научитесь читать Коран с нуля по правилам таджвида: арабские буквы, огласовки, слоги, слова, аяты и суры. Каждое слово и аят звучат голосом чтеца.","applicationCategory":"EducationalApplication","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"RUB"},"operatingSystem":"Any","inLanguage":"ru","image":"https://tanwin.xasi88.ru/icons/og-3.png"}</script>
   <!--PRELOAD-->
   <link rel="modulepreload" href="js/arabic.js">
   <link rel="modulepreload" href="js/audio.js">
@@ -47,10 +49,17 @@
   <link rel="modulepreload" href="js/feedback.js">
   <link rel="modulepreload" href="js/fullscreen.js">
   <link rel="modulepreload" href="js/install.js">
+  <link rel="modulepreload" href="js/kino/art.js">
+  <link rel="modulepreload" href="js/kino/cards.js">
+  <link rel="modulepreload" href="js/kino/engine.js">
+  <link rel="modulepreload" href="js/kino/letters.js">
+  <link rel="modulepreload" href="js/kino/start.js">
   <link rel="modulepreload" href="js/lesson.js">
   <link rel="modulepreload" href="js/letters.js">
   <link rel="modulepreload" href="js/path.js">
+  <link rel="modulepreload" href="js/prefer.js">
   <link rel="modulepreload" href="js/rules.js">
+  <link rel="modulepreload" href="js/sound.js">
   <link rel="modulepreload" href="js/speech.js">
   <link rel="modulepreload" href="js/store.js">
   <link rel="modulepreload" href="js/syllables.js">
@@ -72,7 +81,7 @@
            Список этапов между STAGES вписывает tools/build.mjs из js/course.js. Руками не править. -->
       <div class="boot-about">
         <div class="boot">
-          <svg class="logo" viewBox="0 0 64 64" width="72" height="72" aria-hidden="true"><defs><linearGradient id="lg0" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd97a"/><stop offset="1" stop-color="#d49a24"/></linearGradient></defs><path d="M32 2l6.9 13.4 14.3-4.6-4.6 14.3L62 32l-13.4 6.9 4.6 14.3-14.3-4.6L32 62l-6.9-13.4-14.3 4.6 4.6-14.3L2 32l13.4-6.9-4.6-14.3 14.3 4.6Z" fill="url(#lg0)"/><circle cx="32" cy="33.5" r="17" fill="#0b3b30"/><path d="M32 27.5c-3.6-2.5-8.6-3.3-13.2-2.8v16.8c4.6-.5 9.6.3 13.2 2.8Z" fill="#ffd97a"/><path d="M32 27.5c3.6-2.5 8.6-3.3 13.2-2.8v16.8c-4.6-.5-9.6.3-13.2 2.8Z" fill="#f2c257"/></svg>
+          <svg class="logo" viewBox="60 56 408 408" width="84" height="84" aria-hidden="true"><path d="M256 70L297.4 150.4L383.2 122.8L355.6 208.6L436 250L355.6 291.4L383.2 377.2L297.4 349.6L256 430L214.6 349.6L128.8 377.2L156.4 291.4L76 250L156.4 208.6L128.8 122.8L214.6 150.4Z" fill="#130a30" stroke="#130a30" stroke-width="16" stroke-linejoin="round" transform="translate(14 16)"/><path d="M256 70L297.4 150.4L383.2 122.8L355.6 208.6L436 250L355.6 291.4L383.2 377.2L297.4 349.6L256 430L214.6 349.6L128.8 377.2L156.4 291.4L76 250L156.4 208.6L128.8 122.8L214.6 150.4Z" fill="#fad12b" stroke="#130a30" stroke-width="16" stroke-linejoin="round"/><path d="M256 212C234 196 202 190 176 193V299C202 296 234 302 256 318Z" fill="#fff8f2" stroke="#130a30" stroke-width="12" stroke-linejoin="round"/><path d="M256 212C278 196 310 190 336 193V299C310 296 278 302 256 318Z" fill="#c8f53a" stroke="#130a30" stroke-width="12" stroke-linejoin="round"/></svg>
           <h1>TanWin: путь к чтению Корана</h1>
           <p class="lead">Научитесь читать Коран с нуля по правилам таджвида: маленькими шагами, по 10 минут в день. Бесплатно.</p>
           <div class="spinner"></div>
@@ -105,7 +114,7 @@
           <h2>Как проходят занятия</h2>
           <ul>
             <li>Короткие уроки: объяснение, затем упражнения: послушать, выбрать, прочитать самому.</li>
-            <li>Каждое слово и каждый аят звучат голосом чтеца: Махмуд Халиль аль-Хусари и Мишари Рашид аль-Афаси.</li>
+            <li>Каждое слово и каждый аят звучат голосом чтеца: Махмуд Халиль аль-Хусари, Мишари Рашид аль-Афаси и Абу Бакр аш-Шатри.</li>
             <li>С первых слогов вы читаете настоящие слова Корана, а не выдуманные примеры.</li>
             <li>То, в чём вы ошиблись, возвращается на следующих занятиях, пока не запомнится.</li>
             <li>Можно записать свой голос и сравнить с чтецом.</li>

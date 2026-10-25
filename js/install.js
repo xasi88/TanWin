@@ -18,10 +18,19 @@ window.addEventListener("appinstalled", () => { evt = null; setFlag(true); emit(
 export const onInstallChange = (f) => { listeners.add(f); return () => listeners.delete(f); };
 /** Открыто как приложение (отдельное окно, без адресной строки). */
 export const isStandalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
-/** Приложение установлено: открыто как приложение или его установили из этого браузера. */
+/** Приложение установлено: открыто как приложение, его установили из этого браузера или браузер ответил, что оно стоит (ниже). */
 export const isInstalled = () => isStandalone() || flag();
 export const canPrompt = () => !!evt;
+// Вкладка браузера, а приложение уже стоит (поставили не из этого браузера или отметка потерялась): Chrome и Edge на компьютере
+// (с версии 140) и Chrome на Android отвечают через getInstalledRelatedApps, если в manifest.webmanifest есть ссылка на себя
+// (related_applications, полные адреса сайта и черновика). Пустой ответ отметку не снимает: старый Chrome на компьютере отвечает пусто всегда.
+// Удалённое приложение браузер и так выдаёт: снова предлагает установку (beforeinstallprompt выше).
+if (!isStandalone() && navigator.getInstalledRelatedApps) {
+  navigator.getInstalledRelatedApps().then((apps) => { if (apps.some((a) => a.platform === "webapp") && !flag()) { setFlag(true); emit(); } }).catch(() => {});
+}
 const ua = navigator.userAgent;
+/** Где искать значок установленного приложения. */
+export const whereIcon = () => /Android/.test(ua) ? "на главном экране" : /Windows/.test(ua) ? "на рабочем столе или в меню «Пуск»" : "среди приложений";
 export const isIOS = () => /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
 /** Показывает системное окно установки. Возвращает true, если пользователь согласился. */

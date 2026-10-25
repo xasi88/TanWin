@@ -6,6 +6,7 @@ import { words, lessonWords, letterExamples, minimalPairs, loadSurah, bank, rare
 import { RULES, parseMarkup, plain, rulesIn, causeMarkup, NEXT_CODES, SPAN_CODES } from "./rules.js";
 import { SURAH_PATH, knownLetters } from "./course.js";
 import { h, ar, arParts, tr, icon, shuffle, pick, sample, wordChip, rich } from "./ui.js";
+import { preferred, seen as seenPick } from "./prefer.js";
 import { playWord, playSpan, preloadWord, playLetter, playSyll, preloadLetter } from "./audio.js";
 import { syllText as sylAr, syllTr as sylRu, blendsFor, blendBoard, blendTr, playBlend, V3, VOWELS, SYLL_IDS } from "./syllables.js";
 import { diagram, spreadChoices } from "./diagram.js";
@@ -129,15 +130,15 @@ G.pairListen = (o) => {
   const wanted = o.pairs === "all" || !o.pairs ? null : o.pairs.map((p) => p.join("-"));
   const match = (p) => !wanted || wanted.includes(p.a + "-" + p.b) || wanted.includes(p.b + "-" + p.a);
   // нужные пары вперемешку; если их мало: добавляем другие трудные пары
-  let pool = shuffle(all.filter(match));
-  if (pool.length < o.n) pool = [...pool, ...shuffle(all.filter((p) => !match(p)))];
+  let pool = shuffle(preferred(all.filter(match), o.n)); // пары со скачанным звуком первыми (js/prefer.js)
+  if (pool.length < o.n) pool = [...pool, ...shuffle(preferred(all.filter((p) => !match(p)), o.n - pool.length))];
   // по кругу по видам пар, чтобы было разнообразие
   const groups = {};
   for (const p of pool) (groups[p.a + p.b] ||= []).push(p);
   const order = [];
   const gl = Object.values(groups);
   for (let i = 0; order.length < pool.length; i++) for (const g of gl) if (g[i]) order.push(g[i]);
-  return order.slice(0, o.n).map((p) => {
+  return seenPick(order.slice(0, o.n)).map((p) => {
     const [w, other] = Math.random() < 0.5 ? [p.w1, p.w2] : [p.w2, p.w1];
     preloadWord(w.a);
     return withOpts({ kind: "pairListen", key: `P:${p.a}-${p.b}`, layout: "grid2",
@@ -237,7 +238,8 @@ G.hasLetter = (o) => sample(words({ level: "shadda", minLen: 3, maxLen: 6 }), o.
 // ================= Огласовки =================
 const VOW = { fatha: [M.FATHA, "a"], kasra: [M.KASRA, "i"], damma: [M.DAMMA, "u"], fathatan: [M.FATHATAN, "a", "н"], kasratan: [M.KASRATAN, "i", "н"], dammatan: [M.DAMMATAN, "u", "н"] };
 const SYL_LETTERS = L_ALL.filter((x) => !["alif", "hamza"].includes(x));
-const sylText = (id, v) => { const ch = byId[id].ch; return v === "fathatan" ? ch + M.FATHATAN + (id === "ta" ? "" : "ا") : ch + VOW[v][0]; };
+// фатхатан у любой буквы пишется с алифом (بًا, تًا); без алифа только та марбута ة, а её среди букв нет (разбор 2026-10-25)
+const sylText = (id, v) => { const ch = byId[id].ch; return v === "fathatan" ? ch + M.FATHATAN + "ا" : ch + VOW[v][0]; };
 const sylTr = (id, v) => syllRu(byId[id].ch, VOW[v][1]) + (VOW[v][2] || ""); // гласная зависит от буквы: после тяжёлых, «о» и «ы»
 G.syllable = (o, lesson) => {
   const vs = o.vowels || ["fatha"];
@@ -351,7 +353,7 @@ G.match = (o) => {
   } else {
     const pool = lessonWords({ level: o.level || "damma", maxLen: 5 }, 5);
     const seen = new Set();
-    pairs = shuffle(pool.slice(0, 200)).filter((w) => !seen.has(w.tr) && seen.add(w.tr)).slice(0, 5).map((w) => [w.d, w.tr, w]);
+    pairs = seenPick(shuffle(preferred(pool.slice(0, 200), 5)).filter((w) => !seen.has(w.tr) && seen.add(w.tr)).slice(0, 5)).map((w) => [w.d, w.tr, w]);
   }
   return [{ kind: "match", key: o.mode === "syllable" ? "V:mix" : "W:" + (o.level || "damma"),
     prompt: () => promptText("Соедините пары", "Нажмите на арабский текст, затем на его чтение."),
@@ -528,7 +530,8 @@ G.nunRule = async (o) => {
   }).filter(Boolean);
 };
 G.sunMoon = (o) => {
-  const pool = words({ level: "full", maxLen: 7, filter: (w) => /^ٱل/.test(w.d) && w.f.includes("w") });
+  // имя Аллаха (ٱللَّه, ٱللَّهُمَّ) в вопрос не идёт: лям в нём не артикль перед солнечной буквой, ответ «солнечная» путал бы (разбор 2026-10-25)
+  const pool = words({ level: "full", maxLen: 7, filter: (w) => /^ٱل/.test(w.d) && !/^ٱلل/.test(w.d) && w.f.includes("w") });
   return sample(pool.slice(0, 400), o.n).map((w) => {
     const cs = clusters(w.d);
     const lamSukun = cs[1] && (cs[1].m.includes(M.SUKUN_Q) || cs[1].m.includes(M.SUKUN));

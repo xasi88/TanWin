@@ -1,7 +1,8 @@
 // Service worker TanWin: офлайн-режим. Список файлов и версия обновляются командой: node tools/build.mjs
-const VERSION = "c883566632";
+const VERSION = "27cb2637e9";
 const CORE = `tanwin-core-${VERSION}`;
 const AUDIO = "tanwin-audio";
+const SOUND = "tanwin-sound"; // звук этапов, скачанный заранее (js/sound.js): сам не удаляется
 const ROOT = new URL("./", self.location).pathname;
 // Страницы самого приложения
 const APP_PAGES = [ROOT, ROOT + "index.html"];
@@ -123,6 +124,7 @@ const FILES = [
   "audio/letters/zza-u.mp3",
   "audio/letters/zza.mp3",
   "css/app.css",
+  "css/kino.css",
   "css/pages.css",
   "data/bank.json",
   "data/pairs.json",
@@ -165,10 +167,13 @@ const FILES = [
   "data/q/113.json",
   "data/q/114.json",
   "data/rare.json",
+  "data/sounds.json",
   "data/surahs.json",
   "fonts/amiri-quran.woff2",
   "fonts/hafs.woff2",
+  "fonts/manrope.woff2",
   "fonts/nunito.woff2",
+  "fonts/unbounded.woff2",
   "icons/icon-192.png",
   "icons/icon-512.png",
   "icons/icon-maskable-512.png",
@@ -186,11 +191,21 @@ const FILES = [
   "js/feedback.js",
   "js/fullscreen.js",
   "js/install.js",
+  "js/kino/art.js",
+  "js/kino/cards.js",
+  "js/kino/engine.js",
+  "js/kino/install.js",
+  "js/kino/lessons.js",
+  "js/kino/letters.js",
+  "js/kino/prologue.js",
+  "js/kino/start.js",
   "js/lesson.js",
   "js/letters.js",
   "js/path.js",
   "js/posthog-loader.js",
+  "js/prefer.js",
   "js/rules.js",
+  "js/sound.js",
   "js/speech.js",
   "js/store.js",
   "js/syllables.js",
@@ -320,10 +335,11 @@ self.addEventListener("fetch", (e) => {
 
   // Аудио чтецов: из кэша, если есть; короткие пословные записи сохраняем при первом прослушивании
   if (AUDIO_HOSTS.includes(url.hostname)) {
+    if (url.searchParams.has("tw")) return; // скачивание звука этапа: мимо кэша слов, страница сама кладёт запись в свой кэш
     const key = url.origin + url.pathname;
     e.respondWith((async () => {
       const c = await caches.open(AUDIO);
-      const hit = await c.match(key);
+      const hit = (await c.match(key)) || (await caches.match(key, { cacheName: SOUND }));
       if (hit) return rangeResponse(req, hit);
       if (url.hostname !== WORDS_HOST) return fetch(req);
       // запись слова качаем один раз: эта же загрузка и звучит, и ложится в кэш (до 1.34.0 слово скачивалось дважды).

@@ -1,5 +1,5 @@
 // Анонимная статистика посещений: Яндекс.Метрика и PostHog (одни и те же события уходят в обе системы).
-// Номер счётчика: METRIKA_ID, ключ PostHog: POSTHOG_KEY в version.js (0 или пусто: выключено). Ученик может отключить статистику в «Ещё → Данные».
+// Номер счётчика: METRIKA_ID, ключ PostHog: POSTHOG_KEY в version.js (0 или пусто: выключено). Ученик может отключить статистику в «Ещё» → «Настройки» → «Прогресс и данные».
 // Никаких имён и прогресса по отдельным людям: только просмотры экранов, цели (урок пройден, сура выучена…)
 // и обобщённые параметры (сколько уроков пройдено, на каком этапе, ученик или ученица). Вебвизор, запись сеансов и автосбор нажатий выключены.
 // На localhost и из файла ничего не отправляется: события пишутся в консоль (удобно проверять).
@@ -9,7 +9,8 @@
 import { store } from "./store.js";
 import { METRIKA_ID, POSTHOG_KEY, POSTHOG_HOST, APP_VERSION } from "./version.js";
 
-const LOCAL = location.protocol === "file:" || /^(localhost|127\.\d+\.\d+\.\d+|\[::1\])$|\.(localhost|test)$/.test(location.hostname);
+const LOCAL = location.protocol === "file:" || /^(localhost|127\.\d+\.\d+\.\d+|\[::1\])$|\.(localhost|test)$/.test(location.hostname) ||
+  location.pathname.startsWith("/tanwin-3/"); // пробная ссылка 3.0 для автора (xasi88.github.io/tanwin-3): статистику не портит
 let started = false;
 let opts = null;
 let lastUrl = document.referrer;

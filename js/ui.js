@@ -4,6 +4,7 @@ import { ZWJ, isMarkCh, glue, loneYa } from "./arabic.js";
 import { playWord, playingId, onPlay, stop } from "./audio.js";
 import { store } from "./store.js";
 import { you } from "./speech.js";
+import { preferred, seen } from "./prefer.js";
 
 export const $ = (s, r = document) => r.querySelector(s);
 export const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -88,7 +89,9 @@ const FIT_EL = ".ar:not(.inline):not(.verses .ar):not(.uh-ar .ar)";
 const FIT_STOP = ".card, .modal, .lp-content, .sheet-in, .page, #view";
 const px = (v) => parseFloat(v) || 0;
 export function fitArabic(root = document.body) {
-  const els = [...root.querySelectorAll(FIT_EL)];
+  // в фильмах кино-режима размеры заданы сценой, а наклейки повёрнуты и двигаются: их не трогаем
+  // 3.0: неподвижная часть фильма (карточка с примерами .kc-show) подгоняется как обычная карточка
+  const els = [...root.querySelectorAll(FIT_EL)].filter((el) => !el.closest(".kf") || el.closest(".kc-show"));
   for (const el of els) el.style.removeProperty("--fit");
   const fit = new Map();
   for (let pass = 0; pass < 4; pass++) {
@@ -198,7 +201,7 @@ const P = {
   right: "m9 5 7 7-7 7",
   left: "m15 5-7 7 7 7",
   close: "M6 6l12 12M18 6 6 18",
-  gear: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L15 3.5h-4L10.7 6a7.6 7.6 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 1.7 1l.3 2.5h4l.3-2.5a7.6 7.6 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6Z",
+  gear: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM18.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L14 3.5h-4L9.7 6a7.6 7.6 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 1.7 1l.3 2.5h4l.3-2.5a7.6 7.6 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6Z",
   vol: "M4 9v6h4l5 4V5L8 9H4ZM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12",
   trophy: "M8 4h8v5a4 4 0 0 1-8 0V4ZM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8M9 17h6",
   bookmark: "M7 3h10a1 1 0 0 1 1 1v17l-6-4.5L6 21V4a1 1 0 0 1 1-1Z",
@@ -422,5 +425,6 @@ export function ring(pct, { size = 64, stroke = 7, cls = "", label = null } = {}
 
 export const plural = (n, a, b, c) => { const m = n % 100, k = n % 10; return m > 10 && m < 20 ? c : k === 1 ? a : k > 1 && k < 5 ? b : c; };
 export const shuffle = (a) => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-export const pick = (a) => a[Math.floor(Math.random() * a.length)];
-export const sample = (a, n) => shuffle(a).slice(0, n);
+// урок берёт примеры со скачанным звуком, если их хватает (js/prefer.js); seen: для инструмента звука этапов
+export const pick = (a) => { const s = preferred(a); return seen(s[Math.floor(Math.random() * s.length)]); };
+export const sample = (a, n) => seen(shuffle(preferred(a, n)).slice(0, n));

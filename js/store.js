@@ -80,17 +80,33 @@ const DEFAULT = () => ({
 let seen = null; // строка из хранилища, по которой построено то, что сейчас в памяти
 const stored = () => { try { return localStorage.getItem(KEY); } catch { return null; } };
 const parse = (raw) => upgradeGoals(merge(DEFAULT(), migrate(JSON.parse(raw))));
+// Запись не прочиталась (обрезана или испорчена): не стираем её молча первым же сохранением. Копия откладывается под своим
+// ключом: приложение говорит об этом один раз, а «Настройки» → «Прогресс и данные» дают сохранить её в файл: по нему прогресс
+// можно восстановить. Копия одна: вторая испорченная запись первую не вытесняет. Когда копия отложена, испорченная запись
+// сразу заменяется чистой: окно будет один раз, и второе окно приложения не прочитает испорченное.
+const BROKEN_KEY = KEY + ".broken";
+let brokenFresh = false; // копия отложена при этом запуске: пора сказать об этом
+/** Откладывает испорченную запись. Возвращает true, если копия на месте (отложена сейчас или раньше). */
+function keepBroken(raw) {
+  try {
+    if (!localStorage.getItem(BROKEN_KEY)) localStorage.setItem(BROKEN_KEY, JSON.stringify({ at: Date.now(), raw }));
+    brokenFresh = true; return true;
+  } catch { return false; }
+}
 const state = load();
 function load() {
   const raw = stored();
-  try {
-    if (raw) {
+  if (raw) {
+    try {
       const s = parse(raw); seen = raw;
       // цель дня только что переведена в уроки (1.33): записываем сразу, иначе дата перехода сдвигалась бы до первого урока
       if (!raw.includes('"goalLessons"')) try { seen = JSON.stringify(s); localStorage.setItem(KEY, seen); } catch { seen = raw; }
       return s;
+    } catch {
+      // копия не отложилась (память закрыта или полна): запись не трогаем, об этом скажет окно «Прогресс не сохраняется»
+      if (keepBroken(raw)) { const s = DEFAULT(); try { seen = JSON.stringify(s); localStorage.setItem(KEY, seen); } catch {} return s; }
     }
-  } catch {}
+  }
   return DEFAULT();
 }
 const isMap = (x) => !!x && typeof x === "object" && !Array.isArray(x);
@@ -114,7 +130,9 @@ function pull() {
  * «читать по порядку, N страниц в день»; общая цель чтения (readGoal): закладкой «Цель чтения» с таким же планом.
  */
 function upgradeGoals(s) {
-  if (!Array.isArray(s.marks)) s.marks = [];
+  // пустая запись среди закладок или групп (след ошибки или сбоя записи) пропускается: иначе из-за неё не читался бы весь прогресс
+  const objects = (a) => (Array.isArray(a) ? a.filter((x) => x && typeof x === "object") : []);
+  s.marks = objects(s.marks); s.markGroups = objects(s.markGroups);
   for (const m of s.marks) {
     if (m.goal && !m.plan) m.plan = { k: "seq", unit: "p", n: m.goal };
     delete m.goal;
@@ -197,6 +215,9 @@ export const store = {
     adopt(state, upgradeGoals(merge(DEFAULT(), migrate(u.state)))); save();
     try { localStorage.removeItem(UNDO_KEY); } catch {}
   },
+  /** Отложенная испорченная запись: когда отложена, её текст и отложена ли при этом запуске (тогда об этом говорит окно). */
+  brokenInfo() { try { const b = JSON.parse(localStorage.getItem(BROKEN_KEY)); return b?.raw ? { at: b.at, raw: b.raw, fresh: brokenFresh } : null; } catch { return null; } },
+  dropBroken() { try { localStorage.removeItem(BROKEN_KEY); } catch {} },
 };
 
 // ---------- Сохранность прогресса ----------

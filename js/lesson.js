@@ -1,9 +1,10 @@
 // Плеер урока: карточки теории, упражнения, повтор ошибок, итог.
 import { h, ar, rich, tr, icon, wordChip, cardTr, playBtn, toast, confetti, ring, shuffle, sample, plural, modal, mixed, sizeButton, skipBtn } from "./ui.js";
+import { preferred, seen as seenPick } from "./prefer.js";
 import { build, quiz, ruleIndex, stepForKey } from "./exercises.js";
 import { g, you } from "./speech.js";
 import { byId, forms, POINTS, ZONES, LETTERS } from "./letters.js";
-import { letterExamples, lessonWords, words, minimalPairs, loadSurah, wordKey, rareExamples, bank, alifMaddExamples, husarySpan } from "./data.js";
+import { letterExamples, lessonWords, words, minimalPairs, loadSurah, wordKey, rareExamples, bank, alifMaddExamples, husarySpan, RECITERS, reciterOf } from "./data.js";
 import { RULES, plain, rulesIn, onlyRule, causeMarkup, CAUSE_CODES, CAUSE_NOTE, SPAN_CODES } from "./rules.js";
 import { M, syllRu, stripStops } from "./arabic.js";
 import { diagram } from "./diagram.js";
@@ -15,6 +16,9 @@ import { store, addXp, srsSeen, finishLesson, dayGoal, todayDone, hardSeen, less
 import { track } from "./usage.js";
 import { lessonVoice, weakSpots, guideFor, guideKind } from "./tutor.js";
 import { applySkip } from "./path.js";
+import { cardFilm } from "./kino/cards.js";
+import { letterFilm } from "./kino/letters.js";
+import { afterTest } from "./kino/start.js";
 
 const FORM_NAMES = [["fin", "в конце"], ["med", "в середине"], ["ini", "в начале"], ["iso", "отдельно"]];
 
@@ -78,7 +82,7 @@ async function ruleExamples(code, n = 4, keep = null) {
   let cand = idx.filter((x) => x.codes.includes(code) && (!keep || keep(x)));
   if (cand.length < n * 2) cand = [...cand, ...rareExamples(code).filter((x) => !keep || keep(x))]; // редкие правила: со всего Корана
   const seen = new Set();
-  return shuffle(cand).filter((x) => { const p = plain(x.w); if (seen.has(p)) return false; seen.add(p); return true; }).slice(0, n);
+  return seenPick(shuffle(preferred(cand, n)).filter((x) => { const p = plain(x.w); if (seen.has(p)) return false; seen.add(p); return true; }).slice(0, n));
 }
 // Мадд и правила на стыке слов (2.0): пример звучит куском аята голосом Хусари, вместе со следующим словом, если
 // причина в нём. Берутся только примеры с надёжным временем слов (js/data.js → husarySpan).
@@ -159,7 +163,7 @@ async function verseBlock(key, { tapWords = false } = {}) {
       h("span.muted", null, tapWords ? "Нажимайте на слова справа налево" : `Сура ${s}, аят ${a}`)));
 }
 function highlightWord(box, v, ms) {
-  const segIdx = store.get().settings.reciter === "afasy" ? 3 : 2;
+  const segIdx = RECITERS[reciterOf(store.get().settings.reciter)].seg;
   const seg = v[segIdx] || [];
   [...box.children].forEach((el, i) => el.classList.toggle("now", ms >= 0 && seg[i * 2] >= 0 && ms >= seg[i * 2] && ms < seg[i * 2 + 1] + 60));
 }
@@ -231,9 +235,12 @@ function stopNote(w) {
 }
 
 // ---------- Чтение и запись голоса ----------
+// слова для чтения вслух, записи голоса и итога этапа; вынесены, чтобы tools/audit/sound-packs.mjs брал их так же, как урок
+const readWords = (step) => sample(lessonWords({ level: step.level, need: step.need || "", avoid: step.avoid || "", maxLen: step.maxLen || 6 }, step.n).slice(0, 300), step.n);
+const speakWord = (step) => sample(lessonWords({ level: step.level, maxLen: 5 }, 4).slice(0, 60), 1)[0];
+const showWords = (u) => (SHOW_LEVEL[u.id] ? sample(lessonWords({ level: SHOW_LEVEL[u.id], maxLen: 5 }, 3).slice(0, 40), 3) : []);
 function readStep(step, api) {
-  const pool = lessonWords({ level: step.level, need: step.need || "", avoid: step.avoid || "", maxLen: step.maxLen || 6 }, step.n);
-  const ws = sample(pool.slice(0, 300), step.n);
+  const ws = readWords(step);
   let i = 0, good = 0;
   const box = h("div.read-drill");
   const show = () => {
@@ -257,7 +264,7 @@ function readStep(step, api) {
 }
 
 function speakStep(step, api) {
-  const w = sample(lessonWords({ level: step.level, maxLen: 5 }, 4).slice(0, 60), 1)[0];
+  const w = speakWord(step);
   const box = h("div.speak");
   const wave = (env, cls) => h("div.wave", { class: cls }, ...(env || []).map((v) => h("i", { style: { height: Math.max(4, v * 100) + "%" } })));
   const ref = h("div.wave-slot");
@@ -311,7 +318,7 @@ async function showcase(u) {
   const head = h("div.label", null, icon("sparkle", { size: 16 }), "Смотрите, что вы уже умеете");
   if (SHOW_VERSE[u.id]) return [head, h("p", null, "Этот аят Корана вы теперь читаете сами, слово за словом. Прочитайте вслух, потом послушайте чтеца."), await verseBlock(SHOW_VERSE[u.id])];
   if (SHOW_LEVEL[u.id]) {
-    const ws = sample(lessonWords({ level: SHOW_LEVEL[u.id], maxLen: 5 }, 3).slice(0, 40), 3);
+    const ws = showWords(u);
     return ws.length ? [head, h("p", null, "Эти слова из Корана вы теперь читаете сами. Прочитайте вслух, потом нажмите на слово и проверьте себя по чтецу."), wordsRow(ws, { showTr: false })] : null;
   }
   if (u.id === 2 || u.id === 3) return [head,
@@ -325,7 +332,8 @@ async function showcase(u) {
  * Запускает урок в контейнере root. opts: { title, questionsOnly (для повторения), isTest, surah, onExit, id }
  * steps: шаги курса (или готовые вопросы, если questionsOnly).
  */
-export async function playLesson(root, { id, title, steps, isTest = false, onExit, isSurah = false, lesson = null }) {
+// 3.0: все уроки в кино-виде (kino), карточки теории идут фильмом (js/kino/cards.js)
+export async function playLesson(root, { id, title, steps, isTest = false, onExit, isSurah = false, lesson = null, kino = true }) {
   stop();
   root.replaceChildren(h("div.lesson-loading", null, h("div.spinner"), h("p", null, "Готовим урок…")));
   // Разворачиваем шаги в экраны
@@ -349,6 +357,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
       if (blends.length) screens.push({ type: "blend", st, blends });
     }
     else if (st.t === "quranWord") { if (bank()?.byKey.has(st.key)) screens.push({ type: "quranWord", st }); }
+    else if (st.t === "film") screens.push({ type: "film", st }); // кино-режим (ветка kino): объяснение фильмом, js/kino
     else screens.push({ type: st.t, st });
   }
   if (!screens.length) { root.replaceChildren(h("div.card", null, h("p", null, "Не удалось подготовить упражнения. Проверьте подключение к интернету."))); return; }
@@ -395,7 +404,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
   let fromWelcome = false;
   try { fromWelcome = !!sessionStorage.getItem("tanwin.fromWelcome"); sessionStorage.removeItem("tanwin.fromWelcome"); } catch {}
   const homeBtn = fromWelcome ? skipBtn(() => { stop(); onExit?.(null); }, { cls: "lp-home", label: isTest ? "Пропустить проверку и перейти на главную" : "Пропустить урок и перейти на главную" }) : null;
-  const shell = h("div.lesson", { class: isTest ? "test" : "" },
+  const shell = h("div.lesson", { class: [isTest ? "test" : "", kino ? "kino" : ""].join(" ") },
     h("header.lp-top", null, exitBtn, h("div.lp-bar", null, bar), comboEl, homeBtn || xpEl, sizeButton()),
     stage, sheet);
   root.replaceChildren(shell);
@@ -436,7 +445,11 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
     const s = screens[idx];
     stage.scrollTop = 0;
     stage.classList.remove("enter"); void stage.offsetWidth; stage.classList.add("enter");
-    if (s.type === "q") return showQ(s);
+    if (s.type === "q") { delete shell.dataset.tone; return showQ(s); }
+    // фильм ведёт себя сам: свои кнопки «Назад», «Ещё раз», «Дальше»; без слова учителя сверху
+    if (s.type === "film") { stage.replaceChildren(h("div.lp-content.film", null, s.st.film({ done: () => go() }))); return; }
+    if (kino && s.type === "letterIntro") { stage.replaceChildren(h("div.lp-content.film", null, letterFilm(s.st.id, { done: () => go(), more: (id) => { stop(); modal(letterCard(id), { cls: "wide" }); } }))); return; }
+    if (kino && s.type === "card") { const f = await cardFilm(s.st, { renderCard, done: () => go() }); if (screens[idx] === s) stage.replaceChildren(h("div.lp-content.film", null, f)); return; }
     let body;
     if (s.type === "card") body = await renderCard(s.st);
     else if (s.type === "letter") body = letterCard(s.st.id, { mini: s.st.mini });
@@ -526,6 +539,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
 
   function finish() {
     document.removeEventListener("keydown", onKey);
+    delete shell.dataset.tone;
     homeBtn?.replaceWith(xpEl); // на итоге пропускать уже нечего: на место «Пропустить» возвращается счётчик нура
     const pct = total0 ? Math.round((firstTryOk / total0) * 100) : 100;
     const passed = !isTest || pct >= 80;
@@ -560,7 +574,8 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
       weakText ? h("p.tutor-weak", null, icon("target", { size: 18 }), h("span", null, mixed(voice.weakNote(weakText)))) : null,
       show,
       passed && id === "1.1" ? afterFirstLesson() : null,
-      h("p.muted", null, passed ? (isTest ? "Проверка сдана: следующий этап открыт." : "Новые знания уже в «Практике».") : "Для проверки нужно 80% верных ответов с первой попытки. Повторите и попробуйте снова: вы справитесь."),
+      passed && id ? profileSlot() : null,
+      h("p.muted", null, passed ? (isTest && id ? `Проверка сдана. Пройденное засчитано. Дальше: ${afterTest(id).nextText}.` : isTest ? "Проверка сдана." : "Новые знания уже в «Практике».") : "Для проверки нужно 80% верных ответов с первой попытки. Повторите и попробуйте снова: вы справитесь."),
       !passed && isTest && id ? easierTest(id, { fromWelcome, events }) : null,
       h("div.res-stats", null,
         stat("Точ­ность", pct + "%", "target"), // мягкий перенос: на 320 точках с крупным текстом слово не влезает в плитку
@@ -570,7 +585,7 @@ export async function playLesson(root, { id, title, steps, isTest = false, onExi
         h("div", null, h("b", null, done >= goal ? "Цель дня выполнена!" : "Цель дня"), h("div.muted", null, done >= goal ? `Уроков сегодня: ${done}` : `Уроков сегодня: ${done} из ${goal}`))),
       !weakText && mistakes.some((m) => m.key) && !isTest ? h("p.muted.small", null, "Темы с ошибками чаще появятся в «Практике»: так они запомнятся лучше.") : null,
       h("div.lp-actions", null,
-        !passed ? h("button.btn.secondary.wide", { type: "button", onclick: () => playLesson(root, { id, title, steps, isTest, onExit, isSurah, lesson }) }, "Ещё раз") : null,
+        !passed ? h("button.btn.secondary.wide", { type: "button", onclick: () => playLesson(root, { id, title, steps, isTest, onExit, isSurah, lesson, kino }) }, "Ещё раз") : null,
         h("button.btn.primary.wide", { type: "button", onclick: () => onExit?.({ passed, pct, events }) }, "Продолжить", icon("right", { size: 18 })))));
     sheet.classList.remove("show");
     bar.style.width = "100%";
@@ -630,6 +645,16 @@ function easierTest(id, { fromWelcome, events }) {
 
 // ---------- После первого урока ----------
 // Что дальше и предложение поставить значок: одна карточка на итоге урока 1.1, без напоминаний.
+/** Новичок пропустил вопросы знакомства (имя, «вы» или «ты», цель): просим ответить здесь, на итоге первого сданного урока. */
+function profileSlot() {
+  let waits = false;
+  try { waits = localStorage.getItem("tanwin.askMe") === "1"; } catch {}
+  if (!waits) return null;
+  const slot = h("div.pa-slot");
+  import("./views/onboard.js").then((m) => slot.replaceChildren(m.profileAsk())).catch(() => slot.remove());
+  return slot;
+}
+
 function afterFirstLesson() {
   let hidden = false;
   try { hidden = !!localStorage.getItem("tanwin.installHint"); } catch {}
@@ -649,4 +674,4 @@ export const fmtTime = (ms) => {
   if (m < 60) return s < 600 && s % 60 ? `${Math.floor(s / 60)} мин ${s % 60} с` : `${m} мин`;
   return `${Math.floor(m / 60)} ч ${m % 60 ? (m % 60) + " мин" : ""}`.trim();
 };
-export { renderCard, zoneCard, ruleCard, verseBlock };
+export { renderCard, zoneCard, ruleCard, verseBlock, readWords, speakWord, showWords, SHOW_VERSE, MUQ };
