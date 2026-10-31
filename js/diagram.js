@@ -1,6 +1,10 @@
 // Схема речевого аппарата в разрезе (лицо смотрит влево) с 17 точками махраджей.
 // Подписи: «таблички» на выносных линиях, чтобы близкие точки у зубов не слипались.
 import { POINTS, ZONES } from "./letters.js";
+import { toast } from "./ui.js";
+
+// Палец ловит точку в этом радиусе (точек экрана), а не только по самой точке: точка 16, палец около 44 (обращение 2026-10-31)
+const REACH = 26;
 
 // Точка на схеме и место её таблички
 export const XY = {
@@ -72,9 +76,7 @@ export function diagram({ highlight = null, interactive = false, onPick = null, 
       pg.setAttribute("tabindex", "0");
       pg.setAttribute("role", "button");
       pg.setAttribute("aria-label", POINTS[id].label);
-      const pick = () => onPick?.(id, pg);
-      pg.addEventListener("click", pick);
-      pg.addEventListener("keydown", (e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), pick()));
+      pg.addEventListener("keydown", (e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onPick?.(id, pg)));
     }
     dots.append(pg);
     if (labels && on) {
@@ -91,7 +93,23 @@ export function diagram({ highlight = null, interactive = false, onPick = null, 
       tags.append(tg);
     }
   }
+  // нажатие в любом месте схемы: ближайшая точка в радиусе пальца; мимо всех точек: подсказка, и точки мигают
+  if (interactive) svg.addEventListener("click", (e) => {
+    const pg = e.target.closest(".dg-pt") || nearest(svg, e.clientX, e.clientY);
+    if (pg) return onPick?.(pg.dataset.point, pg);
+    svg.classList.remove("nudge"); void svg.getBoundingClientRect(); svg.classList.add("nudge");
+    toast("Нажмите на одну из цветных точек", 2200);
+  });
   return svg;
+}
+function nearest(svg, x, y) {
+  let best = null, bd = REACH;
+  for (const pg of svg.querySelectorAll(".dg-pt")) {
+    const r = pg.querySelector(".dg-dot").getBoundingClientRect();
+    const d = Math.hypot(r.left + r.width / 2 - x, r.top + r.height / 2 - y);
+    if (d <= bd) { bd = d; best = pg; }
+  }
+  return best;
 }
 /** Варианты для вопроса «нажмите на место выхода»: верная точка + n отвлекающих, не ближе minDist друг к другу. */
 export function spreadChoices(target, n = 3, minDist = 34) {

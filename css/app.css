@@ -579,6 +579,9 @@ body.fullscreen #toast { bottom: 24px; }
 .diagram.interactive .dg-pt { cursor: pointer; }
 .diagram.interactive .dg-pt:hover .dg-dot, .diagram.interactive .dg-pt:focus .dg-dot { r: 11; }
 .diagram.interactive .dg-dot { stroke-width: 3; }
+.diagram.nudge .dg-dot { animation: dg-nudge .45s ease-in-out 2; } /* нажали мимо точек: точки мигают, где нажимать */
+@keyframes dg-nudge { 50% { r: 13; } }
+@media (prefers-reduced-motion: reduce) { .diagram.nudge .dg-dot { animation: none; } }
 .wrong-pt .dg-dot { fill: var(--bad) !important; r: 10; }
 .dg-pt.on .dg-dot { stroke: var(--card); stroke-width: 3; }
 .diagram-wrap { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; }

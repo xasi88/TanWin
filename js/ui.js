@@ -60,7 +60,14 @@ export function ar(text, { cls = "", colors = true, tag = "span", size } = {}) {
 
 /** Слово из кусочков [текст, класс]: кусочки с классом, в <span> (цвет правила, подсветка). */
 export function arParts(el, parts) {
-  for (const [t0, c] of splitShaping ? glue(parts) : parts) { const t = t0.replace(/۟/g, "ْ"); el.append(c ? h("span", { class: c }, t) : t); }
+  // соседние кусочки с одним классом: одним узлом. Safari (iPhone) соединяет буквы через границу <span>, но не через
+  // границу двух текстовых узлов: «ٱلرَّحِيمِ» без цвета рассыпался на «الرحى م» (снимок с iPhone, 2026-10-31)
+  const runs = [];
+  for (const [t0, c] of splitShaping ? glue(parts) : parts) {
+    const t = t0.replace(/۟/g, "ْ"), last = runs[runs.length - 1];
+    if (last && last[1] === c) last[0] += t; else runs.push([t, c]);
+  }
+  for (const [t, c] of runs) el.append(c ? h("span", { class: c }, t) : t);
   return el;
 }
 

@@ -13,7 +13,7 @@ import { marks, addMark, marksSheet, marksCard, openMarksCard, planText, doneTod
 import { enterFullscreen, exitFullscreen, isFullscreen, wantFullscreen, onFullscreenChange } from "../fullscreen.js";
 
 export const arNum = (n) => String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[d]);
-const BISMILLAH = "بِسۡمِ [wٱ]للَّهِ [wٱ][lل]رَّحۡمَ[nـٰ]نِ [wٱ][lل]رَّح[pِي]مِ";
+const BISMILLAH = "بِسۡمِ [wٱ]للَّهِ [wٱ][lل]رَّحۡمَ[nٰ]نِ [wٱ][lل]رَّح[pِي]مِ"; // «ар-Рахман» без татвиля: см. BASMALA в js/kino/art.js
 
 // ---------- Мусхаф Мадины: страницы и джузы ----------
 export const PAGES = 604;
