@@ -6,6 +6,8 @@
 import { h, mixed } from "../ui.js";
 import { film, markAr } from "./engine.js";
 import { LETTERS } from "../letters.js";
+import { bank } from "../data.js";
+import { playWord } from "../audio.js";
 import { sticker, badge, arSticker } from "./art.js";
 
 const plain = (t) => t.replace(/\*\*|[{}]/g, "");
@@ -45,10 +47,23 @@ const TONES = ["lime", "yellow", "sky", "pink"];
 
 // буква, названная в фразе по имени («Алиф пишется…», «у джима точка»): имя не короче трёх букв, чтобы «та» и «да» не путались со словами
 const NAMED = LETTERS.filter((l) => l.name.length >= 3).map((l) => [new RegExp(`(^|[^а-яёӀ])${l.name.toLowerCase()}(а|у|ом|е|ы)?(?=$|[^а-яёӀ])`, "i"), l.ch]);
+/** Запись чтеца для арабской вставки: ключ слова из банка или null. */
+export const arKey = (a) => bank()?.byText.get(a)?.a || null;
+// Вставка-слово с записью чтеца: кнопка, нажатие звучит, слово горит, фильм не листается (касание кнопки, engine.js).
+// Обращение 2026-11-02 (урок 6.1): фраза «Нажмите на слово» стояла у наклейки без звука, а касание листало фильм.
+function arSpot(a, o) {
+  const key = arKey(a);
+  if (!key) return arSticker(a, o);
+  const b = arSticker(a, { ...o, tag: "button", type: "button", "aria-label": "Послушать слово" });
+  const off = () => b.classList.remove("lit");
+  b.addEventListener("click", () => { b.classList.add("lit"); playWord(key, { onEnd: off, onStop: off, onError: off }); });
+  return b;
+}
+
 /** Наклейки под фразу: арабские вставки, буквы, названные по имени, или выделенные слова. */
 function spotFor(text) {
   const ars = [...text.matchAll(/\{([^}]+)\}/g)].map((m) => m[1]).slice(0, 3);
-  if (ars.length) return ars.map((a, i) => arSticker(a, { size: ars.length > 1 || a.length > 10 ? "2.6rem" : "4rem", tone: i ? TONES[i % 4] : "paper", tilt: [-3, 3, -2][i], cls: "kc-ar" }));
+  if (ars.length) return ars.map((a, i) => arSpot(a, { size: ars.length > 1 || a.length > 10 ? "2.6rem" : "4rem", tone: i ? TONES[i % 4] : "paper", tilt: [-3, 3, -2][i], cls: "kc-ar" }));
   const named = NAMED.filter(([re]) => re.test(plain(text))).map(([, ch]) => ch).slice(0, 4);
   if (named.length) return named.map((ch, i) => arSticker(ch, { size: named.length > 2 ? "2.8rem" : "3.6rem", tone: TONES[i % 4], tilt: [-4, 3, -2, 4][i], cls: "kc-ar" }));
   const bold = [...text.matchAll(/\*\*([^*]+)\*\*/g)].map((m) => m[1].replace(/[:.,]$/, "")).filter((b) => b.length < 40).slice(0, 3);

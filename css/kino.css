@@ -322,6 +322,7 @@
 .kc-spot { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px; min-height: 7.5rem; max-width: 100%; direction: rtl; }
 .kino .kc-ar { max-width: 100%; }
 .kino .kc-ar .ar { line-height: 1.8; }
+.kino .kc-ar.lit { background: var(--k-lime); }
 .kino .kc-word { font-size: 1.05rem; padding: 8px 16px; white-space: normal; text-align: center; direction: ltr; }
 .kino .kc-line { padding: 4px 18px; max-width: 100%; }
 .kino .kc-line .ar { white-space: normal; text-align: center; }
