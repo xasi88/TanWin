@@ -279,19 +279,27 @@ export function surahPlayer(s, data, view, { from = 1, to = data.v.length, onFin
   } });
   const playFrom = (a) => {
     cur = a; playing = true; reps = 0; sync();
+    const next = () => {
+      reps = 0;
+      if (cur < to) { cur++; run(); }
+      else { playing = false; cur = null; sync(); onFinish?.(); }
+    };
     const run = () => {
       guide.start(view.ayahEls[cur]);
       playAyah(s, cur, {
         onTime: (ms) => { view.highlight(cur, ms); guide.follow(view.ayahEls[cur]); },
         onEnd: () => {
           view.highlight(cur, -1);
-          reps++;
-          if (reps < repeat.n) return run();
-          reps = 0;
-          if (cur < to) { cur++; run(); }
-          else { playing = false; cur = null; sync(); onFinish?.(); }
+          if (++reps < repeat.n) return run();
+          next();
         },
-        onError: () => { playing = false; sync(); }, // подсказку «Звук не загружается» показывает само приложение (app.js)
+        // Запись аята повреждена (js/audio.js): чтец не встаёт, читает дальше. Сбой связи: остановка,
+        // подсказку «Звук не загружается» показывает само приложение (app.js).
+        onError: (e) => {
+          view.highlight(cur, -1);
+          if (e?.broken) { toast(brokenNote(s, cur)); next(); }
+          else { playing = false; sync(); }
+        },
         onStop: () => { if (cur) view.highlight(cur, -1); playing = false; sync(); },
       });
     };
@@ -443,6 +451,9 @@ function surahPicker(list, cur, open) {
     return h("div.surah-picker", null, h("h2", null, "Выберите суру"), box);
   }, { cls: "sheet" });
 }
+
+/** Чтение подряд: запись аята у чтеца повреждена (js/audio.js, onError({ broken })). Чтец не встаёт, читает дальше. */
+const brokenNote = (s, a) => `Запись аята ${s}:${a} у чтеца повреждена. Чтец читает дальше.`;
 
 /** Окно выбора чтеца: строка на чтеца, имя и как он читает. Нажали: чтец выбран, окно закрылось. */
 function reciterPicker(onPick) {
@@ -747,6 +758,11 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
     return root.classList.contains("quiet") ? pad : Math.min(Math.max(pad, head.offsetHeight + 8), scroller.clientHeight * 0.6);
   };
   const guide = reciterScroll({ box: scroller, topLine, eye: eyeY, busy: () => touching || performance.now() < holdUntil });
+  const next = () => {
+    reps = 0;
+    if (pi < flat.length - 1) { pi++; play(); }
+    else { pi = -1; setSel(null); syncListen(); toast("Прослушано. Теперь прочитайте сами вслух!"); }
+  };
   const play = () => {
     const x = flat[pi];
     setSel(x);
@@ -756,10 +772,10 @@ function readSession(list, { kind, parts, juz = 0, page = 0, start = null, mark 
       onEnd: () => {
         x.p.view.highlight(x.a, -1);
         if (++reps < repeatN) return play();
-        reps = 0;
-        if (pi < flat.length - 1) { pi++; play(); }
-        else { pi = -1; setSel(null); syncListen(); toast("Прослушано. Теперь прочитайте сами вслух!"); }
+        next();
       },
+      // Запись аята повреждена (js/audio.js): чтец не встаёт, читает дальше. Сбой связи: чтец встаёт, отметка остаётся на аяте.
+      onError: (e) => { x.p.view.highlight(x.a, -1); if (e?.broken) { toast(brokenNote(x.p.s, x.a)); next(); } },
       onStop: () => x.p.view.highlight(x.a, -1),
     });
   };

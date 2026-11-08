@@ -27,12 +27,17 @@ document.addEventListener("pointerdown", unlock, { once: true, capture: true });
 document.addEventListener("keydown", unlock, { once: true, capture: true });
 
 el.addEventListener("ended", () => { const c = current; current = null; emit(); c?.onEnd?.(); });
-// У части записей чтеца битый хвост: новый декодер Chromium на последних долях секунды даёт ошибку вместо «ended».
-// Запись при этом прозвучала целиком: считаем её доигранной, иначе чтец встаёт на последнем аяте суры.
+// У части записей чтеца битые кадры: декодер Chromium на них даёт ошибку 3 (декодер) вместо «ended».
+// Битый хвост (последние 1,5 с): там тишина после голоса, запись считаем доигранной, иначе чтец встаёт.
+// Пример: Хусари 18:16, голос до 36,0 с, Chromium падает на 36,85 с из 37,77 с (обращение ученика 2026-11-08).
+// Битые кадры раньше: повреждена запись, а не связь. onError({ broken: true }), подсказку о связи не показываем.
 el.addEventListener("error", () => {
-  const c = current, tail = el.error?.code === 3 && el.duration > 0 && el.duration - el.currentTime < 0.6;
+  const c = current, broken = el.error?.code === 3 && el.currentTime > 0;
+  const tail = broken && el.duration > 0 && el.duration - el.currentTime < 1.5;
   current = null; emit();
-  if (tail) c?.onEnd?.(); else { c?.onError?.(); if (c) fail(c); }
+  if (tail) c?.onEnd?.();
+  else if (broken) c?.onError?.({ broken: true });
+  else { c?.onError?.(); if (c) fail(c); }
 });
 el.addEventListener("timeupdate", () => current?.onTime?.(el.currentTime * 1000));
 
