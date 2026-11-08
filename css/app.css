@@ -147,7 +147,7 @@ h1, h2, h3, .node-label, .hero-body, .lesson-sheet { --ar-k: 1; }
 .btn.wide { width: 100%; }
 .btn.big { min-height: 58px; font-size: 1.1rem; }
 .btn.rec, .mic-btn.rec { --b: var(--bad); --bi: #fff; --bs: #9b1d27; animation: recPulse 1.2s infinite; }
-.link { background: none; border: 0; padding: 6px 0; color: var(--accent-2); font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.link { background: none; border: 0; padding: 6px 0; color: var(--accent-2); font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; min-height: 44px; }
 .icon-btn { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; border: 0; background: transparent; color: var(--ink-2); cursor: pointer; }
 .icon-btn:hover { background: var(--card-3); color: var(--ink); }
 @keyframes recPulse { 50% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--bad) 20%, transparent); } }
@@ -748,7 +748,7 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .text-in.big { font-size: 1.2rem; min-height: 58px; width: 100%; flex: none; }
 .set-row .text-in { flex: 0 1 260px; min-width: 0; } /* поле сжимается на узком экране с крупным текстом */
 .seg { display: inline-flex; padding: 4px; border-radius: 14px; background: var(--card-3); gap: 2px; flex-wrap: wrap; flex-shrink: 0; max-width: 100%; }
-.seg-btn { border: 0; background: none; padding: 8px 14px; border-radius: 10px; font-weight: 800; color: var(--ink-2); cursor: pointer; min-height: 38px; }
+.seg-btn { border: 0; background: none; padding: 8px 14px; border-radius: 10px; font-weight: 800; color: var(--ink-2); cursor: pointer; min-height: 44px; }
 .seg-btn.on { background: var(--card); color: var(--ink); box-shadow: var(--shadow); }
 @media (max-width: 420px) { .seg-btn { padding: 8px 10px; font-size: .92rem; } }
 .surah-list { display: grid; gap: 8px; margin-top: 10px; }
@@ -772,7 +772,7 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .tool { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 6px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--ink-2); font-weight: 800; font-size: .88rem; cursor: pointer; }
 .tool:hover { color: var(--ink); border-color: var(--line-2); }
 .tool.on { background: var(--accent-soft); color: var(--accent-2); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
-@media (max-width: 520px) { .tool span { display: none; } .tool { padding: 6px 10px; flex: none; } .reader-tools { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; } .reader-tools::-webkit-scrollbar { display: none; } .play-all { flex: none; } }
+@media (max-width: 520px) { .tool span { display: none; } .tool { padding: 6px 10px; flex: none; min-width: 44px; justify-content: center; } .reader-tools { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; } .reader-tools::-webkit-scrollbar { display: none; } .play-all { flex: none; } }
 .bismillah { text-align: center; margin: 4px 0 12px; }
 .bismillah .ar { --s: 2.1rem; }
 .verses { background: var(--card); border: 1px solid var(--line); border-radius: 26px; padding: 18px 16px; box-shadow: var(--shadow); position: relative; }
@@ -975,13 +975,13 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .db-body b { display: block; margin-bottom: 2px; }
 .db-body p { margin: 0 0 8px; font-size: .92rem; color: var(--ink-2); }
 .db-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-.small-btn { min-height: 40px; padding: 8px 14px; font-size: .92rem; border-radius: 12px; box-shadow: 0 3px 0 var(--bs); }
+.small-btn { min-height: 44px; padding: 8px 14px; font-size: .92rem; border-radius: 12px; box-shadow: 0 3px 0 var(--bs); }
 /* крестик в правом верхнем углу карточки (closeX в ui.js): плашка, копия прогресса, установка, письмо */
 .card-x { position: absolute; top: 4px; right: 4px; width: 44px; height: 44px; border: 0; border-radius: 12px; background: transparent; color: var(--ink-3); cursor: pointer; display: grid; place-items: center; }
 .card-x:hover { background: var(--card-3); color: var(--ink); }
 .backup-card, .news-card { position: relative; }
 .backup-card > div > b, .news-h { padding-right: 30px; }
-.nf-ver { font-size: .78rem; color: var(--ink-3); font-weight: 700; margin-top: 2px; }
+.nf-ver { display: inline-flex; align-items: center; min-height: 44px; font-size: .78rem; color: var(--ink-3); font-weight: 700; } /* ссылка на «Версии»: на Surface её нажимают пальцем */
 .about-app .btn { min-height: 44px; }
 .versions { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .version { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); }
@@ -1101,7 +1101,6 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .focus.quiet .focus-bar { opacity: 0; transform: translate(-50%, 24px); pointer-events: none; }
 .focus-bar .play-btn, .focus-bar .sp-btn, .focus-bar .icon-btn { flex: none; }
 .focus-speed { min-width: 1.6em; text-align: center; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
-@media (max-width: 400px) { .focus-bar { gap: 3px; padding: 6px; } .focus-bar .sp-btn { width: 40px; height: 40px; } .focus-bar .icon-btn { width: 40px; } .focus-bar .play-btn { width: 48px; height: 48px; } }
 
 /* ---------- Буква → слоги → слова (js/syllables.js) ---------- */
 .li-kicker { font-size: .78rem; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; color: var(--accent-2); }
@@ -1232,8 +1231,8 @@ a.drill:hover { transform: translateY(-2px); border-color: var(--accent); }
 .sp-list .surah-row { width: 100%; cursor: pointer; text-align: left; font: inherit; }
 .sp-list .surah-row.on { border-color: var(--gold); background: var(--gold-soft); }
 .focus .verses.ayat .translation { text-align: left; }
-@media (max-width: 480px) { .focus-bar { flex-wrap: nowrap; gap: 3px; padding: 6px; } .focus-bar .sp-btn, .focus-bar .icon-btn { width: 36px; height: 38px; } .focus-bar .play-btn { width: 44px; height: 44px; } .focus-speed { min-width: 1.3em; font-size: 1.05rem; } }
-@media (max-width: 340px) { .focus-bar { flex-wrap: wrap; } }
+@media (max-width: 480px) { .focus-bar { flex-wrap: nowrap; gap: 8px; padding: 6px; } .focus-bar .sp-btn, .focus-bar .icon-btn { width: 44px; height: 44px; } .focus-bar .play-btn { width: 44px; height: 44px; } .focus-speed { min-width: 1.3em; font-size: 1.05rem; } }
+/* на 320 панель в один ряд: 266 точек, кнопки 44 и между ними 8 */
 .focus .qw { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 .held .modal, .held .modal * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 
@@ -1321,7 +1320,8 @@ button.more-link { width: 100%; text-align: left; font: inherit; cursor: pointer
 body:has(.focus) .fb-tab { right: auto; left: 0; padding: 0 2px 0 0; border-radius: 0 14px 14px 0; border: 1px solid var(--line); border-left: 0; }
 body:has(.focus) .fb-tab::before, body:has(.sura-scrub) .fb-tab::before { inset: -2px -30px -2px 0; }
 /* Порядок закладок: ручка «переместить» */
-.mark-grip { flex: none; width: 30px; color: var(--ink-3); cursor: grab; touch-action: none; }
+.mark-grip { position: relative; flex: none; width: 30px; color: var(--ink-3); cursor: grab; touch-action: none; }
+.mark-grip::before { inset: 0 -6px 0 -8px; content: ""; position: absolute; } /* вид 30 точек, зона касания 44: шире ручку не делаем, название закладки стало бы уже */
 .mark-row.drag { position: relative; z-index: 1; border-color: var(--accent); box-shadow: var(--shadow-lg); }
 .mark-row.drag .mark-grip { cursor: grabbing; color: var(--accent-2); }
 
@@ -1516,7 +1516,8 @@ body:has(.sura-scrub) .fb-tab { right: auto; left: 0; padding: 0 2px 0 0; border
 .switch i { top: 3px; left: 3px; width: 23px; height: 23px; background: var(--card-2); border: 2.5px solid var(--edge); box-shadow: none; }
 .switch.on { background: var(--lime); }
 .switch.on i { left: 27px; }
-.set-row input[type="range"] { accent-color: var(--accent); min-height: 32px; }
+.switch::before { content: ""; position: absolute; inset: -5px; } /* вид 58×34, зона касания 68×44 */
+.set-row input[type="range"] { accent-color: var(--accent); min-height: 44px; }
 .pill { border: 2px solid var(--edge); background: var(--yellow); color: var(--ink); }
 .badge { min-width: 34px; height: 34px; border: 2.5px solid var(--edge); background: var(--yellow); color: var(--ink); box-shadow: 2px 2px 0 var(--edge); font: 800 .9rem/1 var(--display); }
 .chip { border: 1.5px solid var(--edge); background: var(--card-2); color: var(--ink-2); }
@@ -1993,7 +1994,7 @@ a.drill:active { translate: 4px 4px; box-shadow: 0 0 0 var(--edge); }
 .snd-row.done .snd-main small { color: var(--ink); }
 .snd-bar { display: block; height: 10px; border: 2px solid var(--edge); border-radius: 6px; background: var(--card-2); overflow: hidden; }
 .snd-bar i { display: block; height: 100%; background: var(--lime); transition: width .4s var(--ease); }
-.snd-row .btn { flex: none; min-height: 42px; padding: 6px 14px; font-size: .9rem; }
+.snd-row .btn { flex: none; min-height: 44px; padding: 6px 14px; font-size: .9rem; }
 @keyframes sndDrop { 50% { translate: 0 3px; } }
 @media (prefers-reduced-motion: reduce) { .snd-row.run > .ic { animation: none; } }
 .upd-plaque { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 12px 14px; border: 3px solid var(--edge); border-radius: 20px; color: var(--ink); box-shadow: var(--shadow); }
