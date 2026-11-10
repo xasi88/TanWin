@@ -9,6 +9,7 @@ import { APP_VERSION, CHANGELOG, CONTACT } from "../version.js";
 import { feedbackButton, openFeedback } from "../feedback.js";
 import { track, metrikaAvailable } from "../usage.js";
 import { tourLater } from "../tour.js";
+import { cloudRow } from "./cloud-row.js";
 
 function seg(label, options, value, onChange) {
   const box = h("div.seg", { role: "radiogroup", "aria-label": label });
@@ -198,11 +199,12 @@ export function SettingsView() {
     group("t-lime", "path", "Обучение",
       toggle("Открыть все уроки", "unlockAll", "Все уроки и суры пути открыты сразу. Пригодится, если прогресс потерялся: откройте всё и продолжайте с того места, где остановились.")),
     group("t-violet", "down", "Прогресс и данные",
-      h("p.muted.small", null, "Прогресс хранится только на этом устройстве, без регистрации. Чтобы перенести его на другое устройство, сохраните файл и загрузите его там."),
+      cloudRow(),
+      h("p.muted.small", null, "Без привязки прогресс хранится только на этом устройстве. Перенести его можно и файлом: сохраните файл и загрузите его на другом устройстве."),
       h("div.row.wrap.gap", null,
         h("button.btn.secondary", { type: "button", onclick: saveProgressFile }, icon("down", { size: 18 }), "Сохранить прогресс"),
         h("button.btn.secondary", { type: "button", onclick: () => fileIn.click() }, icon("up", { size: 18 }), "Загрузить"), fileIn),
-      undo ? h("div.set-row.undo-row", null, h("div", null, h("span.set-label", null, "Загрузили не тот файл?"), h("small.muted", null, `Прогресс до загрузки файла ${dateRu(undo.at)}`)), h("button.btn.secondary", { type: "button", onclick: undoImport }, icon("repeat", { size: 18 }), "Вернуть как было")) : null,
+      undo ? h("div.set-row.undo-row", null, h("div", null, h("span.set-label", null, "Вернуть прежний прогресс?"), h("small.muted", null, `Прогресс до загрузки файла или привязки Telegram, ${dateRu(undo.at)}`)), h("button.btn.secondary", { type: "button", onclick: undoImport }, icon("repeat", { size: 18 }), "Вернуть как было")) : null,
       brokenRow,
       metrikaAvailable() ? h("div.set-sep", null, toggle("Анонимная статистика", "analytics", "Показывает автору, сколько людей учится и где трудно. Через Яндекс.Метрику и PostHog уходят открытые экраны, пройденные уроки и то, кто учится: ученик или ученица. Имя не передаётся.")) : null,
       h("a.link", { href: "privacy/" }, "Конфиденциальность: что хранится и что передаётся"),

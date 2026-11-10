@@ -1,4 +1,5 @@
 // TanWin: оболочка приложения: маршруты, навигация, тема, офлайн.
+import { inTelegram, initTelegram, tgColors, addToHome } from "./tg.js"; // первым: убирает данные Telegram из адреса до первого экрана
 import { h, $, icon, toast, modal, checkShaping, queueFit, AR_FONTS, arFont } from "./ui.js";
 import { store, streakNow, levelInfo, todayXp, protectStorage, onStorageFail } from "./store.js";
 import { loadBank, loadSurahs } from "./data.js";
@@ -37,6 +38,7 @@ export function applySettings() {
   const dark = s.theme === "dark" || (s.theme === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
   // строка браузера в цвет фона, и при чтении Корана тоже
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#1d1147" : "#6b3ff0");
+  tgColors(dark ? "#1d1147" : "#6b3ff0"); // шапка Telegram того же цвета
 }
 
 // ---------- Навигация ----------
@@ -66,7 +68,8 @@ function renderNav(active) {
       h("a.nf-ver", { href: "#/changelog" }, `Версия ${APP_VERSION} · в разработке`)));
 }
 export async function installApp() {
-  if (isInstalled()) toast(`TanWin уже установлен. Откройте его со значка ${whereIcon()}.`, 6000);
+  if (inTelegram) { addToHome(); toast("Telegram предложит добавить TanWin на главный экран.", 5000); }
+  else if (isInstalled()) toast(`TanWin уже установлен. Откройте его со значка ${whereIcon()}.`, 6000);
   else if (canPrompt()) { if (await install()) toast("TanWin установлен. Ищите его на рабочем столе ✓"); }
   // iPhone и iPad: окна установки нет, фильм показывает, куда нажать (js/kino/install.js). На живом iPhone не проверено.
   else if (isIOS()) (await import("./kino/install.js")).showInstallFilm();
@@ -182,6 +185,8 @@ async function route() {
     }
     return;
   }
+  // в Telegram неизвестный адрес ведёт на «Путь»: Telegram может дописать в адрес своё (жалоба автора 2026-11-10)
+  if (inTelegram) { location.replace("#/"); return; }
   view.replaceChildren(h("div.page", null, h("div.card", null, h("h2", null, "Страница не найдена"), h("a.btn.primary", { href: "#/" }, "На главную"))));
 }
 export const go = (p) => { location.hash = "#" + p; };
@@ -219,6 +224,7 @@ async function start() {
   matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", applySettings);
   store.on(() => applySettings());
   window.addEventListener("hashchange", route);
+  initTelegram();
   initFullscreen();
   initWake();
   initFeedback();
@@ -259,6 +265,7 @@ async function start() {
   document.fonts?.ready.then(queueFit);
   route();
   registerSW();
+  import("./cloud.js").then((m) => m.initCloud()).catch(() => {}); // облако прогресса: в Telegram и после «Привязать Telegram»
   import("./sound.js").then((m) => m.initSound()).catch(() => {}); // звук без интернета: что скачано, докачка этапа
   // когда есть что беречь: просим браузер не удалять данные приложения
   if (Object.keys(store.get().lessons).length) protectStorage();
@@ -272,7 +279,7 @@ function startMetrika() {
   const count = (map) => Object.values(map).filter((x) => x.done && !x.skipped).length;
   const nt = nextTarget();
   initMetrika({
-    params: { Режим: isStandalone() ? "приложение" : "браузер" },
+    params: { Режим: inTelegram ? "Telegram" : isStandalone() ? "приложение" : "браузер" },
     user: {
       "Пройдено уроков": count(s.lessons),
       "Выучено сур": count(s.surahs),

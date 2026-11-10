@@ -218,6 +218,12 @@ export const store = {
   /** Отложенная испорченная запись: когда отложена, её текст и отложена ли при этом запуске (тогда об этом говорит окно). */
   brokenInfo() { try { const b = JSON.parse(localStorage.getItem(BROKEN_KEY)); return b?.raw ? { at: b.at, raw: b.raw, fresh: brokenFresh } : null; } catch { return null; } },
   dropBroken() { try { localStorage.removeItem(BROKEN_KEY); } catch {} },
+  /** Облако (js/cloud.js): прогресс после слияния. keep: прежний сначала откладывается для «Вернуть как было». */
+  cloudApply(s, keep = false) {
+    pull();
+    if (keep) try { localStorage.setItem(UNDO_KEY, JSON.stringify({ at: Date.now(), state })); } catch {}
+    adopt(state, upgradeGoals(merge(DEFAULT(), migrate(JSON.parse(JSON.stringify(s)))))); save();
+  },
 };
 
 // ---------- Сохранность прогресса ----------
